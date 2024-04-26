@@ -1,0 +1,17 @@
+{
+  "name": "webnn-developer-preview",
+  "version": "1.0.0",
+  "description": "Run ONNX models in the browser with WebNN",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "type": "module",
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "vite": "^5.1.7"
+  }
+}

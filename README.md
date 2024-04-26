@@ -1,14 +1,63 @@
-# Project
+# WebNN Developer Preview
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Run ONNX models in the browser with WebNN. The developer preview unlocks interactive ML on the web that benefits from reduced latency, enhanced privacy and security, and GPU acceleration from DirectML.
 
-As the maintainer of this project, please make a few updates:
+[WebNN Developer Preview website](https://microsoft.github.io/webnn-developer-preview/).
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+_NOTE: Currently, the supported platforms are Edge/Chromium (support for other platforms is coming soon)._
+
+## Use Cases
+
+The website provides four scenarios based on different ONNX pre-trained deep learning models.
+
+### 1. Stable Diffusion 1.5
+
+[Stable Diffusion](https://huggingface.co/onnxruntime-web-temp/demo/tree/main/stable-diffusion-1.5) is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input.
+
+### 2. SD-Turbo
+
+[SD-Turbo](https://huggingface.co/onnxruntime-web-temp/demo/tree/main/sd-turbo) is a fast generative text-to-image model that can synthesize photorealistic images from a text prompt in a single network evaluation. In the demo, you can generate an image in 2s on AI PC devices by leveraging WebNN API, a dedicated low-level API for neural network inference hardware acceleration.
+
+### 3. Segment Anything
+
+[Segment Anything](https://huggingface.co/onnxruntime-web-temp/demo/tree/main/segment-anything) is a new AI model from Meta AI that can "cut out" any object. In the demo, you can segment any object from your uploaded images.
+
+### 4. Whisper Base
+
+[Whisper Base](https://huggingface.co/onnxruntime-web-temp/demo/tree/main/whisper-base) is a pre-trained model for automatic speech recognition (ASR) and speech translation. In the demo, you can experience the speech to text feature by using on-device inference powered by WebNN API and DirectML, especially the NPU acceleration.
+
+### 5. Image Classification
+
+[MobileNet](https://github.com/onnx/models/tree/main/validated/vision/classification/mobilenet) and [ResNet](https://github.com/onnx/models/tree/main/validated/vision/classification/resnet) models perform image classification - they take images as input and classify the major object in the image into a set of pre-defined classes.
+
+## Run WebNN Developer Preview
+
+### Install Dependencies
+
+```
+cd webnn-developer-preview
+npm install
+```
+
+### Run the website
+
+**WebNN installation guides**
+
+WebNN requires a compatible browser to run, and Windows* 11 v21H2 (DML 1.6.0) or higher.
+
+1. Download the latest [Microsoft Edge Canary](https://www.microsoft.com/edge/download/insider) browser
+2. To enable WebNN, in your browser address bar, enter `chrome://flags`, and then press `Enter`. An Experiments page opens
+3. In the Search flags box, enter `webnn`. Enables WebNN API appears
+4. In the drop-down menu, select `Enabled`
+5. Relaunch your browser
+
+**Run the website in localhost**
+
+```
+npm run dev
+```
+
+This will start a dev server and run WebNN Developer Preview demos with the WebNN enabled browser on your localhost.
 
 ## Contributing
 
