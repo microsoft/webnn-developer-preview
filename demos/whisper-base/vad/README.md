@@ -1,0 +1,1 @@
+Files under this folder come from: https://github.com/OzymandiasTheGreat/libfvad-wasm/tree/master/docs with a minor change.
