@@ -394,7 +394,7 @@ async function generate_image() {
             };
             let { out_sample } = await models.unet.sess.run(feed);
             let unetRunTime = (performance.now() - start).toFixed(2);
-            document.getElementById(`unetRun${j+1}`).innerHTML = unetRunTime;
+     //       document.getElementById(`unetRun${j+1}`).innerHTML = unetRunTime;
             log(`[Session Run][Image ${j+1}] UNet execution time: ${unetRunTime}ms`);
 
             // scheduler
@@ -404,14 +404,14 @@ async function generate_image() {
             start = performance.now();
             const { sample } = await models.vae_decoder.sess.run({ "latent_sample": new_latents });
             let vaeRunTime = (performance.now() - start).toFixed(2);
-            document.getElementById(`vaeRun${j+1}`).innerHTML = vaeRunTime;
+   //         document.getElementById(`vaeRun${j+1}`).innerHTML = vaeRunTime;
             log(`[Session Run][Image ${j+1}] VAE decode execution time: ${vaeRunTime}ms`);
             document.getElementById(`img_div_${j}`).setAttribute('class','frame done');
             draw_image(sample, j);
             let totalRunTime = (performance.now() + Number(sessionRunTimeTextEncode) - startTotal ).toFixed(2);
             log(`[Total] Image ${j+1} execution time: ${totalRunTime}ms`);
-            document.getElementById(`runTotal${j+1}`).innerHTML = totalRunTime;
-            document.querySelector(`#data${j+1}`).innerHTML = totalRunTime + 'ms';
+    //        document.getElementById(`runTotal${j+1}`).innerHTML = totalRunTime;
+    //        document.querySelector(`#data${j+1}`).innerHTML = totalRunTime + 'ms';
             document.querySelector(`#data${j+1}`).setAttribute('class', 'show');
         }
         // this is a gpu-buffer we own, so we need to dispose it
