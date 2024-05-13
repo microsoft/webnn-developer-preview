@@ -350,10 +350,10 @@ async function generate_image() {
         runTotal3.innerHTML = '';
         runTotal4.innerHTML = '';
 
-        document.querySelector(`#data1`).innerHTML = '... ms';
-        document.querySelector(`#data2`).innerHTML = '... ms';
-        document.querySelector(`#data3`).innerHTML = '... ms';
-        document.querySelector(`#data4`).innerHTML = '... ms';
+       // document.querySelector(`#data1`).innerHTML = '... ms';
+       // document.querySelector(`#data2`).innerHTML = '... ms';
+       // document.querySelector(`#data3`).innerHTML = '... ms';
+       // document.querySelector(`#data4`).innerHTML = '... ms';
 
         log(`[Session Run] Beginning`);
 
