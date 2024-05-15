@@ -4,10 +4,15 @@
     <meta charset="UTF-8"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>My Website</title> 
+    <script src="./main.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0-dev.20240311-5479124834/dist/ort.webgpu.min.js"></script> 
   </head> 
   <body> 
     <main> 
-        <h1>Welcome to My Website</h1>   
+        <h1>Image Classification Demo!</h1> 
+        <div><img src="./images/image.jpg"></div> 
+        <button onclick="classifyImage('./images/image.jpg')"  type="button">Click Me to Classify Image!</button> 
+        <h1 id="outputText"> This image displayed is ... </h1>
     </main> 
 	<script src="index.js"></script> 
   </body> 
