@@ -37,3 +37,34 @@ function imageDataToTensor(image, dims) {
   return inputTensor;
 }
 
+async function runModel(preprocessedData) { 
+  // Set up environment.
+  ort.env.wasm.numThreads = 1; 
+  ort.env.wasm.simd = true; 
+  ort.env.wasm.proxy = true; 
+  ort.env.logLevel = "verbose";  
+  ort.env.debug = true; 
+
+  // Configure WebNN.
+  const executionProvider = "webnn"; // Other options: webgpu 
+  const modelPath = "./mobilenetv2-10.onnx" 
+  const options = {
+    executionProviders: [{ name: executionProvider, deviceType: "gpu", powerPreference: "default" }],
+    freeDimensionOverrides: {"batch": 1, "channels": 4, "height": 64, "width": 64, "sequence": 77}
+  };
+  modelSession = await ort.InferenceSession.create(modelPath, options); 
+
+  // Create feeds with the input name from model export and the preprocessed data. 
+  const feeds = {}; 
+  feeds[modelSession.inputNames[0]] = preprocessedData; 
+  // Run the session inference. 
+  const outputData = await modelSession.run(feeds); 
+  // Get output results with the output name from the model export. 
+  const output = outputData[modelSession.outputNames[0]]; 
+  // Get the softmax of the output data. The softmax transforms values to be between 0 and 1 
+  var outputSoftmax = softmax(Array.prototype.slice.call(output.data)); 
+  // Get the top 5 results. 
+  var results = imagenetClassesTopK(outputSoftmax, 5);
+
+  return results; 
+} 
