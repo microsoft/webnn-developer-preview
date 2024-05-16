@@ -228,6 +228,36 @@ body {
   margin: 0 6px 0 10px;
 }
 
+.v1:hover #webnn-logo path._logo_n1, .v1:hover #webnn-logo circle._logo_n1 {
+  fill: #4777c0;
+}
+
+.v1:hover #webnn-logo path._logo_n2, .v1:hover #webnn-logo circle._logo_n2 {
+  stroke: #61bafb;
+  fill:#61bafb;
+}
+
+.v1:hover #webnn-logo circle._logo_n3 {
+  stroke: #61bafb;
+}
+
+#webnnstatus a#webnn_na {
+  color: var(--pink);
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  padding: 1px 4px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+#webnnstatus a#webnn_na:hover {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: var(--bg);
+  border: 0px solid white;
+  text-decoration: none;
+}
+
 .log-output::-webkit-scrollbar, #outputText::-webkit-scrollbar {
   width: 3px !important;
   height: 3px !important;
@@ -696,7 +726,7 @@ button svg {
   display: flex;
   flex-direction: column-reverse;
   overflow-y: scroll;
-  height: 78vh;
+  height: 73.8vh;
   width: 20vw;
 }
 
@@ -837,7 +867,8 @@ button svg {
 }
 
 #webnnstatus.red {
-  margin: -4px auto 6px auto;
+  margin: -4px auto 5px auto;
+  text-align: left;
 }
 
 #webnnstatus #circle {
@@ -865,6 +896,29 @@ button svg {
 
 #webnnstatus.red #circle {
   background-color: var(--bg);
+}
+
+#webnnstatus.red a {
+  color: yellow;
+  text-decoration: none;
+}
+
+#webnnstatus.red a:hover {
+  color: var(--bg);
+  text-decoration: underline;
+}
+
+.item .info a {
+  color: var(--pink);
+  border: 1px solid var(--pink);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.item .info a:hover {
+  background-color: var(--pink);
+  color: var(--bg);
 }
 
 #ortversion {

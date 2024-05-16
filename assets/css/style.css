@@ -125,6 +125,19 @@ header svg {
   height: 50px;
 }
 
+header:hover #webnn-logo path._logo_n1, header:hover #webnn-logo circle._logo_n1 {
+  fill: #4777c0;
+}
+
+header:hover #webnn-logo path._logo_n2, header:hover #webnn-logo circle._logo_n2 {
+  stroke: #61bafb;
+  fill:#61bafb;
+}
+
+header:hover #webnn-logo circle._logo_n3 {
+  stroke: #61bafb;
+}
+
 h1 {
   font-size: 1.2rem;
   margin: 0;

@@ -5,7 +5,7 @@
 //
 
 import { Whisper } from "./whisper.js";
-import { loadScript, removeElement, getQueryValue, getOrtDevVersion, webNnStatus, log, concatBuffer, concatBufferArray, logUser } from "./utils.js";
+import { loadScript, removeElement, getQueryValue, getOrtDevVersion, webNnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
 import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
 import AudioMotionAnalyzer from './static/js/audioMotion-analyzer.js?min';
 import { lcm } from "./vad/math.js";
@@ -78,12 +78,13 @@ const SpeechStates = {
 };
 let speechState = SpeechStates.UNINITIALIZED;
 
+let mask_4d = true; // use 4D mask input for decoder models
 let streamingNode = null;
 let sourceNode = null;
 let audioChunks = []; // member {isSubChunk: boolean, data: Float32Array}
 let subAudioChunks = [];
-let chunkLength = 1 / 25; // length in sec of one audio chunk from AudioWorklet processor, recommended by vad
-let maxChunkLength = 1; // max audio length in sec for a single audio processing
+let chunkLength = 0.08; // length in sec of one audio chunk from AudioWorklet processor, recommended by vad
+let maxChunkLength = 10; // max audio length in sec for a single audio processing
 let maxAudioLength = 10; // max audio length in sec for rectification, must not be greater than 30 sec
 let maxUnprocessedAudioLength = 0;
 let maxProcessAudioBufferLength = 0;
@@ -127,25 +128,26 @@ function updateConfig() {
     if (pair[0] == "provider" && providers.includes(pair[1])) {
       provider = pair[1];
     }
-    if (pair[0] == 'deviceType' && deviceTypes.includes(pair[1])) {
+    if (pair[0].toLowerCase() == 'devicetype' && deviceTypes.includes(pair[1])) {
       deviceType = pair[1];
     }
-    if (pair[0] == "dataType" && dataTypes.includes(pair[1])) {
+    if (pair[0].toLowerCase() == "datatype" && dataTypes.includes(pair[1])) {
       dataType = pair[1];
     }
-    if (pair[0] == "maxChunkLength") {
+    if (pair[0].toLowerCase() == "maxchunklength") {
       maxChunkLength = parseFloat(pair[1]);
     }
-
-    if (pair[0] == 'chunkLength') {
+    if (pair[0].toLowerCase() == 'chunklength') {
       chunkLength = parseFloat(pair[1]);
     }
-    if (pair[0] == 'maxAudioLength') {
+    if (pair[0].toLowerCase() == 'maxaudiolength') {
         maxAudioLength = Math.min(parseInt(pair[1]), kMaxAudioLengthInSec);
     }
-
-    if (pair[0] == 'accumulateSubChunks') {
+    if (pair[0].toLowerCase() == 'accumulatesubchunks') {
       accumulateSubChunks = pair[1].toLowerCase() === 'true';
+    }
+    if (pair[0] == 'mask_4d') {
+      mask_4d = pair[1].toLowerCase() === 'true';
     }
   }
 }
@@ -189,24 +191,34 @@ async function process_audio(audio, starttime, idx, pos) {
       
       await process_audio(audio, starttime, idx + kSteps, pos + kMaxAudioLengthInSec);
     } catch (e) {
-      log(`Error · ${e.message}`);
+      logError(`Error · ${e.message}`);
     }
   } else {
     // done with audio buffer
     const processing_time = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
     resultShow.setAttribute('class', 'show');
-    latency.innerText = `100.0%, ${(
-      total / processing_time
-    ).toFixed(1)} x realtime`;
     progress.style.width = "100%";
-    log(
-      `${
-        latency.innerText
-      }, total ${processing_time.toFixed(
-        1
-      )}s processing time for ${total.toFixed(1)}s audio`
-    );
+
+    if(getMode()) {
+      latency.innerText = `100.0%, ${(
+        total / processing_time
+      ).toFixed(1)} x realtime`;
+      log(
+        `${
+          latency.innerText
+        }, total ${processing_time.toFixed(
+          1
+        )}s processing time for ${total.toFixed(1)}s audio`
+      );
+    } else {
+      latency.innerText = `100.0%`;
+      log(
+        `${
+          latency.innerText
+        }, processing completed for ${total.toFixed(1)}s audio`
+      );
+    }
   }
 }
 
@@ -214,7 +226,7 @@ async function process_audio(audio, starttime, idx, pos) {
 async function transcribe_file() {
   resultShow.setAttribute('class', 'show');
   if (audio_src.src == "") {
-    log("Error · No audio input, please record the audio");
+    logError("Error · No audio input, please record the audio");
     ready();
     return;
   }
@@ -238,7 +250,7 @@ async function transcribe_file() {
     const audio = renderedBuffer.getChannelData(0);
     await process_audio(audio, performance.now(), 0, 0);
   } catch (e) {
-    log(`Error · ${e.message}`);
+    logError(`Error · ${e.message}`);
   } finally {
     ready();
   }
@@ -312,7 +324,7 @@ async function stopRecord() {
   }
 }
 
-let micStream;
+// let micStream;
 // start speech
 async function startSpeech() {
   speechToText = '';
@@ -356,6 +368,7 @@ async function stopSpeech() {
   }
   console.warn(`max process audio length: ${maxProcessAudioBufferLength} sec`);
   console.warn(`max unprocessed audio length: ${maxUnprocessedAudioLength} sec`);
+  ready();
   // if (stream) {
   //     stream.getTracks().forEach(track => track.stop());
   // }
@@ -363,6 +376,7 @@ async function stopSpeech() {
   //     // context.close().then(() => context = null);
   //     await context.suspend();
   // }
+  // ready();
 }
 
 // use AudioWorklet API to capture real-time audio
@@ -448,7 +462,7 @@ async function captureAudioStream() {
 
     sourceNode.connect(streamingNode).connect(context.destination);
   } catch (e) {
-    log(`Error · Capturing audio - ${e.message}`);
+    logError(`Error · Capturing audio - ${e.message}`);
   }
 }
 
@@ -494,19 +508,24 @@ async function processAudioBuffer() {
   if (processBufferLength > 0.16) {
     const start = performance.now();
     const ret = await whisper.run(processBuffer);
-
     const processing_time = (performance.now() - start) / 1000;
-
     resultShow.setAttribute('class', 'show');
-    latency.innerText = `${(
-      processBufferLength / processing_time
-    ).toFixed(1)} x realtime`;
 
-    log(
-      `${
-        latency.innerText
-      }, ${processBufferLength}s audio processing time: ${processing_time.toFixed(2)}s`
-    );
+    if(getMode()) {
+      latency.innerText = `${(
+        processBufferLength / processing_time
+      ).toFixed(1)} x realtime`;
+      log(
+        `${
+          latency.innerText
+        }, ${processBufferLength}s audio processing time: ${processing_time.toFixed(2)}s`
+      );
+    } else {
+      latency.innerText = `realtime`;
+      log(
+        `Realtime audio chunk processing completed`
+      );
+    }
 
     // ignore slient, inaudible audio output, i.e. '[BLANK_AUDIO]'
     if (!blacklistTags.includes(ret)) {
@@ -579,47 +598,16 @@ const setupORT = async () => {
   ortversion.innerHTML = `ONNX Runtime Web: Test version`;
 }
 
-const main = async () => {
-  device = document.getElementById('device');
-  badge = document.getElementById('badge');
-  audio_src = document.querySelector("audio");
-  labelFileUpload = document.getElementById("label-file-upload");
-  fileUpload = document.getElementById("file-upload");
-  record = document.getElementById("record");
-  speech = document.getElementById("speech");
-  progress = document.getElementById("progress");
-  outputText = document.getElementById("outputText");
-  resultShow = document.getElementById("result-show");
-  latency = document.getElementById("latency");
-  audioProcessing = document.getElementById("audio-processing");
-  copy = document.getElementById("copy");
-  container = document.getElementById('container');
-  
+const main = async () => {  
   labelFileUpload.setAttribute('class', 'file-upload-label disabled');
   fileUpload.disabled = true;
   record.disabled = true;
   speech.disabled = true;
   // progress.parentNode.style.display = "none";
 
-  updateConfig();
-
   await setupORT();
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.simd = true;
-
-  if (deviceType.toLowerCase().indexOf("cpu") > -1 || provider.toLowerCase().indexOf("wasm") > -1) {
-    device.innerHTML = "CPU";
-    badge.setAttribute('class', 'cpu');
-    document.body.setAttribute('class', 'cpu');
-  } else if (deviceType.toLowerCase().indexOf("gpu") > -1 || provider.toLowerCase().indexOf("webgpu") > -1) {
-    device.innerHTML = "GPU";
-    badge.setAttribute('class', '');
-    document.body.setAttribute('class', 'gpu');
-  } else if (deviceType.toLowerCase().indexOf("npu") > -1) {
-    device.innerHTML = "NPU";
-    badge.setAttribute('class', 'npu');
-    document.body.setAttribute('class', 'npu');
-  }
 
   // click on Record
   record.addEventListener("click", (e) => {
@@ -688,7 +676,7 @@ const main = async () => {
     const whisper_url = location.href.includes("github.io")
       ? "https://huggingface.co/onnxruntime-web-temp/demo/resolve/main/whisper-base/"
       : "./models/";
-    whisper = new Whisper(whisper_url, provider, deviceType, dataType);
+    whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask_4d);
     await whisper.create_whisper_processor();
     await whisper.create_whisper_tokenizer();
     await whisper.create_ort_sessions();
@@ -708,7 +696,7 @@ const main = async () => {
     }
 
   } catch (e) {
-    log(`Error · ${e.message}`);
+    logError(`Error · ${e.message}`);
   }
 
   try {
@@ -727,8 +715,39 @@ const main = async () => {
 };
 
 const ui = async () => {
+  device = document.getElementById('device');
+  badge = document.getElementById('badge');
+  audio_src = document.querySelector("audio");
+  labelFileUpload = document.getElementById("label-file-upload");
+  fileUpload = document.getElementById("file-upload");
+  record = document.getElementById("record");
+  speech = document.getElementById("speech");
+  progress = document.getElementById("progress");
+  outputText = document.getElementById("outputText");
+  resultShow = document.getElementById("result-show");
+  latency = document.getElementById("latency");
+  audioProcessing = document.getElementById("audio-processing");
+  copy = document.getElementById("copy");
+  container = document.getElementById('container');
+
   let status = document.querySelector("#webnnstatus");
   let info = document.querySelector("#info");
+  updateConfig();
+
+  if (deviceType.toLowerCase().indexOf("cpu") > -1 || provider.toLowerCase().indexOf("wasm") > -1) {
+    device.innerHTML = "CPU";
+    badge.setAttribute('class', 'cpu');
+    document.body.setAttribute('class', 'cpu');
+  } else if (deviceType.toLowerCase().indexOf("gpu") > -1 || provider.toLowerCase().indexOf("webgpu") > -1) {
+    device.innerHTML = "GPU";
+    badge.setAttribute('class', '');
+    document.body.setAttribute('class', 'gpu');
+  } else if (deviceType.toLowerCase().indexOf("npu") > -1) {
+    device.innerHTML = "NPU";
+    badge.setAttribute('class', 'npu');
+    document.body.setAttribute('class', 'npu');
+  }
+  
   let webnnStatus = await webNnStatus();
 
   if (
@@ -748,17 +767,42 @@ const ui = async () => {
   } else {
     if (webnnStatus.webnn) {
       status.setAttribute("class", "green");
-      info.innerHTML = `WebNN supported · <a href="./?deviceType=gpu">GPU</a> · <a href="./?deviceType=npu">NPU</a>`;
-      await main();
+      // info.innerHTML = `WebNN supported · <a href="./?devicetype=gpu">GPU</a> · <a href="./?devicetype=npu">NPU</a>`;
+      info.innerHTML = `WebNN supported`;
+      if(deviceType.toLowerCase() === 'npu') {
+        try {
+          await navigator.ml.createContext({deviceType: 'npu'});
+          await main();
+        } catch (error) {
+          status.setAttribute("class", "red");
+          info.innerHTML = `
+            ${error}<br>
+            Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed.`;
+          labelFileUpload.setAttribute('class', 'file-upload-label disabled');
+          fileUpload.disabled = true;
+          record.disabled = true;
+          speech.disabled = true;
+          logError(`[Error] ${error}`);
+          logError(`[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`);
+          log(`<a href="./?devicetype=gpu">Switch to WebNN GPU</a>`);
+        }
+      } else {
+        await main();
+        labelFileUpload.setAttribute('class', 'file-upload-label');
+        fileUpload.disabled = false;
+        record.disabled = false;
+        speech.disabled = false;
+      }
     } else {
       if (webnnStatus.error) {
         status.setAttribute("class", "red");
-        info.innerHTML = `WebNN not supported: ${webnnStatus.error}`;
-        log(`WebNN not supported: ${webnnStatus.error}`);
+        info.innerHTML = `WebNN not supported: ${webnnStatus.error} <a id="webnn_na" href="../../install.html" title="WebNN Installation Guide">Set up WebNN</a>`;
+        logError(`[Error] ${webnnStatus.error}`);
+        log(`<a href="../../install.html" title="WebNN Installation Guide">WebNN Installation Guide</a>`);
       } else {
         status.setAttribute("class", "red");
         info.innerHTML = "WebNN not supported";
-        log("WebNN not supported");
+        logError("[Error] WebNN not supported");
       }
     }
   }

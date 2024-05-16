@@ -23,26 +23,87 @@ let performanceData = {
     textencoder: 0,
     unet: 0,
     vaedecoder: 0,
+    sc: 0,
     total: 0,
   },
   modelfetch: {
     textencoder: 0,
     unet: 0,
     vaedecoder: 0,
+    sc,
   },
   sessioncreate: {
     textencoder: 0,
     unet: 0,
     vaedecoder: 0,
+    sc,
   },
   sessionrun: {
     textencoder: 0,
     unet: [],
     unettotal: 0,
     vaedecoder: 0,
+    sc,
     total: 0,
   },
 };
+
+// convert Float32Array to Uint16Array
+function convertToUint16Array(fp32_array) {
+  const fp16_array = new Uint16Array(fp32_array.length);
+  for (let i = 0; i < fp16_array.length; i++) {
+    fp16_array[i] = toHalf(fp32_array[i]);
+  }
+  return fp16_array;
+}
+
+// ref: http://stackoverflow.com/questions/32633585/how-do-you-convert-to-half-floats-in-javascript
+const toHalf = (function () {
+  var floatView = new Float32Array(1);
+  var int32View = new Int32Array(floatView.buffer);
+
+  /* This method is faster than the OpenEXR implementation (very often
+   * used, eg. in Ogre), with the additional benefit of rounding, inspired
+   * by James Tursa?s half-precision code. */
+  return function toHalf(val) {
+    floatView[0] = val;
+    var x = int32View[0];
+
+    var bits = (x >> 16) & 0x8000; /* Get the sign */
+    var m = (x >> 12) & 0x07ff; /* Keep one extra bit for rounding */
+    var e = (x >> 23) & 0xff; /* Using int is faster here */
+
+    /* If zero, or denormal, or exponent underflows too much for a denormal
+     * half, return signed zero. */
+    if (e < 103) {
+      return bits;
+    }
+
+    /* If NaN, return NaN. If Inf or exponent overflow, return Inf. */
+    if (e > 142) {
+      bits |= 0x7c00;
+      /* If exponent was 0xff and one mantissa bit was set, it means NaN,
+       * not Inf, so make sure we set one mantissa bit too. */
+      bits |= (e == 255 ? 0 : 1) && x & 0x007fffff;
+      return bits;
+    }
+
+    /* If exponent underflows but not too much, return a denormal */
+    if (e < 113) {
+      m |= 0x0800;
+      /* Extra rounding may overflow and set mantissa to 0 and exponent
+       * to 1, which is OK. */
+      bits |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
+      return bits;
+    }
+
+    bits |= ((e - 112) << 10) | (m >> 1);
+    /* Extra rounding. An overflow will set mantissa to 0 and increment
+     * the exponent, which is OK. */
+    bits += m & 1;
+    return bits;
+  };
+})();
 
 function to(promise, errorExt) {
   return promise
@@ -55,6 +116,98 @@ function to(promise, errorExt) {
       }
       return [err, undefined];
     });
+}
+
+function draw_out_image(t) {
+  const imageData = t.toImageData({ tensorLayout: "NHWC", format: "RGB" });
+  const canvas = document.getElementById(`img_canvas_safety`);
+  canvas.width = imageData.width;
+  canvas.height = imageData.height;
+  canvas.getContext("2d").putImageData(imageData, 0, 0);
+}
+
+function resize_image(targetWidth, targetHeight) {
+  const canvas = document.getElementById(`img_canvas_test`);
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  let ctx = canvas.getContext("2d");
+  let canvas_source = document.getElementById(`canvas`);
+  ctx.drawImage(
+    canvas_source,
+    0,
+    0,
+    canvas_source.width,
+    canvas_source.height,
+    0,
+    0,
+    targetWidth,
+    targetHeight
+  );
+  let imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+
+  return imageData;
+}
+
+function normalizeImageData(imageData) {
+  const mean = [0.48145466, 0.4578275, 0.40821073];
+  const std = [0.26862954, 0.26130258, 0.27577711];
+  const { data, width, height } = imageData;
+  const numPixels = width * height;
+
+  let array = new Float32Array(numPixels * 4).fill(0);
+
+  for (let i = 0; i < numPixels; i++) {
+    const offset = i * 4;
+    for (let c = 0; c < 3; c++) {
+      const normalizedValue = (data[offset + c] / 255 - mean[c]) / std[c];
+      // data[offset + c] = Math.round(normalizedValue * 255);
+      array[offset + c] = normalizedValue * 255;
+    }
+  }
+
+  // return imageData;
+  return { data: array, width: width, height: height };
+}
+
+function get_tensor_from_image(imageData, format) {
+  const { data, width, height } = imageData;
+  const numPixels = width * height;
+  const channels = 3;
+  const rearrangedData = new Float32Array(numPixels * channels);
+  let destOffset = 0;
+
+  for (let i = 0; i < numPixels; i++) {
+    const srcOffset = i * 4;
+    const r = data[srcOffset] / 255;
+    const g = data[srcOffset + 1] / 255;
+    const b = data[srcOffset + 2] / 255;
+
+    if (format === "NCHW") {
+      rearrangedData[destOffset] = r;
+      rearrangedData[destOffset + numPixels] = g;
+      rearrangedData[destOffset + 2 * numPixels] = b;
+      destOffset++;
+    } else if (format === "NHWC") {
+      rearrangedData[destOffset] = r;
+      rearrangedData[destOffset + 1] = g;
+      rearrangedData[destOffset + 2] = b;
+      destOffset += channels;
+    } else {
+      throw new Error("Invalid format specified.");
+    }
+  }
+
+  const tensorShape =
+    format === "NCHW"
+      ? [1, channels, height, width]
+      : [1, height, width, channels];
+  let tensor = new ort.Tensor(
+    "float16",
+    convertToUint16Array(rearrangedData),
+    tensorShape
+  );
+
+  return tensor;
 }
 
 const setupORT = async () => {
@@ -80,6 +233,23 @@ let fetchProgress = 0;
 let textEncoderFetchProgress = 0;
 let unetFetchProgress = 0;
 let vaeDecoderFetchProgress = 0;
+let scFetchProgress = 0;
+let textEncoderCompileProgress = 0;
+let unetCompileProgress = 0;
+let vaeDecoderCompileProgress = 0;
+let scCompileProgress = 0;
+
+const updateProgress = () => {
+  progress =
+  textEncoderFetchProgress +
+  unetFetchProgress +
+  scFetchProgress +
+  vaeDecoderFetchProgress +
+  textEncoderCompileProgress +
+  unetCompileProgress +
+  vaeDecoderCompileProgress +
+  scCompileProgress;
+}
 
 // Get model via Origin Private File System
 async function getModelOPFS(name, url, updateModel) {
@@ -105,27 +275,41 @@ async function getModelOPFS(name, url, updateModel) {
     const blob = await fileHandle.getFile();
     let buffer = await blob.arrayBuffer();
     if (buffer) {
-      if (name == "text-encoder") {
-        textEncoderFetchProgress = 10;
-      } else if (name == "stable-diffusion-unet") {
-        unetFetchProgress = 80;
-      } else if (name == "stable-diffusion-vae-decoder") {
-        vaeDecoderFetchProgress = 5;
+
+      if(Utils.getSafetyChecker()) {
+        if (name == "sd_1.5_text-encoder") {
+          textEncoderFetchProgress = 7;
+        } else if (name == "sd_1.5_unet") {
+          unetFetchProgress = 48;
+        } else if (name == "sd_1.5_vae-decoder") {
+          vaeDecoderFetchProgress = 3;
+        } else if (name == "sd_1.5_safety-checker") {
+          scFetchProgress = 12;
+        }
+      } else {
+        if (name == "sd_1.5_text-encoder") {
+          textEncoderFetchProgress = 7;
+        } else if (name == "sd_1.5_unet") {
+          unetFetchProgress = 60;
+        } else if (name == "sd_1.5_vae-decoder") {
+          vaeDecoderFetchProgress = 3;
+        } 
       }
 
-      progress =
-        textEncoderFetchProgress + unetFetchProgress + vaeDecoderFetchProgress;
+      updateProgress();
       progressBarInner.style.width = progress + "%";
 
-      if (name == "text-encoder") {
+      if (name == "sd_1.5_text-encoder") {
         progressBarLabel.textContent =
           "Loading Text Encoder model · 235MB · " + progress.toFixed(2) + "%";
-      } else if (name == "stable-diffusion-unet") {
+      } else if (name == "sd_1.5_unet") {
         progressBarLabel.textContent =
           "Loading UNet model · 1.60GB · " + progress.toFixed(2) + "%";
-      } else if (name == "stable-diffusion-vae-decoder") {
+      } else if (name == "sd_1.5_vae-decoder") {
         progressBarLabel.textContent =
           "Loading VAE Decoder model · 94.5MB · " + progress.toFixed(2) + "%";
+      } else if (name == "sd_1.5_safety-checker") {
+        "Loading Safety Checker model · 580MB · " + progress.toFixed(2) + "%";
       }
 
       return buffer;
@@ -149,27 +333,41 @@ async function readResponse(name, response) {
     let newLoaded = loaded + value.length;
     fetchProgress = (newLoaded / contentLength) * 100;
 
-    if (name == "text-encoder") {
-      textEncoderFetchProgress = 0.1 * fetchProgress;
-    } else if (name == "stable-diffusion-unet") {
-      unetFetchProgress = 0.8 * fetchProgress;
-    } else if (name == "stable-diffusion-vae-decoder") {
-      vaeDecoderFetchProgress = 0.05 * fetchProgress;
+    if(Utils.getSafetyChecker()) {
+      if (name == "sd_1.5_text-encoder") {
+        textEncoderFetchProgress = 0.07 * fetchProgress;
+      } else if (name == "sd_1.5_unet") {
+        unetFetchProgress = 0.48 * fetchProgress;
+      } else if (name == "sd_1.5_vae-decoder") {
+        vaeDecoderFetchProgress = 0.03 * fetchProgress;
+      } else if (name == "sd_1.5_safety-checker") {
+        scFetchProgress = 0.12 * fetchProgress;
+      } 
+    } else {
+      if (name == "sd_1.5_text-encoder") {
+        textEncoderFetchProgress = 0.07 * fetchProgress;
+      } else if (name == "sd_1.5_unet") {
+        unetFetchProgress = 0.60 * fetchProgress;
+      } else if (name == "sd_1.5_vae-decoder") {
+        vaeDecoderFetchProgress = 0.03 * fetchProgress;
+      }
     }
 
-    progress =
-      textEncoderFetchProgress + unetFetchProgress + vaeDecoderFetchProgress;
+    updateProgress();
     progressBarInner.style.width = progress + "%";
 
-    if (name == "text-encoder") {
+    if (name == "sd_1.5_text-encoder") {
       progressBarLabel.textContent =
         "Loading Text Encoder model · 235MB · " + progress.toFixed(2) + "%";
-    } else if (name == "stable-diffusion-unet") {
+    } else if (name == "sd_1.5_unet") {
       progressBarLabel.textContent =
         "Loading UNet model · 1.60GB · " + progress.toFixed(2) + "%";
-    } else if (name == "stable-diffusion-vae-decoder") {
+    } else if (name == "sd_1.5_vae-decoder") {
       progressBarLabel.textContent =
         "Loading VAE Decoder model · 94.5MB · " + progress.toFixed(2) + "%";
+    } else if (name == "sd_1.5_safety-checker") {
+      progressBarLabel.textContent =
+        "Loading Safety Checker model · 580MB · " + progress.toFixed(2) + "%";
     }
 
     if (newLoaded > total) {
@@ -196,6 +394,7 @@ const progressBarInnerInference = document.querySelector(
 const progressBarLabelInference = document.querySelector(
   "#progress-bar-label-inference"
 );
+
 const startButton = document.getElementById("generate_next_image");
 const loadButton = document.getElementById("load_models");
 const logOutput = document.getElementById("status");
@@ -220,6 +419,11 @@ const vaeDecoderLoad = document.querySelector("#vaedecoderload");
 const vaeDecoderFetch = document.querySelector("#vaedecoderfetch");
 const vaeDecoderCreate = document.querySelector("#vaedecodercreate");
 const vaeDecoderRun = document.querySelector("#vaedecoderrun");
+const scTr = document.querySelector("#sc");
+const scLoad = document.querySelector("#scload");
+const scFetch = document.querySelector("#scfetch");
+const scCreate = document.querySelector("#sccreate");
+const scRun = document.querySelector("#scrun");
 const totalLoad = document.querySelector("#totalload");
 const totalRun = document.querySelector("#totalrun");
 let inferenceProgress = 0;
@@ -230,6 +434,11 @@ loadButton.onclick = async () => {
   textEncoderFetchProgress = 0;
   unetFetchProgress = 0;
   vaeDecoderFetchProgress = 0;
+  scFetchProgress = 0;
+  textEncoderCompileProgress = 0;
+  unetCompileProgress = 0;
+  vaeDecoderCompileProgress = 0;
+  scCompileProgress = 0;
 
   data.removeAttribute("class");
   data.setAttribute("class", "hide");
@@ -237,15 +446,18 @@ loadButton.onclick = async () => {
   performanceData.loadtime.textencoder = 0;
   performanceData.loadtime.unet = [];
   performanceData.loadtime.vaedecoder = 0;
+  performanceData.loadtime.sc = 0;
   performanceData.loadtime.total = 0;
 
   performanceData.modelfetch.textencoder = 0;
   performanceData.modelfetch.unet = 0;
   performanceData.modelfetch.vaedecoder = 0;
+  performanceData.modelfetch.sc = 0;
 
   performanceData.sessioncreate.textencoder = 0;
   performanceData.sessioncreate.unet = 0;
   performanceData.sessioncreate.vaedecoder = 0;
+  performanceData.sessioncreate.sc = 0;
 
   loadButton.disabled = true;
   startButton.disabled = true;
@@ -268,18 +480,30 @@ loadButton.onclick = async () => {
     vaeDecoderCreate.innerHTML = performanceData.sessioncreate.vaedecoder;
     vaeDecoderRun.innerHTML = "-";
 
+    scLoad.innerHTML = performanceData.loadtime.sc;
+    scFetch.innerHTML = performanceData.modelfetch.sc;
+    scCreate.innerHTML = performanceData.sessioncreate.sc;
+    scRun.innerHTML = "-";
+
     totalLoad.innerHTML = performanceData.loadtime.total;
     totalRun.innerHTML = "-";
   }
 
-  data.setAttribute("class", "show");
+  if(Utils.getMode()) {
+    data.setAttribute("class", "show");
+  }
 };
 
 startButton.onclick = async () => {
+  textEncoderRun.innerHTML = "";
+  unetRun.innerHTML = "";
+  vaeDecoderRun.innerHTML = "";
+  scRun.innerHTML = "";
   performanceData.sessionrun.textencoder = 0;
   performanceData.sessionrun.unet = [];
   performanceData.sessionrun.unettotal = 0;
   performanceData.sessionrun.vaedecoder = 0;
+  performanceData.sessionrun.sc = 0;
   performanceData.sessionrun.total = 0;
 
   startButton.disabled = true;
@@ -433,10 +657,12 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
 
   if (modelName == "text-encoder") {
     modelSize = "235MB";
-  } else if (modelName == "stable-diffusion-unet") {
+  } else if (modelName == "unet") {
     modelSize = "1.60GB";
-  } else if (modelName == "stable-diffusion-vae-decoder") {
+  } else if (modelName == "vae-decoder") {
     modelSize = "94.5MB";
+  } else if (modelName == "safety-checker") {
+    modelSize = "580MB";
   }
 
   Utils.log(`[Load] Loading model ${modelName} · ${modelSize}`);
@@ -456,7 +682,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
       batch: unetBatch,
       sequence: textEmbeddingSequenceLength,
     };
-  } else if (modelName == "stable-diffusion-unet") {
+  } else if (modelName == "unet") {
     //  Typical shapes (some models may vary, like inpainting have 9 channels or single batch having 1 batch)...
     //
     //  Inputs:
@@ -483,7 +709,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
       unet_hidden_batch: unetBatch,
       unet_hidden_sequence: textEmbeddingSequenceLength,
     };
-  } else if (modelName == "stable-diffusion-vae-decoder") {
+  } else if (modelName == "vae-decoder") {
     //  Inputs:
     //    float16 latent_sample[1, 4, 64, 64]
     //  Outputs:
@@ -496,6 +722,20 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
       channels: latentChannelCount,
       height: latentHeight,
       width: latentWidth,
+    };
+  } else if (modelName == "safety-checker") {
+    //  Inputs:
+    //    float16 clip_input[1, 3, 224, 224]
+    //    float16 images[1, 224, 224, 3]
+    //  Outputs:
+    //    float16 out_images
+    //    bool has_nsfw_concepts
+    modelPath = Utils.modelPath() + "safety-checker.onnx";
+    freeDimensionOverrides = {
+      batch: 1,
+      channels: 3,
+      height: 224,
+      width: 224,
     };
   } else {
     throw new Error(`Model ${modelName} is unknown`);
@@ -515,42 +755,57 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     options.freeDimensionOverrides = freeDimensionOverrides;
   }
 
-  options.logSeverityLevel = 3;
+  options.logSeverityLevel = 0;
 
   Utils.log("[Load] Model path = " + modelPath);
   let modelBuffer;
 
   let fetchStartTime = performance.now();
-  modelBuffer = await getModelOPFS(modelName, modelPath, false);
+  modelBuffer = await getModelOPFS(`sd_1.5_${modelName}`, modelPath, false);
   let fetchTime = (performance.now() - fetchStartTime).toFixed(2);
 
   if (modelName == "text-encoder") {
     performanceData.modelfetch.textencoder = fetchTime;
+    updateProgress();
     progressBarLabel.textContent = `Loaded Text Encoder · ${(
       fetchTime / 1000
-    ).toFixed(2)}s · 10%`;
+    ).toFixed(2)}s · ${progress}%`;
     Utils.log(`[Load] Text Encoder loaded · ${(fetchTime / 1000).toFixed(2)}s`);
 
-    progressBarLabel.textContent = "Creating session for Text Encoder · 10%";
+    progressBarLabel.textContent = `Creating session for Text Encoder · ${progress}%`;
     Utils.log("[Session Create] Beginning text encode");
-  } else if (modelName == "stable-diffusion-unet") {
+  } else if (modelName == "unet") {
     performanceData.modelfetch.unet = fetchTime;
+    updateProgress();
     progressBarLabel.textContent = `Loaded UNet · ${(fetchTime / 1000).toFixed(
       2
-    )}s · 90%`;
+    )}s · ${progress}`;
     Utils.log(`[Load] UNet loaded · ${(fetchTime / 1000).toFixed(2)}s`);
 
-    progressBarLabel.textContent = "Creating session for UNet · 90%";
+    progressBarLabel.textContent = `Creating session for UNet · ${progress}%`;
     Utils.log("[Session Create] Beginning UNet");
-  } else if (modelName == "stable-diffusion-vae-decoder") {
+  } else if (modelName == "vae-decoder") {
     performanceData.modelfetch.vaedecoder = fetchTime;
+    updateProgress();
     progressBarLabel.textContent = `Loaded VAE Decoder · ${(
       fetchTime / 1000
-    ).toFixed(2)}s · 95%`;
+    ).toFixed(2)}s · 81%`;
     Utils.log(`[Load] VAE Decoder loaded · ${(fetchTime / 1000).toFixed(2)}s`);
 
-    progressBarLabel.textContent = "Creating session for VAE Decoder · 95%";
+    progressBarLabel.textContent = `Creating session for VAE Decoder · ${progress}%`;
     Utils.log("[Session Create] Beginning VAE decode");
+  } else if (modelName == "safety-checker") {
+    performanceData.modelfetch.sc = fetchTime;
+    updateProgress();
+    progressBarLabel.textContent = `Loaded Safety Checker · ${(
+      fetchTime / 1000
+    ).toFixed(2)}s · ${progress}%`;
+    Utils.log(
+      `[Load] Safety Checker loaded · ${(fetchTime / 1000).toFixed(2)}s`
+    );
+
+    progressBarLabel.textContent = `Creating session for Safety Checker · ${progress}%`;
+    Utils.log("[Session Create] Beginning Safety Checker");
   }
 
   let createStartTime = performance.now();
@@ -561,22 +816,55 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
       2
     );
     performanceData.sessioncreate.textencoder = textencoderCreateTime;
-    progressBarLabel.textContent = `Text Encoder session created · ${textencoderCreateTime}ms · 10%`;
-    Utils.log(
-      `[Session Create] Text Encoder completed · ${textencoderCreateTime}ms`
-    );
-  } else if (modelName == "stable-diffusion-unet") {
+    textEncoderCompileProgress = 3;
+    updateProgress();
+    if(Utils.getMode()) {
+      progressBarLabel.textContent = `Text Encoder session created · ${textencoderCreateTime}ms · ${progress}%`;
+      Utils.log(`[Session Create] Text Encoder completed · ${textencoderCreateTime}ms`);
+    } else {
+      progressBarLabel.textContent = `Text Encoder session created · ${progress}%`;
+      Utils.log(`[Session Create] Text Encoder completed`);
+    }
+  } else if (modelName == "unet") {
     let unetCreateTime = (performance.now() - createStartTime).toFixed(2);
     performanceData.sessioncreate.unet = unetCreateTime;
-    progressBarLabel.textContent = `UNet session created · ${unetCreateTime}ms · 90%`;
-    Utils.log(`[Session Create] UNet Completed · ${unetCreateTime}ms`);
-  } else if (modelName == "stable-diffusion-vae-decoder") {
+    if(Utils.getSafetyChecker()) {
+      unetCompileProgress = 20;
+    } else {
+      unetCompileProgress = 25;
+    }
+    updateProgress();
+    if(Utils.getMode()) {  
+      progressBarLabel.textContent = `UNet session created · ${unetCreateTime}ms · ${progress}%`;
+      Utils.log(`[Session Create] UNet Completed · ${unetCreateTime}ms`);
+    } else {
+      progressBarLabel.textContent = `UNet session created · ${progress}%`;
+      Utils.log(`[Session Create] UNet Completed`);
+    }
+  } else if (modelName == "vae-decoder") {
     let vaedecoderCreateTime = (performance.now() - createStartTime).toFixed(2);
     performanceData.sessioncreate.vaedecoder = vaedecoderCreateTime;
-    progressBarLabel.textContent = `VAE Decoder session created · ${vaedecoderCreateTime}ms · 95%`;
-    Utils.log(
-      `[Session Create] VAE Decoder completed · ${vaedecoderCreateTime}ms`
-    );
+    vaeDecoderCompileProgress = 2;
+    updateProgress();
+    if(Utils.getMode()) {  
+      progressBarLabel.textContent = `VAE Decoder session created · ${vaedecoderCreateTime}ms · ${progress}%`;
+      Utils.log(`[Session Create] VAE Decoder completed · ${vaedecoderCreateTime}ms`);
+    } else {
+      progressBarLabel.textContent = `VAE Decoder session created · ${progress}%`;
+      Utils.log(`[Session Create] VAE Decoder completed`);
+    }
+  } else if (modelName == "safety-checker") {
+    let scCreateTime = (performance.now() - createStartTime).toFixed(2);
+    performanceData.sessioncreate.sc = scCreateTime;
+    scCompileProgress = 5;
+    updateProgress();
+    if(Utils.getMode()) {  
+      progressBarLabel.textContent = `Safety Checker session created · ${scCreateTime}ms · ${progress}%`;
+      Utils.log(`[Session Create] Safety Checker completed · ${scCreateTime}ms`);
+    } else {
+      progressBarLabel.textContent = `Safety Checker session created · ${progress}%`;
+      Utils.log(`[Session Create] Safety Checker completed`);
+    }  
   }
   return modelSession;
 }
@@ -625,6 +913,7 @@ function displayPlanarRGB(
 let textEncoderSession;
 let vaeDecoderModelSession;
 let unetModelSession;
+let scModelSession;
 
 // Hard-coded values for 25 iterations (the standard).
 const defaultSigmas /*[25 + 1]*/ = [
@@ -653,6 +942,9 @@ async function loadStableDiffusion(executionProvider) {
       await unetModelSession.release();
       await textEncoderSession.release();
       await vaeDecoderModelSession.release();
+      if(Utils.getSafetyChecker()) {
+        await scModelSession.release();
+      }
     }
 
     error.removeAttribute("class");
@@ -665,33 +957,36 @@ async function loadStableDiffusion(executionProvider) {
     ).toFixed(2);
 
     const unetLoadStartTime = performance.now();
-    unetModelSession = await loadModel(
-      "stable-diffusion-unet",
-      executionProvider
-    );
+    unetModelSession = await loadModel("unet", executionProvider);
     performanceData.loadtime.unet = (
       performance.now() - unetLoadStartTime
     ).toFixed(2);
 
     const vaeDecoderLoadStartTime = performance.now();
-    vaeDecoderModelSession = await loadModel(
-      "stable-diffusion-vae-decoder",
-      executionProvider
-    );
+    vaeDecoderModelSession = await loadModel("vae-decoder", executionProvider);
     performanceData.loadtime.vaedecoder = (
       performance.now() - vaeDecoderLoadStartTime
     ).toFixed(2);
 
-    progress += 5;
+    if(Utils.getSafetyChecker()) {
+      const scLoadStartTime = performance.now();
+      scModelSession = await loadModel("safety-checker", executionProvider);
+      performanceData.loadtime.sc = (performance.now() - scLoadStartTime).toFixed(
+        2
+      );
+    }
+
     progressBarInner.style.width = progress + "%";
     progressBarLabel.textContent =
       "Models loaded and sessions created · " + progress.toFixed(2) + "%";
     const loadTime = performance.now() - loadStartTime;
-    Utils.log(
-      `[Total] Total load time (models load and sessions creation): ${(
-        loadTime / 1000
-      ).toFixed(2)}s`
-    );
+    if(Utils.getMode()) {
+      Utils.log(
+        `[Total] Total load time (models load and sessions creation): ${(
+          loadTime / 1000
+        ).toFixed(2)}s`
+      );
+    }
     performanceData.loadtime.total = loadTime.toFixed(2);
     startButton.removeAttribute("disabled");
   } catch (e) {
@@ -900,6 +1195,7 @@ async function executeStableDiffusion() {
   // - unetModelSession
   // - unetInputs
   // - vaeDecoderInputs
+  // - scInputs
   Utils.log("[Session Run] Beginning text encode");
   let token_ids = await getTextTokens();
   const startTextEncoder = performance.now();
@@ -916,9 +1212,15 @@ async function executeStableDiffusion() {
     2
   );
   performanceData.sessionrun.textencoder = textEncoderExecutionTime;
-  Utils.log(
-    `[Session Run] Text encode execution time: ${textEncoderExecutionTime}ms`
-  );
+  if(Utils.getMode()) {
+    Utils.log(
+      `[Session Run] Text encode execution time: ${textEncoderExecutionTime}ms`
+    );
+  } else {
+    Utils.log(
+      `[Session Run] Text encode completed`
+    );
+  }
 
   inferenceProgress += 1;
   progressBarInnerInference.style.width = inferenceProgress + "%";
@@ -997,7 +1299,12 @@ async function executeStableDiffusion() {
 
   let unetExecutionTime = (performance.now() - startUnet).toFixed(2);
   performanceData.sessionrun.unettotal = unetExecutionTime;
-  Utils.log(`[Session Run] UNet loop execution time: ${unetExecutionTime}ms`);
+
+  if(Utils.getMode()) {
+    Utils.log(`[Session Run] UNet loop execution time: ${unetExecutionTime}ms`);
+  } else {
+    Utils.log(`[Session Run] UNet loop completed`);
+  }
 
   Utils.log("[Session Run] Beginning VAE decode");
   // Decode from latent space.
@@ -1017,12 +1324,23 @@ async function executeStableDiffusion() {
   let vaeDecoderExecutionTime = (performance.now() - startVaeDecoder).toFixed(
     2
   );
-  Utils.log(
-    `[Session Run] VAE decode execution time: ${vaeDecoderExecutionTime}ms`
-  );
+
+  if(Utils.getMode()) {
+    Utils.log(
+      `[Session Run] VAE decode execution time: ${vaeDecoderExecutionTime}ms`
+    );
+  } else {
+    Utils.log(
+      `[Session Run] VAE decode completed`
+    );
+  }
   performanceData.sessionrun.vaedecoder = vaeDecoderExecutionTime;
 
-  inferenceProgress += 4;
+  if(Utils.getSafetyChecker()) {
+    inferenceProgress += 3;
+  } else {
+    inferenceProgress += 4;
+  }
   progressBarInnerInference.style.width = inferenceProgress + "%";
   progressBarLabelInference.textContent =
     "VAE decoded · " + inferenceProgress.toFixed(2) + "%";
@@ -1040,11 +1358,59 @@ async function executeStableDiffusionAndDisplayOutput() {
     let rgbPlanarPixels = await executeStableDiffusion();
     const executionTime = performance.now() - executionStartTime;
     performanceData.sessionrun.total = executionTime.toFixed(2);
-    Utils.log(
-      `[Total] Total execution time: ${(executionTime / 1000).toFixed(2)}s`
-    );
-    console.log(performanceData);
+
     displayPlanarRGB(await rgbPlanarPixels.getData());
+
+    if(Utils.getSafetyChecker()) {
+      // safety_checker
+      let resized_image_data = resize_image(224, 224);
+      let normalized_image_data = normalizeImageData(resized_image_data);
+
+      Utils.log("[Session Run] Beginning Safety Checker");
+      const startSc = performance.now();
+      let safety_checker_feed = {
+        "clip_input": get_tensor_from_image(normalized_image_data, "NCHW"),
+        "images": get_tensor_from_image(resized_image_data, "NHWC"),
+      };
+      const { has_nsfw_concepts } = await scModelSession.run(safety_checker_feed);
+      // const { out_images, has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
+      let scExecutionTime = (performance.now() - startSc).toFixed(
+        2
+      );
+      if(Utils.getMode()) {
+        Utils.log(
+          `[Session Run] Safety Checker execution time: ${scExecutionTime}ms`
+        );
+      } else {
+        Utils.log(
+          `[Session Run] Safety Checker completed`
+        );
+      }
+      performanceData.sessionrun.sc = scExecutionTime;
+
+      inferenceProgress += 1;
+      progressBarInnerInference.style.width = inferenceProgress + "%";
+      progressBarLabelInference.textContent =
+        "Completed Safety Checker · " + inferenceProgress.toFixed(2) + "%";
+
+      let nsfw = false;
+      (has_nsfw_concepts.data[0]) ? nsfw = true : nsfw = false;
+      Utils.log(`[Session Run] Safety Checker - not safe for work (NSFW) concepts: ${nsfw}`);
+      if(has_nsfw_concepts.data[0]) {
+        document.querySelector(`#canvas`).setAttribute('class', 'canvas nsfw');
+        document.querySelector(`#canvas`).setAttribute('title', 'Not safe for work (NSFW) content');
+        document.querySelector(`#nsfw`).innerHTML = 'Not safe for work (NSFW) content';
+        document.querySelector(`#nsfw`).setAttribute('class', 'nsfw');
+      } else {
+        document.querySelector(`#canvas`).setAttribute('class', 'canvas');
+        document.querySelector(`#canvas`).setAttribute('title', '');
+        document.querySelector(`#nsfw`).setAttribute('class', '');
+      }
+    } else {
+      document.querySelector(`#canvas`).setAttribute('class', 'canvas');
+      document.querySelector(`#canvas`).setAttribute('title', '');
+      document.querySelector(`#nsfw`).setAttribute('class', '');
+    }
   } catch (e) {
     error.setAttribute("class", "error");
     error.innerHTML = e.message;
@@ -1078,11 +1444,18 @@ async function generateNextImage() {
     vaeDecoderCreate.innerHTML = performanceData.sessioncreate.vaedecoder;
     vaeDecoderRun.innerHTML = performanceData.sessionrun.vaedecoder;
 
+    scLoad.innerHTML = performanceData.loadtime.sc;
+    scFetch.innerHTML = performanceData.modelfetch.sc;
+    scCreate.innerHTML = performanceData.sessioncreate.sc;
+    scRun.innerHTML = performanceData.sessionrun.sc;
+
     totalLoad.innerHTML = performanceData.loadtime.total;
     totalRun.innerHTML = performanceData.sessionrun.total;
   }
 
-  data.setAttribute("class", "show");
+  if(Utils.getMode()) {
+    data.setAttribute("class", "show");
+  }
 }
 
 const executionProvider = Utils.getQueryVariable("provider", "webnn");
@@ -1095,14 +1468,18 @@ const checkWebNN = async () => {
 
   if (webnnStatus.webnn) {
     status.setAttribute("class", "green");
-    info.innerHTML = "WebNN supported · 6GB available GPU memory required";
+    info.innerHTML = "WebNN supported · 8GB available GPU memory required";
+    loadButton.disabled = false;
   } else {
+    loadButton.disabled = true;
     if (webnnStatus.error) {
       status.setAttribute("class", "red");
-      info.innerHTML = "WebNN not supported: " + webnnStatus.error;
+      info.innerHTML = `WebNN not supported: ${webnnStatus.error} <a id="webnn_na" href="../../install.html" title="WebNN Installation Guide">Set up WebNN</a>`;
+      Utils.logError(`[Error] ${webnnStatus.error}`);
     } else {
       status.setAttribute("class", "red");
       info.innerHTML = "WebNN not supported";
+      Utils.logError("[Error] WebNN not supported");
     }
   }
 
@@ -1125,6 +1502,11 @@ const ui = async () => {
   await checkWebNN();
   initializeOnnxRuntime();
   displayEmptyCanvasPlaceholder();
+  if(Utils.getSafetyChecker()) {
+    scTr.setAttribute("class", "");
+  } else {
+    scTr.setAttribute("class", "hide");
+  }
 };
 
 document.addEventListener("DOMContentLoaded", ui, false);
