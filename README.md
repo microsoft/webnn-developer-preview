@@ -46,7 +46,7 @@ npm install
 WebNN requires a compatible browser to run, and Windows* 11 v21H2 (DML 1.6.0) or higher.
 
 1. Download the latest [Microsoft Edge Canary](https://www.microsoft.com/edge/download/insider) browser
-2. To enable WebNN, in your browser address bar, enter `chrome://flags`, and then press `Enter`. An Experiments page opens
+2. To enable WebNN, in your browser address bar, enter `about://flags`, and then press `Enter`. An Experiments page opens
 3. In the Search flags box, enter `webnn`. Enables WebNN API appears
 4. In the drop-down menu, select `Enabled`
 5. Relaunch your browser
