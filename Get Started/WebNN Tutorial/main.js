@@ -47,7 +47,7 @@ async function runModel(preprocessedData) {
 
   // Configure WebNN.
   const executionProvider = "webnn"; // Other options: webgpu 
-  const modelPath = "./mobilenetv2-10.onnx" 
+  const modelPath = "./mobilenetv2-10.onnx"
   const options = {
     executionProviders: [{ name: executionProvider, deviceType: "gpu", powerPreference: "default" }],
     freeDimensionOverrides: {"batch": 1, "channels": 4, "height": 64, "width": 64, "sequence": 77}
@@ -67,4 +67,42 @@ async function runModel(preprocessedData) {
   var results = imagenetClassesTopK(outputSoftmax, 5);
 
   return results; 
+} 
+
+// The softmax transforms values to be between 0 and 1 
+function softmax(resultArray) { 
+  // Get the largest value in the array. 
+  const largestNumber = Math.max(...resultArray) 
+  // Apply exponential function to each result item subtracted by the largest number, use reduce to get the previous result number and the current number to sum all the exponentials results. 
+  const sumOfExp = resultArray 
+    .map(resultItem => Math.exp(resultItem - largestNumber)) 
+    .reduce((prevNumber, currentNumber) => prevNumber + currentNumber) 
+  // Normalizes the resultArray by dividing by the sum of all exponentials; this normalization ensures that the sum of the components of the output vector is 1. 
+  return resultArray.map((resultValue, index) => { 
+    return Math.exp(resultValue - largestNumber) / sumOfExp 
+  }) 
+} 
+  
+function imagenetClassesTopK(classProbabilities, k = 5) { 
+    const probs = _.isTypedArray(classProbabilities) 
+    ? Array.prototype.slice.call(classProbabilities) 
+    : classProbabilities
+
+    const sorted = _.reverse( 
+    _.sortBy( 
+        probs.map((prob, index) => [prob, index]), 
+        probIndex => probIndex[0] 
+    ) 
+    ) 
+
+    const topK = _.take(sorted, k).map(probIndex => { 
+    const iClass = imagenetClasses[probIndex[1]] 
+    return { 
+        id: iClass[0], 
+        index: parseInt(probIndex[1].toString(), 10), 
+        name: iClass[1].replace(/_/g, " "), 
+        probability: probIndex[0] 
+    } 
+    }) 
+    return topK 
 } 
