@@ -1,0 +1,21 @@
+<!DOCTYPE html> 
+<html lang="en"> 
+  <head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>My Website</title> 
+    <script src="./main.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0-dev.20240311-5479124834/dist/ort.webgpu.min.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jimp/0.22.12/jimp.min.js" integrity="sha512-8xrUum7qKj8xbiUrOzDEJL5uLjpSIMxVevAM5pvBroaxJnxJGFsKaohQPmlzQP8rEoAxrAujWttTnx3AMgGIww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="imagenetClasses.js"></script>    
+</head> 
+  <body> 
+    <main> 
+        <h1>Image Classification Demo!</h1> 
+        <div><img src="./images/chameleon.jpg" style="width: 50%; height: auto;"></div> 
+        <button onclick="classifyImage('./images/chameleon.jpg')"  type="button">Click Me to Classify Image!</button> 
+        <h1 id="outputText"> This image displayed is ... </h1>
+    </main> 
+  </body> 
+</html> 
