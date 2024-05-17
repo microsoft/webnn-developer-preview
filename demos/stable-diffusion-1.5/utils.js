@@ -312,7 +312,7 @@ export const getTime = () => {
 };
 
 export const getMode = () => {
-  return (getQueryValue("mode") === "dev") ? true : false; 
+  return (getQueryValue("mode") === "normal") ? false : true;
 };
 
 export const getSafetyChecker = () => {

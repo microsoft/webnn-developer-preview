@@ -199,5 +199,5 @@ export const asyncErrorHandling = (promise, errorExt) => {
 }
 
 export const getMode = () => {
-  return (getQueryValue("mode") === "dev") ? true : false; 
+  return (getQueryValue("mode") === "normal") ? false : true;
 };
