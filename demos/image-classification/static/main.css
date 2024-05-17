@@ -185,6 +185,19 @@ body {
   margin: 0 6px 0 10px;
 }
 
+.v1:hover #webnn-logo path._logo_n1, .v1:hover #webnn-logo circle._logo_n1 {
+  fill: #4777c0;
+}
+
+.v1:hover #webnn-logo path._logo_n2, .v1:hover #webnn-logo circle._logo_n2 {
+  stroke: #61bafb;
+  fill:#61bafb;
+}
+
+.v1:hover #webnn-logo circle._logo_n3 {
+  stroke: #61bafb;
+}
+
 .log-output::-webkit-scrollbar {
   width: 3px !important;
   height: 3px !important;
@@ -321,13 +334,41 @@ h1.title span {
 
 #indicator a {
   color: var(--bg);
+  text-decoration: dashed;
+}
+
+#indicator:hover{
+  border: 1px solid var(--pink);
+  background-color: var(--bg);
+  color: var(--pink);
+}
+
+#indicator:hover a {
+  color: var(--pink);
+  text-decoration: none;
+}
+
+#webnnstatus a#webnn_na {
+  color: var(--pink);
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 3px;
+  padding: 1px 4px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+#webnnstatus a#webnn_na:hover {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: var(--bg);
+  border: 0px solid white;
+  text-decoration: none;
 }
 
 #controls {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   padding: 0 40px;
 }
 
@@ -342,7 +383,7 @@ h1.title span {
 }
 
 .btn-group-toggle .btn {
-  width: 120px;
+  width: 160px;
   display: inline-block;
 }
 
@@ -415,7 +456,6 @@ input[type="range"]::-webkit-slider-thumb:active {
 .button-group {
   display: flex;
   justify-content: center;
-  margin-bottom: 10px;
   gap: 1rem;
 }
 
@@ -425,7 +465,7 @@ input[type="range"]::-webkit-slider-thumb:active {
   margin-right: 6px;
 }
 
-.key button {
+.key button, .key label {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -436,6 +476,16 @@ input[type="range"]::-webkit-slider-thumb:active {
   padding: 6px 24px;
   width: 158px;
   cursor: pointer;
+  font-family: "Archivo", system-ui, sans-serif;
+  border: 1px solid var(--border);
+  background: transparent;
+}
+
+.key button svg path, .key label svg path {
+  fill: var(--font);
+}
+
+.key button.active, .key label.active {
   border: 1px solid var(--main);
   background: linear-gradient(
     135deg,
@@ -444,11 +494,10 @@ input[type="range"]::-webkit-slider-thumb:active {
     var(--main-darker) 100%
   );
   color: var(--bg);
-  font-family: "Archivo", system-ui, sans-serif;
   text-shadow: var(--main-darker) 1px 2px 1px;
 }
 
-.key button:hover {
+.key button:hover, .key label:hover {
   background: var(--main-dark);
   border: 1px solid var(--main-dark);
   color: var(--bg);
@@ -461,7 +510,7 @@ input[type="range"]::-webkit-slider-thumb:active {
   box-shadow: 0 3px 15px -1px var(--main-05);
 }
 
-.key button:disabled {
+.key button:disabled, .key label.disabled {
   --active: 0;
   cursor: not-allowed;
   color: var(--border);
@@ -471,25 +520,21 @@ input[type="range"]::-webkit-slider-thumb:active {
   text-shadow: none;
 }
 
-.key button svg path {
+.key button:hover svg path, .key label:hover svg path {
   fill: var(--bg);
 }
 
-.key button:hover svg path {
-  fill: var(--bg);
-}
-
-.key button:disabled svg path {
+.key button:disabled svg path, .key label.disabled svg path{
   fill: var(--border);
 }
 
-.key button:disabled:hover {
+.key button:disabled:hover, .key label.disabled:hover{
   background: var(--disabled);
   border: 1px solid var(--border);
   box-shadow: none;
 }
 
-.key button:disabled:hover svg path {
+.key button:disabled:hover svg path, .key label.disabled:hover svg path {
   fill: var(--border);
 }
 
@@ -521,7 +566,7 @@ h4 {
 #container img {
   border: 1px solid var(--border);
   border-radius: 5px;
-  width: 100%;
+  width: 83.8%;
 }
 
 #status {
@@ -723,7 +768,7 @@ h4 {
   background-color: var(--pink);
   color: var(--bg);
   font-size: 0.9rem;
-  border-radius: 50px;
+  border-radius: 5px;
   padding: 6px 12px;
 }
 
@@ -755,10 +800,12 @@ h4 {
 }
 
 #webnnstatus.red {
+  margin-top: 0px;
   background-color: var(--pink);
   color: var(--bg);
-  border-radius: 50px;
+  border-radius: 5px;
   padding: 4px 12px;
+  margin-bottom: 5px;
 }
 
 #webnnstatus.green #circle {
@@ -776,7 +823,7 @@ h4 {
 
 #ortversion a {
   color: var(--font);
-  text-decoration: none;
+  text-decoration: underline var(--border);
 }
 
 #ortversion a:hover {
@@ -815,7 +862,7 @@ h4 {
   grid-row-gap: 0px;
   align-items: center;
   justify-items: center;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
 }
 
 .grid-2-41 {
@@ -840,6 +887,9 @@ h4 {
 
 .footerinfo {
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 /* Largest devices such as desktops (1280px) */
@@ -908,9 +958,13 @@ h4 {
   .footerinfo {
     margin-bottom: 0;
   }
-
+  
   h1 {
     font-size: 1rem;
+  }
+
+  #controls {
+    padding: 0;
   }
 
   #container {
@@ -923,10 +977,15 @@ h4 {
   }
 
   .btn-group-toggle .btn {
-    width: 30vw;
+    width: 38vw;
+  }
+
+  .button-group {
+    gap: 0.5rem;
   }
   
-  .key button {
-    width: 35vw;
+  .key button, .key label {
+    width: 38vw;
+    padding: 6px 14px;
   }
 }

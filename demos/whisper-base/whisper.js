@@ -24,6 +24,7 @@ import {
   encoderCompileProgress,
   decoderCompileProgress,
   decoderCachedCompileProgress,
+  toHalf,
 } from "./utils.js";
 
 let tokenizerPath = "";
@@ -31,8 +32,7 @@ let processerPath = "";
 if (
   location.href.toLowerCase().indexOf("github.io") > -1 ||
   location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-  location.href.toLowerCase().indexOf("vercel.app") > -1 ||
-  location.href.toLowerCase().indexOf("onnxruntime-web-demo") > -1
+  location.href.toLowerCase().indexOf("vercel.app") > -1
 ) {
   let path = "onnxruntime-web-temp/demo/resolve/main/whisper-base";
   tokenizerPath = `${path}/tokenizer`;
@@ -45,11 +45,12 @@ if (
 
 // wrapper around onnxruntime and model
 export class Whisper {
-  constructor(url, provider, deviceType = 'gpu', dataType) {
+  constructor(url, provider, deviceType = "gpu", dataType, mask_4d = true) {
     this.url = url;
     this.provider = provider;
     this.deviceType = deviceType;
     this.dataType = dataType;
+    this.mask_4d = mask_4d;
     ort.env.wasm.simd = true;
 
     this.models = {
@@ -105,6 +106,7 @@ export class Whisper {
           deviceType: this.deviceType,
         },
       ],
+      logSeverityLevel: 0,
     };
 
     log(`WebNN EP Config: ` + JSON.stringify(options.executionProviders));
@@ -113,7 +115,14 @@ export class Whisper {
       try {
         let url = this.url + this.models[name]["url"];
         if (this.dataType == "float16") {
-          url = url.replace(".onnx", "_fp16_layernorm.onnx");
+          if (this.deviceType == 'npu') {
+            url = url.replace('.onnx', '_fp16_layernorm_gelu.onnx');
+          } else {
+              url = url.replace('.onnx', '_fp16_layernorm.onnx');
+          }
+          if (name.includes("decoder") && this.mask_4d) {
+            url = url.replace(".onnx", "_4dmask.onnx");
+          }
           log(
             `Loading ${this.models[name]["title"]} · ${this.dataType} · ${this.models[name]["fp16size"]}`
           );
@@ -125,7 +134,7 @@ export class Whisper {
         }
 
         const modelBuffer = await getModelOPFS(
-          `${name}_${this.dataType}`,
+          `${this.deviceType}_${name}_${this.dataType}`,
           url,
           false
         );
@@ -143,27 +152,29 @@ export class Whisper {
           updateDecoderCachedCompileProgress(4.0);
           updateLoadProgress(
             encoderFetchProgress +
-            decoderFetchProgress +
-            encoderCompileProgress +
-            decoderCompileProgress +
-            decoderCachedFetchProgress +
-            decoderCachedCompileProgress);
+              decoderFetchProgress +
+              encoderCompileProgress +
+              decoderCompileProgress +
+              decoderCachedFetchProgress +
+              decoderCachedCompileProgress
+          );
           updateProgressBar(loadProgress.toFixed(2));
           progressBarLabel.innerHTML = `Whisper Base Decoder (KV-Cache) created · ${loadProgress.toFixed(
             2
           )}%`;
-          await sleep(1000);
-          updateProgressBar(100.00);
+          // await sleep(1000);
+          updateProgressBar(100.0);
           progressBarLabel.innerHTML = `100%`;
         } else if (name.toLowerCase().indexOf("decoder") > -1) {
           updateDecoderCompileProgress(4.0);
           updateLoadProgress(
             encoderFetchProgress +
-            decoderFetchProgress +
-            encoderCompileProgress +
-            decoderCompileProgress +
-            decoderCachedFetchProgress +
-            decoderCachedCompileProgress);
+              decoderFetchProgress +
+              encoderCompileProgress +
+              decoderCompileProgress +
+              decoderCachedFetchProgress +
+              decoderCachedCompileProgress
+          );
           updateProgressBar(loadProgress.toFixed(2));
           progressBarLabel.innerHTML = `Whisper Base Decoder created · ${loadProgress.toFixed(
             2
@@ -172,11 +183,12 @@ export class Whisper {
           updateEncoderCompileProgress(2.0);
           updateLoadProgress(
             encoderFetchProgress +
-            decoderFetchProgress +
-            encoderCompileProgress +
-            decoderCompileProgress +
-            decoderCachedFetchProgress +
-            decoderCachedCompileProgress);
+              decoderFetchProgress +
+              encoderCompileProgress +
+              decoderCompileProgress +
+              decoderCachedFetchProgress +
+              decoderCachedCompileProgress
+          );
           updateProgressBar(loadProgress.toFixed(2));
           progressBarLabel.innerHTML = `Whisper Base Encoder created · ${loadProgress.toFixed(
             2
@@ -220,17 +232,45 @@ export class Whisper {
     // TODO: CHANGE FROM HARDCODED VALUES
     let tokens = [50258, 50259, 50359, 50363];
     // let tokens = [50258, 50259, 50359, 50364]; // keep timestep token
-    const attention_mask = [1, 1, 1, 1];
+    let attention_mask;
+    if (this.mask_4d) {
+      const min_val = toHalf(-65500);
+      const mask_data = [
+        0,
+        min_val,
+        min_val,
+        min_val,
+        0,
+        0,
+        min_val,
+        min_val,
+        0,
+        0,
+        0,
+        min_val,
+        0,
+        0,
+        0,
+        0,
+      ];
+      attention_mask = new ort.Tensor(
+        "float16",
+        new Uint16Array(mask_data),
+        [1, 1, 4, 4]
+      );
+    } else {
+      attention_mask = new ort.Tensor(
+        "int32",
+        new Int32Array(4).fill([1, 1, 1, 1]),
+        [1, 4]
+      );
+    }
     // create decoder input for the first inference
     const decoder_input = {
-      input_ids: new ort.Tensor("int32", new Int32Array(tokens), [1, 4]),
-      attention_mask: new ort.Tensor(
-        "int32",
-        new Int32Array(attention_mask),
-        [1, 4]
-      ),
-      encoder_hidden_states: last_hidden_state,
-    };
+      "input_ids": new ort.Tensor("int32", new Int32Array(tokens), [1, 4]),
+      "attention_mask": attention_mask,
+      "encoder_hidden_states": last_hidden_state,
+  };
     // console.log(`Non-KV cache decoder input preparation time: ${(performance.now() - start).toFixed(2)}ms`);
     // start = performance.now();
     // run the first inference which generates SA and CA KV cache
@@ -264,16 +304,19 @@ export class Whisper {
     );
 
     // pad attention mask to max_seq_length
-    decoder_input["attention_mask"] = new ort.Tensor(
-      "int64",
-      attention_mask_update(
-        new BigInt64Array([1n, 1n, 1n, 1n]),
-        0,
-        this.max_sequence_length,
-        this.num_init_tokens
-      ),
-      [1, 128]
-    );
+    const mask_data = attention_mask_update(
+      this.mask_4d ? new Uint16Array(4).fill(0) : new BigInt64Array(4).fill(1n),
+      0,
+      this.max_sequence_length,
+      this.num_init_tokens,
+      0,
+      this.mask_4d);
+    if (this.mask_4d) {
+        attention_mask = new ort.Tensor('float16', mask_data, [1, 1, 1, 128]);
+    } else {
+        attention_mask = new ort.Tensor('int64', mask_data, [1, 128]);
+    }
+    decoder_input['attention_mask'] = attention_mask;
     // create position_ids as input, value should be same of No. of prefill tokens
     decoder_input["position_ids"] = new ort.Tensor(
       "int32",
@@ -343,7 +386,8 @@ export class Whisper {
         i,
         this.max_sequence_length,
         this.num_init_tokens,
-        position_ids[0]
+        position_ids[0],
+        this.mask_4d
       );
       // modify the kv cache in place
       cache_update(

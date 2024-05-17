@@ -52,7 +52,20 @@ export const updateQueryStringParameter = (uri, key, value) => {
 
 export const log = (i) => {
   console.log(i);
-  document.getElementById("status").innerText += `\n[${getDateTime()}] ${i}`;
+  if(getMode()) {
+    document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+  } else {
+    document.getElementById("status").innerText += `\n${i}`;
+  }
+};
+
+export const logError = (i) => {
+  console.error(i);
+  if(getMode()) {
+    document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+  } else {
+    document.getElementById("status").innerText += `\n${i}`;
+  }
 };
 
 export const randomNumber = () => {
@@ -92,9 +105,10 @@ export const getOrtDevVersion = async () => {
   const doc = parser.parseFromString(htmlString, "text/html");
   let selectElement = doc.querySelector(".path li");
   selectElement = doc.querySelector("select.versions.select-css");
-  const options = Array.from(selectElement.querySelectorAll("option")).map(
+  let options = Array.from(selectElement.querySelectorAll("option")).map(
     (option) => option.value
   );
+  options = options.filter(option => !option.includes("esmtest"));
   return options[0].replace("onnxruntime-web@", "");
 };
 
@@ -170,3 +184,20 @@ export const getMinimum = (arr) => {
   const minimum = Math.min(...arr);
   return parseFloat(minimum).toFixed(2);
 }
+
+export const asyncErrorHandling = (promise, errorExt) => {
+  return promise
+    .then(data => [null, data])
+    .catch(err => {
+      if (errorExt) {
+        const parsedError = Object.assign({}, err, errorExt)
+        return [parsedError, undefined]
+      }
+
+      return [err, undefined]
+    })
+}
+
+export const getMode = () => {
+  return (getQueryValue("mode") === "normal") ? false : true;
+};

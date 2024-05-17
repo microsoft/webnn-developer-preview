@@ -1,3 +1,5 @@
+import { toHalf } from "./utils.js";
+
 export function cache_update(decoder_input, past_key_values, inf_iter, max_sequence_length = 448, num_init_tokens = 4, position_ids = 0, data_type = 'float32') {
     const cache_precision = data_type == 'float32' ? Float32Array : Uint16Array;
     // at the output of the first inference model, we perform right padding on kv cache
@@ -43,20 +45,37 @@ export function cache_update(decoder_input, past_key_values, inf_iter, max_seque
     }
 }
 
-export function attention_mask_update(attention_mask, inf_iter, max_sequence_length = 448, num_init_tokens = 4, position_ids = 0) {
+export function attention_mask_update(attention_mask, inf_iter, max_sequence_length = 448, num_init_tokens = 4, position_ids = 0, mask_4d = false) {
     if (inf_iter === 0) {
-        // -1 added to allow space for new token such that attention mask 2nd dim is restricted to max seq len
-        let padded_mask = new BigInt64Array(max_sequence_length - num_init_tokens - 1).fill(0n);
-        // create a new attention mask array with the padded mask and the value 1 for the new token
-        let updated_mask = new BigInt64Array(attention_mask.length + padded_mask.length + 1);
-        updated_mask.set(attention_mask, 0);
-        updated_mask.set(padded_mask, attention_mask.length);
-        updated_mask[updated_mask.length - 1] = 1n;
-        attention_mask = updated_mask;
+        if (!mask_4d) {
+            // -1 added to allow space for new token such that attention mask 2nd dim is restricted to max seq len
+            let padded_mask = new BigInt64Array(max_sequence_length - num_init_tokens - 1).fill(0n);
+            // create a new attention mask array with the padded mask and the value 1 for the new token
+            let updated_mask = new BigInt64Array(attention_mask.length + padded_mask.length + 1);
+            updated_mask.set(attention_mask, 0);
+            updated_mask.set(padded_mask, attention_mask.length);
+            updated_mask[updated_mask.length - 1] = 1n;
+            attention_mask = updated_mask;
+        } else {
+            // padding positions with -65500. to indicate no attention
+            let padded_mask = new Uint16Array(max_sequence_length - num_init_tokens - 1).fill(toHalf(-65500));
+            let updated_mask = new Uint16Array(attention_mask.length + padded_mask.length + 1);
+            updated_mask.set(attention_mask, 0);
+            updated_mask.set(padded_mask, attention_mask.length);
+            updated_mask[updated_mask.length - 1] = 0;
+            attention_mask = updated_mask;
+        }
+
     } else {
-        // Update the mask at location = position id
-        // last element is already set to 1 to account for new token
-        attention_mask[position_ids - 1] = 1n;
+        // if using 2d mask, we fill position id location with 1 else fill with 0
+        // last element is already set to 1 for 2d mask and 0 for 4d mask to account for new token
+        if (!mask_4d) {
+            // Update the mask at location = position id
+            // last element is already set to 1 to account for new token
+            attention_mask[position_ids - 1] = 1n;
+        } else {
+            attention_mask[position_ids - 1] = 0;
+        }
     }
 
     return attention_mask;
