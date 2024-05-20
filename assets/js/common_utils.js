@@ -115,7 +115,7 @@ export const getOrtDevVersion = async () => {
 export const setupORT = async () => {
   const ortversion = document.querySelector("#ortversion");
   removeElement("onnxruntime-web");
-  let ortVersion = await getOrtDevVersion();
+  let ortVersion = "1.18.0";
   let ortLink = "";
   if (ortVersion && ortVersion.length > 4) {
     await loadScript(
