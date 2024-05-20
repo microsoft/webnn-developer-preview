@@ -213,7 +213,7 @@ function get_tensor_from_image(imageData, format) {
 const setupORT = async () => {
   const ortversion = document.querySelector("#ortversion");
   Utils.removeElement("onnxruntime-web");
-  let ortVersion = await Utils.getOrtDevVersion();
+  let ortVersion = "1.18.0";
   let ortLink = "";
   if (ortVersion && ortVersion.length > 4) {
     await Utils.loadScript(
