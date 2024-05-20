@@ -1,4 +1,4 @@
-![image](https://github.com/microsoft/webnn-developer-preview/assets/35752084/48ee7342-b1eb-4951-b7c3-abdc365fe978)# WebNN Developer Preview
+# WebNN Developer Preview
 
 Run ONNX models in the browser with WebNN. The developer preview unlocks interactive ML on the web that benefits from reduced latency, enhanced privacy and security, and GPU acceleration from DirectML.
 
