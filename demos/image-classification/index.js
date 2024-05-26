@@ -15,7 +15,7 @@ import {
   getAverage,
   getMinimum,
   asyncErrorHandling,
-  getMode
+  getMode,
 } from "../../assets/js/common_utils.js";
 
 transformers.env.allowRemoteModels = true;
@@ -31,7 +31,12 @@ let modelPath = "Xenova/resnet-50";
 let runs = 1;
 let range, rangeValue, runSpan;
 let backendLabels, modelLabels;
-let label_webgpu, label_webnn_gpu, label_webnn_npu, label_mobilenetV2, label_resnet50, label_efficientnetLite4;
+let label_webgpu,
+  label_webnn_gpu,
+  label_webnn_npu,
+  label_mobilenetV2,
+  label_resnet50,
+  label_efficientnetLite4;
 let uploadImage, label_uploadImage;
 let imageUrl, image;
 let classify;
@@ -55,7 +60,7 @@ const main = async () => {
   fullResult.setAttribute("class", "none");
   result.setAttribute("class", "none");
   latencyDiv.setAttribute("class", "latency none");
-  label_uploadImage.setAttribute('class', 'disabled');
+  label_uploadImage.setAttribute("class", "disabled");
   uploadImage.disabled = true;
   classify.disabled = true;
 
@@ -73,7 +78,7 @@ const main = async () => {
       ],
       freeDimensionOverrides: {},
       logSeverityLevel: 0,
-    }
+    },
   };
   if (provider === "webnn") {
     options.session_options = {
@@ -81,7 +86,7 @@ const main = async () => {
         {
           name: provider,
           deviceType: deviceType,
-          powerPreference: "default"
+          powerPreference: "default",
         },
       ],
       logSeverityLevel: 0,
@@ -96,11 +101,16 @@ const main = async () => {
         break;
       case "resnet-50":
         modelPath = "Xenova/resnet-50";
-        options.session_options.freeDimensionOverrides = { batch_size: 1, num_channels: 3, height: 224, width: 224 };
+        options.session_options.freeDimensionOverrides = {
+          batch_size: 1,
+          num_channels: 3,
+          height: 224,
+          width: 224,
+        };
         break;
       case "efficientnet-lite4":
         modelPath = "webnn/efficientnet-lite4";
-        break;  
+        break;
       default:
         modelPath = "Xenova/resnet-50";
         break;
@@ -114,9 +124,17 @@ const main = async () => {
 
   try {
     log("[ONNX Runtime] Options: " + JSON.stringify(options));
-    log(`[Transformer.js] Loading ${modelPath} and running image-classification pipeline`);
-    const classifier = await transformers.pipeline("image-classification", modelPath, options);
-    let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
+    log(
+      `[Transformer.js] Loading ${modelPath} and running image-classification pipeline`
+    );
+    const classifier = await transformers.pipeline(
+      "image-classification",
+      modelPath,
+      options
+    );
+    let [err, output] = await asyncErrorHandling(
+      classifier(imageUrl, { topk: 3 })
+    );
     if (err) {
       status.setAttribute("class", "red");
       info.innerHTML = err.message;
@@ -144,14 +162,12 @@ const main = async () => {
       label3.innerText = output[2].label;
       score3.innerText = output[2].score;
       result.setAttribute("class", "");
-      label_uploadImage.setAttribute('class', '');
+      label_uploadImage.setAttribute("class", "");
       uploadImage.disabled = false;
       classify.disabled = false;
       log(JSON.stringify(output));
       log(`[Transformer.js] Classifier completed`);
     }
-
-
   } catch (err) {
     log(`[Error] ${err}`);
   }
@@ -166,7 +182,7 @@ const checkWebNN = async () => {
   ) {
     circle.setAttribute("class", "none");
     info.innerHTML = "";
-  } 
+  }
 
   if (
     getQueryValue("provider") &&
@@ -177,26 +193,27 @@ const checkWebNN = async () => {
       status.setAttribute("class", "green");
       info.innerHTML = "WebNN supported";
 
-      if(deviceType.toLowerCase() === 'npu') {
+      if (deviceType.toLowerCase() === "npu") {
         try {
-          await navigator.ml.createContext({deviceType: 'npu'});
+          await navigator.ml.createContext({ deviceType: "npu" });
         } catch (error) {
           status.setAttribute("class", "red");
           info.innerHTML = `
             ${error}<br>
             Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed.`;
-          label_uploadImage.setAttribute('class', 'disabled');
+          label_uploadImage.setAttribute("class", "disabled");
           uploadImage.disabled = true;
           classify.disabled = true;
           log(`[Error] ${error}`);
-          log(`[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`);
+          log(
+            `[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`
+          );
         }
       } else {
-        label_uploadImage.setAttribute('class', '');
+        label_uploadImage.setAttribute("class", "");
         uploadImage.disabled = false;
         classify.disabled = false;
       }
-
     } else {
       if (webnnStatus.error) {
         status.setAttribute("class", "red");
@@ -208,7 +225,7 @@ const checkWebNN = async () => {
         info.innerHTML = "WebNN not supported";
         logError(`[Error] WebNN not supported`);
       }
-      label_uploadImage.setAttribute('class', 'disabled');
+      label_uploadImage.setAttribute("class", "disabled");
       uploadImage.disabled = true;
       classify.disabled = true;
     }
@@ -216,32 +233,41 @@ const checkWebNN = async () => {
 };
 
 const initModelSelector = () => {
-  if(getQueryValue("provider") && getQueryValue("devicetype")) {
+  if (getQueryValue("provider") && getQueryValue("devicetype")) {
     backendLabels.forEach((label) => {
       label.setAttribute("class", "btn");
     });
-    if(getQueryValue("provider").toLowerCase() === 'webgpu' && getQueryValue("devicetype").toLowerCase() === 'gpu') {
+    if (
+      getQueryValue("provider").toLowerCase() === "webgpu" &&
+      getQueryValue("devicetype").toLowerCase() === "gpu"
+    ) {
       label_webgpu.setAttribute("class", "btn active");
-    } else if(getQueryValue("provider").toLowerCase() === 'webnn' && getQueryValue("devicetype").toLowerCase() === 'gpu') {
+    } else if (
+      getQueryValue("provider").toLowerCase() === "webnn" &&
+      getQueryValue("devicetype").toLowerCase() === "gpu"
+    ) {
       label_webnn_gpu.setAttribute("class", "btn active");
-    } else if(getQueryValue("provider").toLowerCase() === 'webnn' && getQueryValue("devicetype").toLowerCase() === 'npu') {
+    } else if (
+      getQueryValue("provider").toLowerCase() === "webnn" &&
+      getQueryValue("devicetype").toLowerCase() === "npu"
+    ) {
       label_webnn_npu.setAttribute("class", "btn active");
     }
   }
 
-  if(getQueryValue("model")) {
+  if (getQueryValue("model")) {
     modelLabels.forEach((label) => {
       label.setAttribute("class", "btn");
     });
-    if(getQueryValue("model").toLowerCase() === 'mobilenet-v2') {
+    if (getQueryValue("model").toLowerCase() === "mobilenet-v2") {
       label_mobilenetV2.setAttribute("class", "btn active");
-    } else if(getQueryValue("model").toLowerCase() === 'resnet-50') {
+    } else if (getQueryValue("model").toLowerCase() === "resnet-50") {
       label_resnet50.setAttribute("class", "btn active");
-    } else if(getQueryValue("model").toLowerCase() === 'efficientnet-lite4') {
+    } else if (getQueryValue("model").toLowerCase() === "efficientnet-lite4") {
       label_efficientnetLite4.setAttribute("class", "btn active");
     }
   }
-}
+};
 
 const controls = async () => {
   const getRange = () => {
@@ -396,7 +422,7 @@ const badgeUpdate = () => {
       badge.setAttribute("class", "gpu");
     }
   }
-}
+};
 
 const updateUi = async () => {
   if (getQueryValue("run")) {
@@ -406,7 +432,7 @@ const updateUi = async () => {
   } else {
     runs = 1;
     range.value = 1;
-    rangeValue.innerHTML = '1';
+    rangeValue.innerHTML = "1";
   }
 
   if (runs > 1) {
@@ -429,7 +455,7 @@ const updateUi = async () => {
   console.log(deviceType);
   console.log(modelId);
   console.log(runs);
-}
+};
 
 const changeImage = async () => {
   let file = uploadImage.files[0];
@@ -438,7 +464,7 @@ const changeImage = async () => {
     imageUrl = URL.createObjectURL(file);
   }
   await main();
-}
+};
 
 const ui = async () => {
   imageUrl = "./static/tiger.jpg";
@@ -457,20 +483,20 @@ const ui = async () => {
   status = document.querySelector("#webnnstatus");
   circle = document.querySelector("#circle");
   info = document.querySelector("#info");
-  range = document.querySelector('#range');
+  range = document.querySelector("#range");
   rangeValue = document.querySelector(".rangevalue");
   runSpan = document.querySelector("#run-span");
   backendLabels = document.querySelectorAll(".backends label");
   modelLabels = document.querySelectorAll(".models label");
-  label_webgpu = document.querySelector('#label_webgpu');
-  label_webnn_gpu = document.querySelector('#label_webnn_gpu');
-  label_webnn_npu = document.querySelector('#label_webnn_npu');
-  label_mobilenetV2 = document.querySelector('#label_mobilenet-v2');
-  label_resnet50 = document.querySelector('#label_resnet-50');
-  label_efficientnetLite4 = document.querySelector('#label_efficientnet-lite4');
+  label_webgpu = document.querySelector("#label_webgpu");
+  label_webnn_gpu = document.querySelector("#label_webnn_gpu");
+  label_webnn_npu = document.querySelector("#label_webnn_npu");
+  label_mobilenetV2 = document.querySelector("#label_mobilenet-v2");
+  label_resnet50 = document.querySelector("#label_resnet-50");
+  label_efficientnetLite4 = document.querySelector("#label_efficientnet-lite4");
   image = document.querySelector("#image");
-  uploadImage = document.querySelector('#upload-image');
-  label_uploadImage = document.querySelector('#label_upload-image');
+  uploadImage = document.querySelector("#upload-image");
+  label_uploadImage = document.querySelector("#label_upload-image");
   classify = document.querySelector("#classify-image");
   fullResult = document.querySelector("#full-result");
   first = document.querySelector("#first");
@@ -501,16 +527,24 @@ const ui = async () => {
 
   console.log(`${provider} ${deviceType} ${modelId} ${runs}`);
 
-  classify.addEventListener('click', async () => {
-    await main();
-  }, false);
+  classify.addEventListener(
+    "click",
+    async () => {
+      await main();
+    },
+    false
+  );
 
-  uploadImage.addEventListener('change', async () => {
-    await changeImage();
-  }, false);
+  uploadImage.addEventListener(
+    "change",
+    async () => {
+      await changeImage();
+    },
+    false
+  );
 
-  if(deviceType !== "npu") {
-    label_webnn_npu.style.display = 'none';
+  if (deviceType !== "npu") {
+    label_webnn_npu.style.display = "none";
   }
 };
 
