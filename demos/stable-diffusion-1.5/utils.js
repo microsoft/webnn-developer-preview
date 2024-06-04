@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href.toLowerCase().indexOf("vercel.app") > -1
   ) {
     path =
-      "onnxruntime-web-temp/demo/resolve/main/stable-diffusion-1.5/tokenizer";
+      "microsoft/stable-diffusion-v1.5-webnn/resolve/main/tokenizer";
   } else {
     path = "../../demos/stable-diffusion-1.5/models/tokenizer/";
   }
@@ -277,7 +277,7 @@ export const modelPath = () => {
     location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
     location.href.toLowerCase().indexOf("vercel.app") > -1
   ) {
-    return "https://huggingface.co/onnxruntime-web-temp/demo/resolve/main/stable-diffusion-1.5/";
+    return "https://huggingface.co/microsoft/stable-diffusion-v1.5-webnn/resolve/main/";
   } else {
     return "models/";
   }

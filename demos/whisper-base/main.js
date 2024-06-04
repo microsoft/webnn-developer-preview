@@ -672,7 +672,7 @@ const main = async () => {
   try {
     context = new AudioContext({ sampleRate: kSampleRate });
     const whisper_url = location.href.includes("github.io")
-      ? "https://huggingface.co/onnxruntime-web-temp/demo/resolve/main/whisper-base/"
+      ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
       : "./models/";
     whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask_4d);
     await whisper.create_whisper_processor();
