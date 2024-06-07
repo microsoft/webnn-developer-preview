@@ -34,7 +34,7 @@ if (
   location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
   location.href.toLowerCase().indexOf("vercel.app") > -1
 ) {
-  let path = "onnxruntime-web-temp/demo/resolve/main/whisper-base";
+  let path = "microsoft/whisper-base-webnn/resolve/main";
   tokenizerPath = `${path}/tokenizer`;
   processerPath = `${path}/processer`;
 } else {

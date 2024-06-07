@@ -92,7 +92,7 @@ function getConfig() {
   const query = window.location.search.substring(1);
   const config = {
     host: location.href.includes("github.io")
-      ? "https://huggingface.co/onnxruntime-web-temp/demo/resolve/main/segment-anything"
+      ? "https://huggingface.co/microsoft/segment-anything-model-webnn/resolve/main"
       : "models",
     mode: "none",  
     model: "sam_b",

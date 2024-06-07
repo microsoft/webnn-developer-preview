@@ -29,7 +29,7 @@ function getConfig() {
   const query = window.location.search.substring(1);
   var config = {
     model: location.href.includes("github.io")
-      ? "https://huggingface.co/onnxruntime-web-temp/demo/resolve/main/sd-turbo"
+      ? "https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main"
       : "models",
     mode: "none",
     safetychecker: true,
@@ -1246,7 +1246,7 @@ const ui = async () => {
     location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
     location.href.toLowerCase().indexOf("vercel.app") > -1
   ) {
-    path = "onnxruntime-web-temp/demo/resolve/main/sd-turbo/tokenizer";
+    path = "microsoft/sd-turbo-webnn/resolve/main/tokenizer";
   } else {
     path = "../../demos/sd-turbo/models/tokenizer";
   }
