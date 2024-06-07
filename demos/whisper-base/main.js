@@ -309,6 +309,7 @@ async function startRecord() {
       )}s audio`
     );
     audio_src.src = window.URL.createObjectURL(blob);
+    initAudioMotion();
     audio_src.play();
     await transcribe_file();
   };
@@ -596,6 +597,18 @@ const setupORT = async () => {
   }
 }
 
+const initAudioMotion = () => {
+  if(!audioMotion){
+    audioMotion = new AudioMotionAnalyzer(
+      container,
+      {
+        source: audio_src
+      }
+    );
+    audioMotion.setOptions(options);
+  }
+}
+
 const main = async () => {  
   labelFileUpload.setAttribute('class', 'file-upload-label disabled');
   fileUpload.disabled = true;
@@ -651,6 +664,7 @@ const main = async () => {
       files = target.files;
     if(files && files.length > 0) {
       audio_src.src = URL.createObjectURL(files[0]);
+      initAudioMotion();
       audio_src.play();
       await transcribe_file();
     } else {
@@ -696,20 +710,6 @@ const main = async () => {
   } catch (e) {
     logError(`Error · ${e.message}`);
   }
-
-  try {
-    audioMotion = new AudioMotionAnalyzer(
-      container,
-      {
-        source: audio_src
-      }
-    );
-    audioMotion.setOptions(options);
-  }
-  catch(err) {
-    container.innerHTML = `Error: ${ err.message }`;
-  }
-
 };
 
 const ui = async () => {
