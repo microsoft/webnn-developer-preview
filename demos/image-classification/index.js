@@ -3,10 +3,7 @@
 //
 // An example how to run Image Classification with webnn in onnxruntime-web.
 //
-import {
-  env,
-  pipeline,
-} from "../../assets/dist_transformers/original/transformers.js";
+import * as transformers from "../../assets/dist_transformers/100runs-dynamic-1.18/transformers.js";
 import {
   setupORT,
   log,
@@ -16,14 +13,15 @@ import {
   updateQueryStringParameter,
   getMedian,
   getAverage,
+  getMinimum,
   asyncErrorHandling,
   getMode,
 } from "../../assets/js/common_utils.js";
 
-env.allowRemoteModels = true;
-env.backends.onnx.wasm.proxy = false;
-env.backends.onnx.wasm.simd = true;
-env.backends.onnx.wasm.numThreads = 1;
+transformers.env.allowRemoteModels = true;
+transformers.env.backends.onnx.wasm.proxy = false;
+transformers.env.backends.onnx.wasm.simd = true;
+transformers.env.backends.onnx.wasm.numThreads = 1;
 
 let provider = "webnn";
 let deviceType = "gpu";
@@ -43,7 +41,7 @@ let uploadImage, label_uploadImage;
 let imageUrl, image;
 let classify;
 let fullResult;
-let first, average, median;
+let first, average, median, best, throughput;
 let status, circle, info;
 
 let result;
@@ -89,7 +87,6 @@ const main = async () => {
           name: provider,
           deviceType: deviceType,
           powerPreference: "default",
-          preferredLayout: "NHWC",
         },
       ],
       logSeverityLevel: 0,
@@ -122,63 +119,54 @@ const main = async () => {
     }
   }
 
-  modelIdSpan.innerHTML = ` · ${dataType}`;
-  dataTypeSpan.innerHTML = ` · ${modelPath}`;
+  modelIdSpan.innerHTML = dataType;
+  dataTypeSpan.innerHTML = modelPath;
 
   try {
     log("[ONNX Runtime] Options: " + JSON.stringify(options));
     log(
       `[Transformer.js] Loading ${modelPath} and running image-classification pipeline`
     );
-    const classifier = await pipeline(
+    const classifier = await transformers.pipeline(
       "image-classification",
       modelPath,
       options
     );
-
-    let runFirst = 0;
-    let runArray = [];
-    for (let i = 0; i < 1 + runs; i++) {
-      let start = performance.now();
-      let [err, output] = await asyncErrorHandling(
-        classifier(imageUrl, { topk: 3 })
-      );
-      if (err) {
-        status.setAttribute("class", "red");
-        info.innerHTML = err.message;
-        logError(err.message);
-      } else {
-        let localPerf = performance.now() - start;
-        if (i > 0) {
-          runArray.push(localPerf);
-        } else {
-          runFirst = localPerf;
-        }
-        if (i === runs) {
-          if (getMode()) {
-            log(`First run: ${runFirst}ms`);
-            log(`${runs} runs: ${runArray}`);
-            latency.innerHTML = getAverage(runArray);
-            first.innerHTML = runFirst.toFixed(2);
-            average.innerHTML = getAverage(runArray);
-            median.innerHTML = getMedian(runArray).toFixed(2);
-            fullResult.setAttribute("class", "");
-            latencyDiv.setAttribute("class", "latency");
-          }
-          label1.innerHTML = output[0].label;
-          score1.innerText = output[0].score;
-          label2.innerText = output[1].label;
-          score2.innerText = output[1].score;
-          label3.innerText = output[2].label;
-          score3.innerText = output[2].score;
-          result.setAttribute("class", "");
-          label_uploadImage.setAttribute("class", "");
-          uploadImage.disabled = false;
-          classify.disabled = false;
-          log(JSON.stringify(output));
-          log(`[Transformer.js] Classifier completed`);
-        }
+    let [err, output] = await asyncErrorHandling(
+      classifier(imageUrl, { topk: 3 })
+    );
+    if (err) {
+      status.setAttribute("class", "red");
+      info.innerHTML = err.message;
+      logError(err.message);
+    } else {
+      if (getMode()) {
+        log(JSON.stringify(transformers.getPerf()));
+        let warmUp = transformers.getPerf().warmup;
+        let averageInference = getAverage(transformers.getPerf().inference);
+        let medianInference = getMedian(transformers.getPerf().inference);
+        latency.innerHTML = medianInference.toFixed(2);
+        first.innerHTML = warmUp.toFixed(2);
+        average.innerHTML = averageInference;
+        median.innerHTML = medianInference.toFixed(2);
+        best.innerHTML = getMinimum(transformers.getPerf().inference);
+        throughput.innerHTML = `${transformers.getPerf().throughput} FPS`;
+        fullResult.setAttribute("class", "");
+        latencyDiv.setAttribute("class", "latency");
       }
+
+      label1.innerHTML = output[0].label;
+      score1.innerText = output[0].score;
+      label2.innerText = output[1].label;
+      score2.innerText = output[1].score;
+      label3.innerText = output[2].label;
+      score3.innerText = output[2].score;
+      result.setAttribute("class", "");
+      label_uploadImage.setAttribute("class", "");
+      uploadImage.disabled = false;
+      classify.disabled = false;
+      log(JSON.stringify(output));
+      log(`[Transformer.js] Classifier completed`);
     }
   } catch (err) {
     log(`[Error] ${err}`);
@@ -216,8 +204,8 @@ const checkWebNN = async () => {
           label_uploadImage.setAttribute("class", "disabled");
           uploadImage.disabled = true;
           classify.disabled = true;
-          logError(`[Error] ${error}`);
-          logError(
+          log(`[Error] ${error}`);
+          log(
             `[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`
           );
         }
@@ -506,14 +494,16 @@ const ui = async () => {
   label_mobilenetV2 = document.querySelector("#label_mobilenet-v2");
   label_resnet50 = document.querySelector("#label_resnet-50");
   label_efficientnetLite4 = document.querySelector("#label_efficientnet-lite4");
-  label_uploadImage = document.querySelector("#label_upload-image");
   image = document.querySelector("#image");
   uploadImage = document.querySelector("#upload-image");
+  label_uploadImage = document.querySelector("#label_upload-image");
   classify = document.querySelector("#classify-image");
   fullResult = document.querySelector("#full-result");
   first = document.querySelector("#first");
   average = document.querySelector("#average");
   median = document.querySelector("#median");
+  best = document.querySelector("#best");
+  throughput = document.querySelector("#throughput");
   label1 = document.querySelector("#label1");
   label2 = document.querySelector("#label2");
   label3 = document.querySelector("#label3");
@@ -552,8 +542,9 @@ const ui = async () => {
     },
     false
   );
-  if(deviceType !== "npu") {
-    label_webnn_npu.style.display = 'none';
+
+  if (deviceType !== "npu") {
+    label_webnn_npu.style.display = "none";
   }
 };
 

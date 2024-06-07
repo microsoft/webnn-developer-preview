@@ -115,7 +115,7 @@
                         </label>
                     </div>
                     <div class="range">
-                        <input id="range" type="range" min="0" max="100" step="1" value="1">
+                        <input id="range" type="range" min="0" max="1000" step="10" value="1">
                         <div class="rangeshow"><span class="rangevalue">1</span> <span id="run-span">run</span></div>
                     </div>
                     <div>
@@ -128,7 +128,6 @@
                                 </svg>
                                 Pick Image
                             </label>
-
                             <button id="classify-image">
                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
                                     <path
@@ -146,28 +145,33 @@
                         <strong id="latency">0</strong>
                         <span id="unit">ms</span>
                     </div>
-                    <div id="indicator" class="title">Time of <a
-                            href="https://huggingface.co/docs/transformers.js/api/pipelines#pipelinesimageclassificationpipeline"
-                            title="Transformers.js ImageClassificationPipeline">classifier()</a> <span
-                            id="model-id"></span><span id="data-type"></span></div>
+                    <div id="indicator" class="title"><span id="model-id"></span> · <span id="data-type"></span></div>
 
                     <div>
                         <table id="full-result" class="none">
                             <tr>
-                                <th>Time of classifier()</th>
+                                <th>Indicator</th>
+                                <th>Result</th>
+                                <th>Indicator</th>
                                 <th>Result</th>
                             </tr>
                             <tr>
-                                <td class="r">First</td>
+                                <td class="r">First Inference</td>
                                 <td id="first"></td>
+                                <td class="r">Best Inference</td>
+                                <td id="best"></td>
                             </tr>
                             <tr>
-                                <td class="r">Average</td>
+                                <td class="r">Average Inference</td>
                                 <td id="average"></td>
+                                <td class="r">Median Inference</td>
+                                <td id="median"></td>
                             </tr>
                             <tr>
-                                <td class="r">Median</td>
-                                <td id="median"></td>
+                                <td class="r">Throughput</td>
+                                <td id="throughput"></td>
+                                <td class="r"></td>
+                                <td></td>
                             </tr>
                         </table>
                     </div>
@@ -201,10 +205,11 @@
         <div id="status" class="log-output"></div>
 
         <div class="footerinfo">
-            <div id="webnnstatus"><span id="circle"></span> <span id="info">WebNN</span> <span id="backends"></span>
+            <div id="webnnstatus">
+                <span id="circle"></span> <span id="info">WebNN</span> <span id="backends"></span>
             </div>
             <div id="ortversion"></div>
         </div>
     </div>
-
 </body>
+</html>  
