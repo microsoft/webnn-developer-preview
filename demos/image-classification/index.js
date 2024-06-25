@@ -3,9 +3,10 @@
 //
 // An example how to run Image Classification with webnn in onnxruntime-web.
 //
-import * as transformers from "../../assets/dist_transformers/100runs-dynamic-1.18/transformers.js";
+import * as transformers from "../../assets/dist_transformers/dynamic-runs-1.19-dev/transformers.js";
 import {
-  setupORT,
+  removeElement,
+  loadScript,
   log,
   logError,
   getQueryValue,
@@ -464,6 +465,24 @@ const changeImage = async () => {
     imageUrl = URL.createObjectURL(file);
   }
   await main();
+};
+
+const setupORT = async () => {
+  const ortversion = document.querySelector("#ortversion");
+  removeElement("onnxruntime-web");
+  let ortVersion = "1.19.0-dev.20240621-69d522f4e9";
+  let ortLink = "";
+  if (ortVersion && ortVersion.length > 4) {
+    await loadScript(
+      "onnxruntime-web",
+      `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`
+    );
+    ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`;
+    ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
+  } else {
+    await loadScript("onnxruntime-web", "../dist/ort.all.min.js");
+    ortversion.innerHTML = `ONNX Runtime Web: Test version`;
+  }
 };
 
 const ui = async () => {
