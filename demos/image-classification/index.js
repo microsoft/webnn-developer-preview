@@ -468,21 +468,15 @@ const changeImage = async () => {
 };
 
 const setupORT = async () => {
-  const ortversion = document.querySelector("#ortversion");
+  const ortVersionLabel = document.querySelector("#ortversion");
   removeElement("onnxruntime-web");
-  let ortVersion = "1.19.0-dev.20240621-69d522f4e9";
-  let ortLink = "";
-  if (ortVersion && ortVersion.length > 4) {
-    await loadScript(
-      "onnxruntime-web",
-      `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`
-    );
-    ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`;
-    ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
-  } else {
-    await loadScript("onnxruntime-web", "../dist/ort.all.min.js");
-    ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-  }
+  const ortVersionString = "1.19.0-dev.20240621-69d522f4e9";
+  const ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersionString}`;
+  ortVersionLabel.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersionString}</a>`;
+  await loadScript(
+    "onnxruntime-web",
+    `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersionString}/dist/ort.all.min.js`
+  );
 };
 
 const ui = async () => {
