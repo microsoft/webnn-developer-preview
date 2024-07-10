@@ -555,10 +555,6 @@ const ui = async () => {
     },
     false
   );
-
-  if (deviceType !== "npu") {
-    label_webnn_npu.style.display = "none";
-  }
 };
 
 document.addEventListener("DOMContentLoaded", ui, false);
