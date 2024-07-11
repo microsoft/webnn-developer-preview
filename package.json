@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "description": "Run ONNX models in the browser with WebNN",
   "scripts": {
-    "dev": "http-server -S cert.pem -o"
+    "fetch-models": "node fetch_models.js",
+    "dev": "http-server"
   },
   "type": "module",
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "https-proxy-agent": "^7.0.5",
+    "node-fetch": "^3.3.2",
+    "progress": "^2.0.3"
   }
 }
