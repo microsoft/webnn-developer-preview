@@ -19,16 +19,26 @@ import {
   getMode,
 } from "../../assets/js/common_utils.js";
 
-transformers.env.allowRemoteModels = true;
 transformers.env.backends.onnx.wasm.proxy = false;
 transformers.env.backends.onnx.wasm.simd = true;
 transformers.env.backends.onnx.wasm.numThreads = 1;
+
+const useRemoteModels = location.hostname.includes('github.io');
+transformers.env.allowRemoteModels = useRemoteModels;
+transformers.env.allowLocalModels = !useRemoteModels;
+log('[Transformer.js] env.allowRemoteModels: ' + transformers.env.allowRemoteModels);
+log('[Transformer.js] env.allowLocalModels: ' + transformers.env.allowLocalModels);
+if (transformers.env.allowLocalModels)
+{
+  transformers.env.localModelPath = "./models/";
+  log('[Transformer.js] env.localModelPath: ' + transformers.env.localModelPath);
+}
 
 let provider = "webnn";
 let deviceType = "gpu";
 let dataType = "fp16";
 let modelId = "resnet-50";
-let modelPath = "Xenova/resnet-50";
+let modelPath = "xenova/resnet-50";
 let runs = 1;
 let range, rangeValue, runSpan;
 let backendLabels, modelLabels;
@@ -53,7 +63,7 @@ let modelIdSpan;
 let latency, latencyDiv;
 
 const main = async () => {
-  // Xenova/resnet-50
+  // xenova/resnet-50
   // webnn/mobilenet-v2
   // webnn/squeezenet-1.0
   // webnn/efficientnet-lite4
@@ -101,7 +111,7 @@ const main = async () => {
         modelPath = "webnn/mobilenet-v2";
         break;
       case "resnet-50":
-        modelPath = "Xenova/resnet-50";
+        modelPath = "xenova/resnet-50";
         options.session_options.freeDimensionOverrides = {
           batch_size: 1,
           num_channels: 3,
@@ -113,7 +123,7 @@ const main = async () => {
         modelPath = "webnn/efficientnet-lite4";
         break;
       default:
-        modelPath = "Xenova/resnet-50";
+        modelPath = "xenova/resnet-50";
         break;
       // webnn/squeezenet-1.0
       // webnn/efficientnet-lite4

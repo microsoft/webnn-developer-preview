@@ -79,6 +79,12 @@ npm run dev
 
 This will start a dev server and run WebNN Developer Preview demos with the WebNN enabled browser on your localhost.
 
+Please run the following command to download demos required models if you run the demos the first time. You can also modify [fetch_models.js](./fetch_models.js) to add network proxy configuration when needed.
+
+```
+npm run fetch-models
+```
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
