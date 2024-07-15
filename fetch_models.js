@@ -4,7 +4,8 @@ import path from 'path';
 import ProgressBar from 'progress';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-// import { HttpsProxyAgent } from 'https-proxy-agent';
+// Uncomment the following line if proxy is required to fetch files in your network
+// import { HttpsProxyAgent } from 'https-proxy-agent'; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -71,51 +72,50 @@ const models = [
       path: "./demos/segment-anything/models"
     },
     {
-      url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm.onnx",
-      path: "./demos/whisper-base/models"
-    },
-    {
       url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm_4dmask.onnx",
-      path: "./demos/whisper-base/models"
+      path: "./demos/whisper-base/models",
+      note: "Decoder model with 4dmask for WebNN GPU"
     },
     {
       url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm_gelu_4dmask.onnx",
-      path: "./demos/whisper-base/models"
-    },
-    {
-      url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm.onnx",
-      path: "./demos/whisper-base/models"
+      path: "./demos/whisper-base/models",
+      note: "Gelu and 4dmask are used for decoder on WebNN NPU"
     },
     {
       url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm_4dmask.onnx",
-      path: "./demos/whisper-base/models"
+      path: "./demos/whisper-base/models",
+      note: "Decoder model with 4dmask for WebNN GPU"
     },
     {
       url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm_gelu_4dmask.onnx",
-      path: "./demos/whisper-base/models"
+      path: "./demos/whisper-base/models",
+      note: "Gelu and 4dmask are used for decoder on WebNN NPU"
     },
     {
       url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_encoder_lm_fp16_layernorm.onnx",
-      path: "./demos/whisper-base/models"
+      path: "./demos/whisper-base/models",
+      note: "Encoder model for WebNN GPU"
     },
     {
       url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_encoder_lm_fp16_layernorm_gelu.onnx",
-      path: "./demos/whisper-base/models"
+      path: "./demos/whisper-base/models",
+      note: "Gelu is used for encoder on WebNN NPU"
     }
   ];
 
   const downloadFile = async (url, outputPath, retries = 2) => {
-    // // Proxy configuration
-    // const proxyHost = '';
-    // const proxyPort = 33630;
-    // const proxyUrl = `http://${proxyHost}:${proxyPort}`;
+    // Proxy configuration
+    const proxyHost = 'proxy-ir.intel.com';
+    const proxyPort = 912;
+    const proxyUrl = `http://${proxyHost}:${proxyPort}`;
+    const proxyAgent = undefined;
+    // Enable this line to use the proxy:
     // const proxyAgent = new HttpsProxyAgent(proxyUrl);
 
     try {
-      // const res = await fetch(url, {agent: proxyAgent});
-      const res = await fetch(url);
-      if (res.ok) {
-        const totalLength = res.headers.get('content-length');
+      const response = await fetch(url, {agent: proxyAgent});
+      if (response.ok) {
+        const totalLength = response.headers.get('content-length');
         const progressBar = new ProgressBar('-> downloading [:bar] :percent :etas', {
           width: 40,
           complete: '=',
@@ -125,15 +125,15 @@ const models = [
         });
   
         const fileStream = fs.createWriteStream(outputPath);
-        res.body.on('data', (chunk) => progressBar.tick(chunk.length));
-        res.body.pipe(fileStream);
+        response.body.on('data', (chunk) => progressBar.tick(chunk.length));
+        response.body.pipe(fileStream);
   
         return new Promise((resolve, reject) => {
           fileStream.on('finish', resolve);
           fileStream.on('error', reject);
         });
       } else {
-        throw new Error(`HTTP error! Status: ${res.status} ${res.statusText}`);
+        throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       if (retries === 0) {

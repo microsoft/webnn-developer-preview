@@ -19,23 +19,18 @@ import {
   getMode,
 } from "../../assets/js/common_utils.js";
 
-
-
 transformers.env.backends.onnx.wasm.proxy = false;
 transformers.env.backends.onnx.wasm.simd = true;
 transformers.env.backends.onnx.wasm.numThreads = 1;
 
-if(location.hostname.includes('github.io')) {
-  transformers.env.allowRemoteModels = true;
-  transformers.env.allowLocalModels = false
-  log('[Transformer.js] env.allowRemoteModels: ' + transformers.env.allowRemoteModels);
-  log('[Transformer.js] env.allowLocalModels: ' + transformers.env.allowLocalModels);
-} else {
-  transformers.env.allowRemoteModels = false;
-  transformers.env.allowLocalModels = true;
+const useRemoteModels = location.hostname.includes('github.io');
+transformers.env.allowRemoteModels = useRemoteModels;
+transformers.env.allowLocalModels = !useRemoteModels;
+log('[Transformer.js] env.allowRemoteModels: ' + transformers.env.allowRemoteModels);
+log('[Transformer.js] env.allowLocalModels: ' + transformers.env.allowLocalModels);
+if (transformers.env.allowLocalModels)
+{
   transformers.env.localModelPath = "./models/";
-  log('[Transformer.js] env.allowRemoteModels: ' + transformers.env.allowRemoteModels);
-  log('[Transformer.js] env.allowLocalModels: ' + transformers.env.allowLocalModels);
   log('[Transformer.js] env.localModelPath: ' + transformers.env.localModelPath);
 }
 
