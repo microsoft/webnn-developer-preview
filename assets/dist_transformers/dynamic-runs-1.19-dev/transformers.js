@@ -18534,16 +18534,8 @@ async function pipeline(
     ]);
 
     // Load model, tokenizer, and processor (if they exist)
-    let results;
-
-    try {
-      results = await loadItems(classes, model, pretrainedOptions);
-      console.log('results', results);
-      results.task = task;
-    }
-    catch(err) {
-      console.log("ERRRRRRRRROROROROROR", err);
-    }
+    const results = await loadItems(classes, model, pretrainedOptions);
+    results.task = task;
 
     (0,_utils_core_js__WEBPACK_IMPORTED_MODULE_4__.dispatchCallback)(progress_callback, {
         'status': 'ready',
@@ -26817,6 +26809,7 @@ const isFp16Supported = (function () {
                 try {
                     const adapter = await navigator.gpu.requestAdapter();
                     // cachedResult = adapter.features.has('shader-f16');
+                    // always return true for now to avoid false positive checks
                     cachedResult = true;
                 } catch (e) {
                     cachedResult = false;
