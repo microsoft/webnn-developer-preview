@@ -28,8 +28,7 @@ transformers.env.allowRemoteModels = useRemoteModels;
 transformers.env.allowLocalModels = !useRemoteModels;
 log('[Transformer.js] env.allowRemoteModels: ' + transformers.env.allowRemoteModels);
 log('[Transformer.js] env.allowLocalModels: ' + transformers.env.allowLocalModels);
-if (transformers.env.allowLocalModels)
-{
+if (transformers.env.allowLocalModels) {
   transformers.env.localModelPath = "./models/";
   log('[Transformer.js] env.localModelPath: ' + transformers.env.localModelPath);
 }
@@ -138,49 +137,82 @@ const main = async () => {
     log(
       `[Transformer.js] Loading ${modelPath} and running image-classification pipeline`
     );
-    const classifier = await transformers.pipeline(
-      "image-classification",
-      modelPath,
-      options
-    );
-    let [err, output] = await asyncErrorHandling(
-      classifier(imageUrl, { topk: 3 })
-    );
-    if (err) {
-      status.setAttribute("class", "red");
-      info.innerHTML = err.message;
-      logError(err.message);
-    } else {
-      if (getMode()) {
-        log(JSON.stringify(transformers.getPerf()));
-        let warmUp = transformers.getPerf().warmup;
-        let averageInference = getAverage(transformers.getPerf().inference);
-        let medianInference = getMedian(transformers.getPerf().inference);
-        latency.innerHTML = medianInference.toFixed(2);
-        first.innerHTML = warmUp.toFixed(2);
-        average.innerHTML = averageInference;
-        median.innerHTML = medianInference.toFixed(2);
-        best.innerHTML = getMinimum(transformers.getPerf().inference);
-        throughput.innerHTML = `${transformers.getPerf().throughput} FPS`;
-        fullResult.setAttribute("class", "");
-        latencyDiv.setAttribute("class", "latency");
-      }
 
-      label1.innerHTML = output[0].label;
-      score1.innerText = output[0].score;
-      label2.innerText = output[1].label;
-      score2.innerText = output[1].score;
-      label3.innerText = output[2].label;
-      score3.innerText = output[2].score;
-      result.setAttribute("class", "");
-      label_uploadImage.setAttribute("class", "");
-      uploadImage.disabled = false;
-      classify.disabled = false;
-      log(JSON.stringify(output));
-      log(`[Transformer.js] Classifier completed`);
-    }
+    // let classifier;
+
+    // classifier = await transformers.pipeline(
+    //   "image-classification",
+    //   modelPath,
+    //   options
+    // );
+
+    // transformers.pipeline("image-classification", modelPath, options).then((res) => {
+    //   classifier = res;
+    // });
+
+    return new Promise((resolve, reject) => {
+      transformers.pipeline("image-classification", modelPath, options).then((res) => {
+        console.log("res", res);
+        resolve(res);
+      }).catch((err) => {
+        reject(err);
+      });
+    })
+
+
+    // console.log("classifier", classifier);
+    // let [err, output] = await asyncErrorHandling(
+    //   classifier(imageUrl, { topk: 3 })
+    // );
+    // console.log("output", output);
+    // console.log("err", err);
+    // if (err) {
+    //   status.setAttribute("class", "red");
+    //   info.innerHTML = err.message;
+    //   logError(err.message);
+    // } else {
+    //   if (getMode()) {
+    //     log(JSON.stringify(transformers.getPerf()));
+    //     let warmUp = transformers.getPerf().warmup;
+    //     let averageInference = getAverage(transformers.getPerf().inference);
+    //     let medianInference = getMedian(transformers.getPerf().inference);
+    //     latency.innerHTML = medianInference.toFixed(2);
+    //     first.innerHTML = warmUp.toFixed(2);
+    //     average.innerHTML = averageInference;
+    //     median.innerHTML = medianInference.toFixed(2);
+    //     best.innerHTML = getMinimum(transformers.getPerf().inference);
+    //     throughput.innerHTML = `${transformers.getPerf().throughput} FPS`;
+    //     fullResult.setAttribute("class", "");
+    //     latencyDiv.setAttribute("class", "latency");
+    //   }
+
+    //   label1.innerHTML = output[0].label;
+    //   score1.innerText = output[0].score;
+    //   label2.innerText = output[1].label;
+    //   score2.innerText = output[1].score;
+    //   label3.innerText = output[2].label;
+    //   score3.innerText = output[2].score;
+    //   result.setAttribute("class", "");
+    //   label_uploadImage.setAttribute("class", "");
+    //   uploadImage.disabled = false;
+    //   classify.disabled = false;
+    //   log(JSON.stringify(output));
+    //   log(`[Transformer.js] Classifier completed`);
+    // }
   } catch (err) {
     log(`[Error] ${err}`);
+
+    status.setAttribute("class", "red");
+    info.innerHTML = `
+            ${error}<br>
+            Your device probably doesn't have a supported GPU.`;
+    label_uploadImage.setAttribute("class", "disabled");
+    uploadImage.disabled = true;
+    classify.disabled = true;
+    log(`[Error] ${error}`);
+    log(
+      `[Error] Your device probably doesn't have a supported GPU`
+    );
   }
 };
 

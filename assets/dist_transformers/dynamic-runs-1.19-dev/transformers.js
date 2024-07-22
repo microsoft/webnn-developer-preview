@@ -18534,14 +18534,23 @@ async function pipeline(
     ]);
 
     // Load model, tokenizer, and processor (if they exist)
-    const results = await loadItems(classes, model, pretrainedOptions);
-    results.task = task;
+    let results;
+
+    try {
+      results = await loadItems(classes, model, pretrainedOptions);
+      console.log('results', results);
+      results.task = task;
+    }
+    catch(err) {
+      console.log("ERRRRRRRRROROROROROR", err);
+    }
 
     (0,_utils_core_js__WEBPACK_IMPORTED_MODULE_4__.dispatchCallback)(progress_callback, {
         'status': 'ready',
         'task': task,
         'model': model,
     });
+    
 
     const pipelineClass = pipelineInfo.pipeline;
     return new pipelineClass(results);
@@ -26807,7 +26816,8 @@ const isFp16Supported = (function () {
             } else {
                 try {
                     const adapter = await navigator.gpu.requestAdapter();
-                    cachedResult = adapter.features.has('shader-f16');
+                    // cachedResult = adapter.features.has('shader-f16');
+                    cachedResult = true;
                 } catch (e) {
                     cachedResult = false;
                 }
