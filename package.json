@@ -4,7 +4,7 @@
   "description": "Run ONNX models in the browser with WebNN",
   "scripts": {
     "fetch-models": "node fetch_models.js",
-    "dev": "http-server"
+    "dev": "http-server -S -C cert.pem -o"
   },
   "type": "module",
   "author": "",
