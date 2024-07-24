@@ -192,9 +192,7 @@ const main = async () => {
     uploadImage.disabled = true;
     classify.disabled = true;
     log(`[Error] ${error}`);
-    log(
-      `[Error] Your device probably doesn't have a supported GPU`
-    );
+    log(`[Error] Your device probably doesn't have a supported GPU`);
   }
 };
 
