@@ -993,15 +993,10 @@ const webNnStatus = async () => {
 };
 
 const setupORT = async () => {
-  const ortVersionLabel = document.querySelector("#ortversion");
+  const ortversion = document.querySelector("#ortversion");
   removeElement("onnxruntime-web");
-  const ortVersionString = "1.18.0";
-  const ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersionString}`;
-  ortVersionLabel.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersionString}</a>`;
-  await loadScript(
-    "onnxruntime-web",
-    `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersionString}/dist/ort.all.min.js`
-  );
+  await loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
+  ortversion.innerHTML = `ONNX Runtime Web: Test version`;
 };
 
 const loadScript = async (id, url) => {
