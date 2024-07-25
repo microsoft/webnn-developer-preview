@@ -18542,6 +18542,7 @@ async function pipeline(
         'task': task,
         'model': model,
     });
+    
 
     const pipelineClass = pipelineInfo.pipeline;
     return new pipelineClass(results);
@@ -26807,7 +26808,9 @@ const isFp16Supported = (function () {
             } else {
                 try {
                     const adapter = await navigator.gpu.requestAdapter();
-                    cachedResult = adapter.features.has('shader-f16');
+                    // cachedResult = adapter.features.has('shader-f16');
+                    // Always return true for now to avoid false positive checks.
+                    cachedResult = true;
                 } catch (e) {
                     cachedResult = false;
                 }

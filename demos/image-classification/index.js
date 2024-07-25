@@ -28,8 +28,7 @@ transformers.env.allowRemoteModels = useRemoteModels;
 transformers.env.allowLocalModels = !useRemoteModels;
 log('[Transformer.js] env.allowRemoteModels: ' + transformers.env.allowRemoteModels);
 log('[Transformer.js] env.allowLocalModels: ' + transformers.env.allowLocalModels);
-if (transformers.env.allowLocalModels)
-{
+if (transformers.env.allowLocalModels) {
   transformers.env.localModelPath = "./models/";
   log('[Transformer.js] env.localModelPath: ' + transformers.env.localModelPath);
 }
@@ -138,14 +137,17 @@ const main = async () => {
     log(
       `[Transformer.js] Loading ${modelPath} and running image-classification pipeline`
     );
+
     const classifier = await transformers.pipeline(
       "image-classification",
       modelPath,
       options
     );
+
     let [err, output] = await asyncErrorHandling(
       classifier(imageUrl, { topk: 3 })
     );
+
     if (err) {
       status.setAttribute("class", "red");
       info.innerHTML = err.message;
@@ -181,6 +183,16 @@ const main = async () => {
     }
   } catch (err) {
     log(`[Error] ${err}`);
+
+    status.setAttribute("class", "red");
+    info.innerHTML = `
+            ${error}<br>
+            Your device probably doesn't have a supported GPU.`;
+    label_uploadImage.setAttribute("class", "disabled");
+    uploadImage.disabled = true;
+    classify.disabled = true;
+    log(`[Error] ${error}`);
+    log(`[Error] Your device probably doesn't have a supported GPU`);
   }
 };
 
