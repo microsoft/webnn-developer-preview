@@ -26809,7 +26809,7 @@ const isFp16Supported = (function () {
                 try {
                     const adapter = await navigator.gpu.requestAdapter();
                     // cachedResult = adapter.features.has('shader-f16');
-                    // always return true for now to avoid false positive checks
+                    // Always return true for now to avoid false positive checks.
                     cachedResult = true;
                 } catch (e) {
                     cachedResult = false;
