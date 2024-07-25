@@ -248,9 +248,9 @@ export const loadScript = async (id, url) => {
 };
 
 export const removeElement = async (id) => {
-  let el = document.querySelector(id);
-  if (el) {
-    el.parentNode.removeChild(el);
+  let element = document.querySelector(id);
+  if (element) {
+    element.parentNode.removeChild(element);
   }
 };
 
@@ -321,22 +321,6 @@ export const getSafetyChecker = () => {
   } else {
     return true;
   }
-};
-
-export const getOrtDevVersion = async () => {
-  const response = await fetch(
-    "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/"
-  );
-  const htmlString = await response.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, "text/html");
-  let selectElement = doc.querySelector(".path li");
-  selectElement = doc.querySelector("select.versions.select-css");
-  let options = Array.from(selectElement.querySelectorAll("option")).map(
-    (option) => option.value
-  );
-  options = options.filter((option) => !option.includes("esmtest"));
-  return options[0].replace("onnxruntime-web@", "");
 };
 
 export const webNnStatus = async () => {

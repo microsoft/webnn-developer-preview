@@ -642,22 +642,6 @@ const getTime = () => {
   return `${hour}:${min}:${sec}`;
 };
 
-const getOrtDevVersion = async () => {
-  const response = await fetch(
-    "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/"
-  );
-  const htmlString = await response.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, "text/html");
-  let selectElement = doc.querySelector(".path li");
-  selectElement = doc.querySelector("select.versions.select-css");
-  let options = Array.from(selectElement.querySelectorAll("option")).map(
-    (option) => option.value
-  );
-  options = options.filter((option) => !option.includes("esmtest"));
-  return options[0].replace("onnxruntime-web@", "");
-};
-
 const checkWebNN = async () => {
   let status = document.querySelector("#webnnstatus");
   let circle = document.querySelector("#circle");
@@ -722,21 +706,8 @@ const webNnStatus = async () => {
 const setupORT = async () => {
   const ortversion = document.querySelector("#ortversion");
   removeElement("onnxruntime-web");
-  let ortVersion = await getOrtDevVersion();
-  // let ortLink = '';
-  // if (ortVersion && ortVersion.length > 4) {
-  //     await loadScript('onnxruntime-web', `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`);
-  //     ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`
-  //     ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
-  // } else {
-  //     await loadScript('onnxruntime-web', './dist/ort.all.min.js');
-  //     ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-  // }
   await loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
   ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-
-  // await loadScript('onnxruntime-web', './dist/ort.all.min.js');
-  // ortversion.innerHTML = `ONNX Runtime Web: <a href="https://github.com/microsoft/onnxruntime/pull/19558">Test version with einsum op support</a>`;
 };
 
 const loadScript = async (id, url) => {
@@ -754,9 +725,9 @@ const loadScript = async (id, url) => {
 };
 
 const removeElement = async (id) => {
-  let el = document.querySelector(id);
-  if (el) {
-    el.parentNode.removeChild(el);
+  let element = document.querySelector(id);
+  if (element) {
+    element.parentNode.removeChild(element);
   }
 };
 

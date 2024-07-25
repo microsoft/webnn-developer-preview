@@ -995,19 +995,8 @@ const webNnStatus = async () => {
 const setupORT = async () => {
   const ortversion = document.querySelector("#ortversion");
   removeElement("onnxruntime-web");
-  let ortVersion = "1.18.0";
-  let ortLink = "";
-  if (ortVersion && ortVersion.length > 4) {
-    await loadScript(
-      "onnxruntime-web",
-      `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`
-    );
-    ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`;
-    ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
-  } else {
-    await loadScript("onnxruntime-web", "./dist/ort.all.min.js");
-    ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-  }
+  await loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
+  ortversion.innerHTML = `ONNX Runtime Web: Test version`;
 };
 
 const loadScript = async (id, url) => {
@@ -1025,9 +1014,9 @@ const loadScript = async (id, url) => {
 };
 
 const removeElement = async (id) => {
-  let el = document.querySelector(id);
-  if (el) {
-    el.parentNode.removeChild(el);
+  let element = document.querySelector(id);
+  if (element) {
+    element.parentNode.removeChild(element);
   }
 };
 
@@ -1195,8 +1184,7 @@ const ui = async () => {
         opt.executionProviders = [
           {
             name: "webnn",
-            deviceType: config.device,
-            powerPreference: "default",
+            deviceType: config.device
           },
         ];
       }

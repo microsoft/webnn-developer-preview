@@ -213,19 +213,8 @@ function get_tensor_from_image(imageData, format) {
 const setupORT = async () => {
   const ortversion = document.querySelector("#ortversion");
   Utils.removeElement("onnxruntime-web");
-  let ortVersion = "1.18.0";
-  let ortLink = "";
-  if (ortVersion && ortVersion.length > 4) {
-    await Utils.loadScript(
-      "onnxruntime-web",
-      `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`
-    );
-    ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`;
-    ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
-  } else {
-    await Utils.loadScript("onnxruntime-web", "./dist/ort.all.min.js");
-    ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-  }
+  await Utils.loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
+  ortversion.innerHTML = `ONNX Runtime Web: Test version`;
 };
 
 let progress = 0;
@@ -745,8 +734,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     executionProviders: [
       {
         name: executionProvider,
-        deviceType: Utils.getQueryVariable("device", "gpu"),
-        powerPreference: "default",
+        deviceType: Utils.getQueryVariable("device", "gpu")
       },
     ],
   };
@@ -993,7 +981,6 @@ async function loadStableDiffusion(executionProvider) {
     console.log("Exception: ", e);
     error.setAttribute("class", "error");
     error.innerHTML = e.message;
-    Utils.appendStatus("Exception: " + e);
   }
 }
 
@@ -1415,7 +1402,6 @@ async function executeStableDiffusionAndDisplayOutput() {
     error.setAttribute("class", "error");
     error.innerHTML = e.message;
     console.log("Exception: ", e);
-    Utils.appendStatus("Exception: " + e);
   }
 }
 
