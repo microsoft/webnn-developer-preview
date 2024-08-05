@@ -112,6 +112,12 @@ header svg {
 #directml-logo {
   height: 40px;
   width: 110px;
+  display: grid;
+  align-items: center;
+  font-size: 27px;
+  font-family: "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: rgba(116, 116, 116, 1.0);
+  font-weight: 600;
 }
 
 #ort-logo {
