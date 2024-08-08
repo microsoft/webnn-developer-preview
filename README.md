@@ -85,6 +85,28 @@ Please run the following command to download demos required models if you run th
 npm run fetch-models
 ```
 
+### Breaking Changes
+
+WebNN is a living specification and still subject to breaking changes, which may impact the samples depending on your browser version. The following are recent:
+
+- 2024-08-?? ⏳ Add `MLNumber` to `constant`, `clamp`, `pad` - [spec change](https://github.com/webmachinelearning/webnn/pull/647), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5466806)
+- 2024-07-24 `MLContextOptions::MLPowerPreference` rename `auto` to `default` [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5716629)
+- 2024-07-22 `LSTM`/`GRU` activation enum `MLRecurrentNetworkActivation` - [spec change](https://github.com/webmachinelearning/webnn/pull/718)
+- 2024-07-24 Allow `MLGraphBuilder.build()` to be called only once - [spec change](https://github.com/webmachinelearning/webnn/pull/717), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5684454), [ORT change](https://github.com/microsoft/onnxruntime/pull/21514), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/21)
+- 2024-07-22 `argMin`/`argMax` change to take scalar `axis` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/724]), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5721028)
+- 2024-07-15 `argMin`/`argMax` add `outputDataType` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/730), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5692538), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/19])
+- 2024-06-12 `softmax` axis argument - [spec change](https://github.com/webmachinelearning/webnn/pull/649), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5495877)
+
+Model                  | Known compatible Chromium version
+-----------------------|-------------------------------
+Segment Anything       | 129.0.6645.0
+Stable Diffusion Turbo | 129.0.6645.0
+Stable Diffusion 1.5   | 129.0.6645.0
+Whisper Base           | 129.0.6645.0
+ResNet50               | 129.0.6645.0
+MobileNet V2           | 129.0.6645.0
+EfficientNet Lite4     | 129.0.6645.0
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
@@ -101,8 +123,8 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
