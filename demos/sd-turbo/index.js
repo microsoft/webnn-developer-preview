@@ -153,7 +153,7 @@ async function readResponse(name, response) {
     if (done) return;
 
     let newLoaded = loaded + value.length;
-    fetchProgress = (newLoaded / contentLength) * 100;
+    let fetchProgress = (newLoaded / contentLength) * 100;
 
     if(!getSafetyChecker()) {
       if (name == "sd_turbo_text_encoder") {
