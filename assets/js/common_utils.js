@@ -52,7 +52,7 @@ export const updateQueryStringParameter = (uri, key, value) => {
 
 export const log = (i) => {
   console.log(i);
-  if(getMode()) {
+  if (getMode()) {
     document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
   } else {
     document.getElementById("status").innerText += `\n${i}`;
@@ -61,7 +61,7 @@ export const log = (i) => {
 
 export const logError = (i) => {
   console.error(i);
-  if(getMode()) {
+  if (getMode()) {
     document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
   } else {
     document.getElementById("status").innerText += `\n${i}`;
@@ -96,38 +96,53 @@ export const getTime = () => {
   return `${hour}:${min}:${sec}`;
 };
 
-export const getOrtDevVersion = async () => {
-  const response = await fetch(
-    "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/"
-  );
-  const htmlString = await response.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, "text/html");
-  let selectElement = doc.querySelector(".path li");
-  selectElement = doc.querySelector("select.versions.select-css");
-  let options = Array.from(selectElement.querySelectorAll("option")).map(
-    (option) => option.value
-  );
-  options = options.filter(option => !option.includes("esmtest"));
-  return options[0].replace("onnxruntime-web@", "");
+// Get the latest dev version of ONNX Runtime Web dists
+const getLatestOrtWebDevVersion = async () => {
+  try {
+    const response = await fetch('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/');
+    const htmlString = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    let selectElement = doc.querySelector('select.versions.select-css');
+    let options = Array.from(selectElement.querySelectorAll('option')).map(
+      (option) => option.value
+    );
+    let filteredOptions = options.filter(item => item.includes('-dev.'));
+    return filteredOptions[0].replace('onnxruntime-web@', '');
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+};
+
+const ORT_BASE_URL = 'https://www.npmjs.com/package/onnxruntime-web/v/';
+const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@';
+const ortLink = (version) => `${ORT_BASE_URL}${version}?activeTab=versions`;
+
+const loadOrtScript = async (version, url) => {
+  try {
+    await loadScript('onnxruntime-web', url);
+    return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
+  } catch (error) {
+    console.error('Failed to load ORT script:', error);
+    return 'Failed to load ONNX Runtime Web';
+  }
 };
 
 export const setupORT = async () => {
-  const ortversion = document.querySelector("#ortversion");
-  removeElement("onnxruntime-web");
-  let ortVersion = "1.18.0";
-  let ortLink = "";
-  if (ortVersion && ortVersion.length > 4) {
-    await loadScript(
-      "onnxruntime-web",
-      `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`
-    );
-    ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`;
-    ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
+  const ortVersionElement = document.querySelector('#ortversion');
+  removeElement('onnxruntime-web');
+  const queryOrt = getQueryValue('ort')?.toLowerCase();
+  let versionHtml;
+  if (queryOrt?.includes('-dev.')) {
+    versionHtml = await loadOrtScript(queryOrt, `${ORT_CDN_URL}${queryOrt}/dist/ort.all.min.js`);
+  } else if (queryOrt === 'test') {
+    await loadScript('onnxruntime-web', '../../assets/dist/ort.all.min.js');
+    versionHtml = 'ONNX Runtime Web: Test version';
   } else {
-    await loadScript("onnxruntime-web", "../dist/ort.all.min.js");
-    ortversion.innerHTML = `ONNX Runtime Web: Test version`;
+    const latestVersion = await getLatestOrtWebDevVersion();
+    versionHtml = await loadOrtScript(latestVersion, `${ORT_CDN_URL}${latestVersion}/dist/ort.all.min.js`);
   }
+  ortVersionElement.innerHTML = versionHtml;
 };
 
 export const webNnStatus = async () => {

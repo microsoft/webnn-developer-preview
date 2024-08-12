@@ -5,7 +5,8 @@
 //
 
 import { Whisper } from "./whisper.js";
-import { loadScript, removeElement, getQueryValue, webNnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
+import { getQueryValue, webNnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
+import { setupORT } from '../../assets/js/common_utils.js';
 import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
 import AudioMotionAnalyzer from './static/js/audioMotion-analyzer.js?min';
 import { lcm } from "./vad/math.js";
@@ -579,21 +580,6 @@ async function processAudioBuffer() {
 
   if (lastSpeechCompleted && speechState == SpeechStates.PAUSED) {
     ready();
-  }
-}
-
-const setupORT = async () => {
-  const ortversion = document.querySelector('#ortversion');
-  removeElement('onnxruntime-web');
-  let ortVersion = "1.18.0";
-  let ortLink = '';
-  if (ortVersion && ortVersion.length > 4) {
-      await loadScript('onnxruntime-web', `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersion}/dist/ort.all.min.js`);
-      ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersion}`
-      ortversion.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersion}</a>`;
-  } else {
-      await loadScript('onnxruntime-web', '../../assets/dist/ort.all.min.js');
-      ortversion.innerHTML = `ONNX Runtime Web: Test version`;
   }
 }
 

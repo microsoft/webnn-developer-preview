@@ -1,24 +1,3 @@
-export const loadScript = async (id, url) => {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.onload = resolve;
-    script.onerror = reject;
-    script.id = id;
-    script.src = url;
-    if (url.startsWith("http")) {
-      script.crossOrigin = "anonymous";
-    }
-    document.body.append(script);
-  });
-};
-
-export const removeElement = async (id) => {
-  let el = document.querySelector(id);
-  if (el) {
-    el.parentNode.removeChild(el);
-  }
-};
-
 export const sleep = (ms) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
@@ -50,38 +29,12 @@ const padNumber = (num, fill) => {
   return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
 };
 
-const getDateTime = () => {
-  let date = new Date(),
-    m = padNumber(date.getMonth() + 1, 2),
-    d = padNumber(date.getDate(), 2),
-    hour = padNumber(date.getHours(), 2),
-    min = padNumber(date.getMinutes(), 2),
-    sec = padNumber(date.getSeconds(), 2);
-  return `${m}/${d} ${hour}:${min}:${sec}`;
-};
-
 const getTime = () => {
   let date = new Date(),
     hour = padNumber(date.getHours(), 2),
     min = padNumber(date.getMinutes(), 2),
     sec = padNumber(date.getSeconds(), 2);
   return `${hour}:${min}:${sec}`;
-};
-
-export const getOrtDevVersion = async () => {
-  const response = await fetch(
-    "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/"
-  );
-  const htmlString = await response.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, "text/html");
-  let selectElement = doc.querySelector(".path li");
-  selectElement = doc.querySelector("select.versions.select-css");
-  let options = Array.from(selectElement.querySelectorAll("option")).map(
-    (option) => option.value
-  );
-  options = options.filter((option) => !option.includes("esmtest"));
-  return options[0].replace("onnxruntime-web@", "");
 };
 
 export const webNnStatus = async () => {
