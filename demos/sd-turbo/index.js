@@ -4,6 +4,8 @@
 // An example how to run sd-turbo with webnn in onnxruntime-web.
 //
 
+import { setupORT } from '../../assets/js/common_utils.js';
+
 const log = (i) => {
   console.log(i);
   if(getMode()) {
@@ -37,6 +39,7 @@ function getConfig() {
     device: "gpu",
     threads: "1",
     images: "4",
+    ort: "test"
   };
   let vars = query.split("&");
   for (var i = 0; i < vars.length; i++) {
@@ -150,7 +153,7 @@ async function readResponse(name, response) {
     if (done) return;
 
     let newLoaded = loaded + value.length;
-    fetchProgress = (newLoaded / contentLength) * 100;
+    let fetchProgress = (newLoaded / contentLength) * 100;
 
     if(!getSafetyChecker()) {
       if (name == "sd_turbo_text_encoder") {
@@ -907,32 +910,6 @@ const getTime = () => {
   return `${hour}:${min}:${sec}`;
 };
 
-const getDateTime = () => {
-  let date = new Date(),
-    m = padNumber(date.getMonth() + 1, 2),
-    d = padNumber(date.getDate(), 2),
-    hour = padNumber(date.getHours(), 2),
-    min = padNumber(date.getMinutes(), 2),
-    sec = padNumber(date.getSeconds(), 2);
-  return `${m}/${d} ${hour}:${min}:${sec}`;
-};
-
-const getOrtDevVersion = async () => {
-  const response = await fetch(
-    "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/"
-  );
-  const htmlString = await response.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, "text/html");
-  let selectElement = doc.querySelector(".path li");
-  selectElement = doc.querySelector("select.versions.select-css");
-  let options = Array.from(selectElement.querySelectorAll("option")).map(
-    (option) => option.value
-  );
-  options = options.filter((option) => !option.includes("esmtest"));
-  return options[0].replace("onnxruntime-web@", "");
-};
-
 const checkWebNN = async () => {
   let status = document.querySelector("#webnnstatus");
   let info = document.querySelector("#info");
@@ -989,34 +966,6 @@ const webNnStatus = async () => {
     result.webnn = false;
     result.error = ex.message;
     return result;
-  }
-};
-
-const setupORT = async () => {
-  const ortversion = document.querySelector("#ortversion");
-  removeElement("onnxruntime-web");
-  await loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
-  ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-};
-
-const loadScript = async (id, url) => {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.onload = resolve;
-    script.onerror = reject;
-    script.id = id;
-    script.src = url;
-    if (url.startsWith("http")) {
-      script.crossOrigin = "anonymous";
-    }
-    document.body.append(script);
-  });
-};
-
-const removeElement = async (id) => {
-  let element = document.querySelector(id);
-  if (element) {
-    element.parentNode.removeChild(element);
   }
 };
 

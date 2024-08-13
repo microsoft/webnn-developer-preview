@@ -233,27 +233,6 @@ export function encodeFloat16(floatValue) /*: uint16 Number*/ {
   return bits;
 }
 
-export const loadScript = async (id, url) => {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.onload = resolve;
-    script.onerror = reject;
-    script.id = id;
-    script.src = url;
-    if (url.startsWith("http")) {
-      script.crossOrigin = "anonymous";
-    }
-    document.body.append(script);
-  });
-};
-
-export const removeElement = async (id) => {
-  let element = document.querySelector(id);
-  if (element) {
-    element.parentNode.removeChild(element);
-  }
-};
-
 export const getQueryValue = (name) => {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(name);
@@ -291,16 +270,6 @@ export const randomNumber = () => {
 const padNumber = (num, fill) => {
   let len = ("" + num).length;
   return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
-};
-
-const getDateTime = () => {
-  let date = new Date(),
-    m = padNumber(date.getMonth() + 1, 2),
-    d = padNumber(date.getDate(), 2),
-    hour = padNumber(date.getHours(), 2),
-    min = padNumber(date.getMinutes(), 2),
-    sec = padNumber(date.getSeconds(), 2);
-  return `${m}/${d} ${hour}:${min}:${sec}`;
 };
 
 export const getTime = () => {

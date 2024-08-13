@@ -434,7 +434,7 @@ async function readResponse(name, response) {
     if (done) return;
 
     let newLoaded = loaded + value.length;
-    fetchProgress = (newLoaded / contentLength) * 100;
+    let fetchProgress = (newLoaded / contentLength) * 100;
 
     if (name.toLowerCase().indexOf("encoder") > -1) {
       samEncoderFetchProgress = 0.7 * fetchProgress;

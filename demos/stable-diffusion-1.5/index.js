@@ -5,6 +5,7 @@
 //
 
 import * as Utils from "./utils.js";
+import { setupORT } from '../../assets/js/common_utils.js';
 
 // Configuration...
 const pixelWidth = 512;
@@ -209,13 +210,6 @@ function get_tensor_from_image(imageData, format) {
 
   return tensor;
 }
-
-const setupORT = async () => {
-  const ortversion = document.querySelector("#ortversion");
-  Utils.removeElement("onnxruntime-web");
-  await Utils.loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
-  ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-};
 
 let progress = 0;
 let fetchProgress = 0;
