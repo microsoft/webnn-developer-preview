@@ -118,7 +118,7 @@ const ORT_BASE_URL = 'https://www.npmjs.com/package/onnxruntime-web/v/';
 const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@';
 const ortLink = (version) => `${ORT_BASE_URL}${version}?activeTab=versions`;
 
-const loadOrtScript = async (version, url) => {
+const loadScriptWithMessage = async (version, url) => {
   try {
     await loadScript('onnxruntime-web', url);
     return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
@@ -134,13 +134,13 @@ export const setupORT = async () => {
   const queryOrt = getQueryValue('ort')?.toLowerCase();
   let versionHtml;
   if (queryOrt?.includes('-dev.')) {
-    versionHtml = await loadOrtScript(queryOrt, `${ORT_CDN_URL}${queryOrt}/dist/ort.all.min.js`);
+    versionHtml = await loadScriptWithMessage(queryOrt, `${ORT_CDN_URL}${queryOrt}/dist/ort.all.min.js`);
   } else if (queryOrt === 'test') {
     await loadScript('onnxruntime-web', '../../assets/dist/ort.all.min.js');
     versionHtml = 'ONNX Runtime Web: Test version';
   } else {
     const latestVersion = await getLatestOrtWebDevVersion();
-    versionHtml = await loadOrtScript(latestVersion, `${ORT_CDN_URL}${latestVersion}/dist/ort.all.min.js`);
+    versionHtml = await loadScriptWithMessage(latestVersion, `${ORT_CDN_URL}${latestVersion}/dist/ort.all.min.js`);
   }
   ortVersionElement.innerHTML = versionHtml;
 };
