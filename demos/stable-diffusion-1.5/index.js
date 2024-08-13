@@ -713,7 +713,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     //  Outputs:
     //    float16 out_images
     //    bool has_nsfw_concepts
-    modelPath = Utils.modelPath() + "safety-checker.onnx";
+    modelPath = Utils.modelPath() + "safety_checker_int32_reduceSum.onnx";
     freeDimensionOverrides = {
       batch: 1,
       channels: 3,
