@@ -90,8 +90,8 @@ npm run fetch-models
 WebNN is a living specification and still subject to breaking changes, which may impact the samples depending on your browser version. The following are recent:
 
 - 2024-07-24 `MLContextOptions::MLPowerPreference` rename `auto` to `default` [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5716629)
-- 2024-07-22 `LSTM`/`GRU` activation enum `MLRecurrentNetworkActivation` - [spec change](https://github.com/webmachinelearning/webnn/pull/718), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5689531)
 - 2024-07-24 Allow `MLGraphBuilder.build()` to be called only once - [spec change](https://github.com/webmachinelearning/webnn/pull/717), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5684454), [ORT change](https://github.com/microsoft/onnxruntime/pull/21514), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/21)
+- 2024-07-22 `LSTM`/`GRU` activation enum `MLRecurrentNetworkActivation` - [spec change](https://github.com/webmachinelearning/webnn/pull/718), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5689531)
 - 2024-07-22 `argMin`/`argMax` change to take scalar `axis` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/724]), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5721028)
 - 2024-07-15 `argMin`/`argMax` add `outputDataType` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/730), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5692538), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/19])
 - 2024-06-12 `softmax` axis argument - [spec change](https://github.com/webmachinelearning/webnn/pull/649), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5495877)
@@ -107,7 +107,7 @@ ResNet50               | 129.0.6617.0
 MobileNet V2           | 129.0.6617.0
 EfficientNet Lite4     | 129.0.6617.0
 
-You can check the version via "about://version" in the address bar. In Chrome, look for "Google Chrome". Edge, heed the "Chromium version".
+You can check the version via "about://version" in the address bar. In Chrome, look for "Google Chrome". In Edge, heed the "Chromium version".
 
 ## Contributing
 
