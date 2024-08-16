@@ -99,6 +99,7 @@ function getConfig() {
     provider: "webnn",
     device: "gpu",
     threads: "1",
+    ort: "test"
   };
   let vars = query.split("&");
   for (let i = 0; i < vars.length; i++) {
