@@ -921,18 +921,34 @@ button svg {
   color: var(--bg);
 }
 
-#ortversion {
+#versions {
+  font-size: 12px;
+  display: block;
   text-align: right;
 }
 
-#ortversion a {
+#versions svg {
+  height: 12px;
+  width: 12px;
+  margin-bottom: -2px;
+}
+
+#versions a {
   color: var(--main);
   text-decoration: none;
 }
 
-#ortversion a:hover {
+#versions a svg path {
+  fill: var(--main);
+}
+
+#versions a:hover {
   color: var(--green);
   text-decoration: underline;
+}
+
+#versions a:hover svg path {
+  fill: var(--green);
 }
 
 #webnnstatus a {

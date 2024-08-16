@@ -6,7 +6,7 @@
 
 import { Whisper } from "./whisper.js";
 import { getQueryValue, webNnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
-import { setupORT } from '../../assets/js/common_utils.js';
+import { setupORT, showCompatibleChromiumVersion } from '../../assets/js/common_utils.js';
 import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
 import AudioMotionAnalyzer from './static/js/audioMotion-analyzer.js?min';
 import { lcm } from "./vad/math.js";
@@ -603,6 +603,7 @@ const main = async () => {
   // progress.parentNode.style.display = "none";
 
   await setupORT();
+  showCompatibleChromiumVersion();
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.simd = true;
 

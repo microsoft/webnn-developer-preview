@@ -5,7 +5,7 @@
 //
 
 import * as Utils from "./utils.js";
-import { setupORT } from '../../assets/js/common_utils.js';
+import { setupORT, showCompatibleChromiumVersion } from '../../assets/js/common_utils.js';
 
 // Configuration...
 const pixelWidth = 512;
@@ -1473,6 +1473,7 @@ const checkWebNN = async () => {
 
 const ui = async () => {
   await setupORT();
+  showCompatibleChromiumVersion();
   if (
     Utils.getQueryValue("provider") &&
     Utils.getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1

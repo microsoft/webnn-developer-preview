@@ -4,6 +4,8 @@
 // An example how to run segment-anything with webnn in onnxruntime-web.
 //
 
+import { showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+
 // the image size on canvas
 const MAX_WIDTH = 480;
 const MAX_HEIGHT = 480;
@@ -755,6 +757,7 @@ const ui = async () => {
 
   canvas.setAttribute("class", "none");
   await setupORT();
+  showCompatibleChromiumVersion();
 
   // ort.env.wasm.wasmPaths = 'dist/';
   ort.env.wasm.numThreads = config.threads;
