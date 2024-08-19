@@ -816,19 +816,30 @@ h4 {
   background-color: var(--bg);
 }
 
-#ortversion {
+#versions {
   font-size: 0.9rem;
+  display: block;
   text-align: right;
 }
 
-#ortversion a {
+#versions svg {
+  height: 16px;
+  width: 16px;
+  margin-bottom: -3px;
+}
+
+#versions a {
   color: var(--font);
   text-decoration: underline var(--border);
 }
 
-#ortversion a:hover {
+#versions a:hover {
   color: var(--green);
   text-decoration: underline;
+}
+
+#versions a:hover svg path {
+  fill: var(--green);
 }
 
 #webnnstatus a {

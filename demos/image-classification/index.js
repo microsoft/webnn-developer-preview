@@ -17,6 +17,7 @@ import {
   getMinimum,
   asyncErrorHandling,
   getMode,
+  showCompatibleChromiumVersion
 } from "../../assets/js/common_utils.js";
 
 transformers.env.backends.onnx.wasm.proxy = false;
@@ -556,9 +557,10 @@ const ui = async () => {
   controls();
   updateUi();
   await setupORT();
+  showCompatibleChromiumVersion('image-classification');
   const ortversion = document.querySelector("#ortversion");
   let transformersJswithOrtVersion = ortversion.innerHTML;
-  ortversion.innerHTML = `<a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a> · ${transformersJswithOrtVersion}`;
+  ortversion.innerHTML = `${transformersJswithOrtVersion} · <a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a>`;
 
   console.log(`${provider} ${deviceType} ${modelId} ${runs}`);
 

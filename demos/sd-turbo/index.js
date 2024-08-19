@@ -4,7 +4,7 @@
 // An example how to run sd-turbo with webnn in onnxruntime-web.
 //
 
-import { setupORT } from '../../assets/js/common_utils.js';
+import { setupORT, showCompatibleChromiumVersion } from '../../assets/js/common_utils.js';
 
 const log = (i) => {
   console.log(i);
@@ -1046,6 +1046,7 @@ const ui = async () => {
   }
 
   await setupORT();
+  showCompatibleChromiumVersion('sd-turbo');
 
   if (
     getQueryValue("provider") &&

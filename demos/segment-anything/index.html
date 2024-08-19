@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./static/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="./static/favicon/favicon-16x16.png">
   <link rel="stylesheet" href="./static/main.css">
-  <script src="./index.js"></script>
+  <script src="./index.js" type="module"></script>
 </head>
 
 <body>
@@ -126,7 +126,10 @@
 
     <div class="footerinfo">
       <div id="webnnstatus"><span id="circle"></span> <span id="info">WebNN</span> <span id="backends"></span></div>
-      <div id="ortversion"></div>
+      <div id="versions">
+        <div id="chromiumversion"></div>
+        <div id="ortversion"></div>
+    </div>
     </div>
   </div>
 
