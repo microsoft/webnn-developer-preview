@@ -1046,7 +1046,7 @@ const ui = async () => {
   }
 
   await setupORT();
-  showCompatibleChromiumVersion();
+  showCompatibleChromiumVersion('sd-turbo');
 
   if (
     getQueryValue("provider") &&

@@ -757,7 +757,7 @@ const ui = async () => {
 
   canvas.setAttribute("class", "none");
   await setupORT();
-  showCompatibleChromiumVersion();
+  showCompatibleChromiumVersion('segment-anything');
 
   // ort.env.wasm.wasmPaths = 'dist/';
   ort.env.wasm.numThreads = config.threads;

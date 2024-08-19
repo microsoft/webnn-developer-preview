@@ -6,12 +6,10 @@ const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
   'image-classification': '129.0.6617.0'
 }
 
-export const showCompatibleChromiumVersion = () => {
-  const path = location.pathname.toLowerCase();
-  const matchingEntry = Object.entries(KNOWN_COMPATIBLE_CHROMIUM_VERSION).find(([key]) => path.includes(key));
-  if (matchingEntry) {
+export const showCompatibleChromiumVersion = (key) => {
+  const version = KNOWN_COMPATIBLE_CHROMIUM_VERSION[key]
+  if (version) {
     const chromiumVersionElement = document.querySelector('#chromiumversion');
-    const [key, version] = matchingEntry;
     chromiumVersionElement.innerHTML = `Known compatible Chromium version: 
       <a href="https://github.com/microsoft/webnn-developer-preview#breaking-changes" title="Known compatible Chromium version">
         ${version} 

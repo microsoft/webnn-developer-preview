@@ -557,7 +557,7 @@ const ui = async () => {
   controls();
   updateUi();
   await setupORT();
-  showCompatibleChromiumVersion();
+  showCompatibleChromiumVersion('image-classification');
   const ortversion = document.querySelector("#ortversion");
   let transformersJswithOrtVersion = ortversion.innerHTML;
   ortversion.innerHTML = `${transformersJswithOrtVersion} · <a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a>`;

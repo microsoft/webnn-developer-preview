@@ -1473,7 +1473,7 @@ const checkWebNN = async () => {
 
 const ui = async () => {
   await setupORT();
-  showCompatibleChromiumVersion();
+  showCompatibleChromiumVersion('stable-diffusion-1.5');
   if (
     Utils.getQueryValue("provider") &&
     Utils.getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1
