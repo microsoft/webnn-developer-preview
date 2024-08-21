@@ -132,21 +132,22 @@ const KNOWN_COMPATIBLE_ORT_VERSION = {
 
 const ORT_BASE_URL = 'https://www.npmjs.com/package/onnxruntime-web/v/';
 const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@';
+const ORT_CDN_DATA_URL = 'https://data.jsdelivr.com/v1/packages/npm/onnxruntime-web';
 const ortLink = (version) => `${ORT_BASE_URL}${version}?activeTab=versions`;
 
 // Get the latest dev version of ONNX Runtime Web dists
 const getLatestOrtWebDevVersion = async () => {
   try {
-    const response = await fetch('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/');
-    const htmlString = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, 'text/html');
-    let selectElement = doc.querySelector('select.versions.select-css');
-    let options = Array.from(selectElement.querySelectorAll('option')).map(
-      (option) => option.value
-    );
-    let filteredOptions = options.filter(item => item.includes('-dev.'));
-    return filteredOptions[0].replace('onnxruntime-web@', '');
+    const response = await fetch(ORT_CDN_DATA_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.tags && data.tags.dev) {
+      return data.tags.dev;
+    } else {
+      console.error("Latest dev version of ONNX Runtime Web not found in the response");
+    }
   } catch (error) {
     console.error('Error:', error.message);
   }
