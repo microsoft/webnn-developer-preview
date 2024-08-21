@@ -122,51 +122,43 @@ export const getTime = () => {
   return `${hour}:${min}:${sec}`;
 };
 
-// Get the latest dev version of ONNX Runtime Web dists
-const getLatestOrtWebDevVersion = async () => {
-  try {
-    const response = await fetch('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/');
-    const htmlString = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, 'text/html');
-    let selectElement = doc.querySelector('select.versions.select-css');
-    let options = Array.from(selectElement.querySelectorAll('option')).map(
-      (option) => option.value
-    );
-    let filteredOptions = options.filter(item => item.includes('-dev.'));
-    return filteredOptions[0].replace('onnxruntime-web@', '');
-  } catch (error) {
-    console.error('Error:', error.message);
-  }
+const KNOWN_COMPATIBLE_ORT_VERSION = {
+  'stable-diffusion-1.5': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
+  'sd-turbo': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
+  'segment-anything': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
+  'whisper-base': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
+  'image-classification': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
 };
 
 const ORT_BASE_URL = 'https://www.npmjs.com/package/onnxruntime-web/v/';
 const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@';
 const ortLink = (version) => `${ORT_BASE_URL}${version}?activeTab=versions`;
 
-const loadScriptWithMessage = async (version, url) => {
+const loadScriptWithMessage = async (version) => {
   try {
-    await loadScript('onnxruntime-web', url);
-    return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
+    if (version === 'test') {
+      await loadScript('onnxruntime-web', '../../assets/dist/ort.all.min.js');
+      return 'ONNX Runtime Web: Test version';
+    } else {
+      await loadScript('onnxruntime-web', `${ORT_CDN_URL}${version}/dist/ort.all.min.js`);
+      return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
+    }
   } catch (error) {
     console.error('Failed to load ORT script:', error);
     return 'Failed to load ONNX Runtime Web';
   }
 };
 
-export const setupORT = async () => {
+export const setupORT = async (key, branch) => {
+  const version = KNOWN_COMPATIBLE_ORT_VERSION[key][branch];
   const ortVersionElement = document.querySelector('#ortversion');
   removeElement('onnxruntime-web');
   const queryOrt = getQueryValue('ort')?.toLowerCase();
   let versionHtml;
-  if (queryOrt?.includes('-dev.')) {
-    versionHtml = await loadScriptWithMessage(queryOrt, `${ORT_CDN_URL}${queryOrt}/dist/ort.all.min.js`);
-  } else if (queryOrt === 'test') {
-    await loadScript('onnxruntime-web', '../../assets/dist/ort.all.min.js');
-    versionHtml = 'ONNX Runtime Web: Test version';
+  if (queryOrt) {
+    versionHtml = await loadScriptWithMessage(queryOrt);
   } else {
-    const latestVersion = await getLatestOrtWebDevVersion();
-    versionHtml = await loadScriptWithMessage(latestVersion, `${ORT_CDN_URL}${latestVersion}/dist/ort.all.min.js`);
+    versionHtml = await loadScriptWithMessage(version);
   }
   ortVersionElement.innerHTML = versionHtml;
 };

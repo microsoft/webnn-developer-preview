@@ -1472,7 +1472,7 @@ const checkWebNN = async () => {
 };
 
 const ui = async () => {
-  await setupORT();
+  await setupORT('stable-diffusion-1.5', 'dev');
   showCompatibleChromiumVersion('stable-diffusion-1.5');
   if (
     Utils.getQueryValue("provider") &&
