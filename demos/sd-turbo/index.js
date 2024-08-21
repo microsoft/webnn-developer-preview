@@ -1045,7 +1045,7 @@ const ui = async () => {
     dataElement.setAttribute("class", "hide");
   }
 
-  await setupORT();
+  await setupORT('sd-turbo', 'dev');
   showCompatibleChromiumVersion('sd-turbo');
 
   if (

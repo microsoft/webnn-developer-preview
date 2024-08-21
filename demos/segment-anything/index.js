@@ -4,7 +4,7 @@
 // An example how to run segment-anything with webnn in onnxruntime-web.
 //
 
-import { showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+import { showCompatibleChromiumVersion, setupORT } from "../../assets/js/common_utils.js";
 
 // the image size on canvas
 const MAX_WIDTH = 480;
@@ -101,6 +101,7 @@ function getConfig() {
     provider: "webnn",
     device: "gpu",
     threads: "1",
+    ort: "test"
   };
   let vars = query.split("&");
   for (let i = 0; i < vars.length; i++) {
@@ -705,13 +706,6 @@ const webNnStatus = async () => {
   }
 };
 
-const setupORT = async () => {
-  const ortversion = document.querySelector("#ortversion");
-  removeElement("onnxruntime-web");
-  await loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
-  ortversion.innerHTML = `ONNX Runtime Web: Test version`;
-};
-
 const loadScript = async (id, url) => {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -756,7 +750,7 @@ const ui = async () => {
   samDecoderIndicator = document.querySelector("#sam-decoder-indicator");
 
   canvas.setAttribute("class", "none");
-  await setupORT();
+  await setupORT('segment-anything', 'test');
   showCompatibleChromiumVersion('segment-anything');
 
   // ort.env.wasm.wasmPaths = 'dist/';
