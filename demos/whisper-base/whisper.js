@@ -204,7 +204,7 @@ export class Whisper {
     // -----------------------------------FEATURE EXTRACTION-----------------------------------------
     // const audio = await read_audio('https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/mlk.flac', 16000);
     // const audio = await read_audio(audio_data, sampling_rate);
-    // let start = performance.now();
+    let start = performance.now();
     const { input_features } = await this.processor(audio_data);
     // -----------------------------------ENCODER INFERENCE-----------------------------------------
     // run encoder to get output
@@ -270,7 +270,7 @@ export class Whisper {
       "input_ids": new ort.Tensor("int32", new Int32Array(tokens), [1, 4]),
       "attention_mask": attention_mask,
       "encoder_hidden_states": last_hidden_state,
-  };
+    };
     // console.log(`Non-KV cache decoder input preparation time: ${(performance.now() - start).toFixed(2)}ms`);
     // start = performance.now();
     // run the first inference which generates SA and CA KV cache
@@ -289,6 +289,7 @@ export class Whisper {
 
     // add token to final buffer
     tokens = tokens.concat(new_token);
+    const time_to_first_token = (performance.now() - start);  // TTFT
 
     // for 2+ inference, we don't need encoder hidden states as input to OV model
     delete decoder_input.encoder_hidden_states;
@@ -405,7 +406,9 @@ export class Whisper {
     const sentence = await this.tokenizer.decode(tokens, {
       skip_special_tokens: true,
     });
+
+    const num_tokens = tokens.length - 4;
     // log(`Post-processing time: ${(performance.now() - start).toFixed(2)}ms`);
-    return sentence;
+    return { sentence, time_to_first_token, num_tokens };
   }
 }

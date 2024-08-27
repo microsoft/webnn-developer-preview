@@ -105,6 +105,9 @@ let subAudioChunkLength = 0; // length of a sub audio chunk
 let subText = "";
 let speechToText = "";
 
+let time_to_first_token = 0; // TTFT
+let num_tokens = 0; // number of tokens
+
 const blacklistTags = [
   "[inaudible]",
   " [inaudible]",
@@ -185,9 +188,13 @@ async function process_audio(audio, starttime, idx, pos) {
       // run inference for 30 sec
       const xa = audio.slice(idx, idx + kSteps);
       const ret = await whisper.run(xa);
+      if (idx == 0) {
+        time_to_first_token = ret.time_to_first_token;
+      }
+      num_tokens += ret.num_tokens;
       // append results to outputText
-      outputText.innerText += ret;
-      logUser(ret);
+      outputText.innerText += ret.sentence;
+      logUser(ret.sentence);
       // outputText.scrollTop = outputText.scrollHeight;
       
       await process_audio(audio, starttime, idx + kSteps, pos + kMaxAudioLengthInSec);
@@ -198,13 +205,16 @@ async function process_audio(audio, starttime, idx, pos) {
     // done with audio buffer
     const processing_time = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
+    const token_per_sec = (num_tokens - 1) / (processing_time - time_to_first_token / 1000);
     resultShow.setAttribute('class', 'show');
     progress.style.width = "100%";
 
     if(getMode()) {
-      latency.innerText = `100.0%, ${(
-        total / processing_time
-      ).toFixed(1)} x realtime`;
+      latency.innerText = `100.0%, ${
+        (total / processing_time).toFixed(1)
+      } x realtime, time to first token: ${
+        time_to_first_token.toFixed(1)
+      }ms, ${token_per_sec.toFixed(1)} tokens/s`;
       log(
         `${
           latency.innerText
@@ -530,20 +540,20 @@ async function processAudioBuffer() {
     }
 
     // ignore slient, inaudible audio output, i.e. '[BLANK_AUDIO]'
-    if (!blacklistTags.includes(ret)) {
+    if (!blacklistTags.includes(ret.sentence)) {
       if (subAudioChunks.length > 0) {
         if (accumulateSubChunks) {
-          subText = ret;
+          subText = ret.sentence;
         } else {
-          subText += ret;
+          subText += ret.sentence;
         }
         outputText.innerText = speechToText + subText;
       } else {
         subText = '';
-        speechToText += ret;
+        speechToText += ret.sentence;
         outputText.innerText = speechToText;
       }
-      logUser(ret);
+      logUser(ret.sentence);
       // outputText.scrollTop = outputText.scrollHeight;
     }
   } else {
