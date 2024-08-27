@@ -206,6 +206,7 @@ async function process_audio(audio, starttime, idx, pos) {
     const processing_time = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
     const token_per_sec = (num_tokens - 1) / (processing_time - time_to_first_token / 1000);
+    num_tokens = 0;
     resultShow.setAttribute('class', 'show');
     progress.style.width = "100%";
 
