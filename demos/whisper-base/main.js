@@ -105,8 +105,8 @@ let subAudioChunkLength = 0; // length of a sub audio chunk
 let subText = "";
 let speechToText = "";
 
-let time_to_first_token = 0; // TTFT
-let num_tokens = 0; // number of tokens
+let timeToFirstToken = 0; // TTFT
+let numTokens = 0; // number of tokens
 
 const blacklistTags = [
   "[inaudible]",
@@ -189,9 +189,9 @@ async function process_audio(audio, starttime, idx, pos) {
       const xa = audio.slice(idx, idx + kSteps);
       const ret = await whisper.run(xa);
       if (idx == 0) {
-        time_to_first_token = ret.time_to_first_token;
+        timeToFirstToken = ret.timeToFirstToken;
       }
-      num_tokens += ret.num_tokens;
+      numTokens += ret.numTokens;
       // append results to outputText
       outputText.innerText += ret.sentence;
       logUser(ret.sentence);
@@ -205,8 +205,8 @@ async function process_audio(audio, starttime, idx, pos) {
     // done with audio buffer
     const processing_time = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
-    const token_per_sec = (num_tokens - 1) / (processing_time - time_to_first_token / 1000);
-    num_tokens = 0;
+    const token_per_sec = (numTokens - 1) / (processing_time - timeToFirstToken / 1000);
+    numTokens = 0;
     resultShow.setAttribute('class', 'show');
     progress.style.width = "100%";
 
@@ -214,7 +214,7 @@ async function process_audio(audio, starttime, idx, pos) {
       latency.innerText = `100.0%, ${
         (total / processing_time).toFixed(1)
       } x realtime, time to first token: ${
-        time_to_first_token.toFixed(1)
+        timeToFirstToken.toFixed(1)
       }ms, ${token_per_sec.toFixed(1)} tokens/s`;
       log(
         `${
