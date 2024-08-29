@@ -64,7 +64,7 @@ let resultShow;
 let latency;
 let audioProcessing;
 let copy;
-let audio_src;
+let audioSrc;
 let outputText;
 let container;
 let audioMotion;
@@ -79,7 +79,7 @@ const SpeechStates = {
 };
 let speechState = SpeechStates.UNINITIALIZED;
 
-let mask_4d = true; // use 4D mask input for decoder models
+let mask4d = true; // use 4D mask input for decoder models
 let streamingNode = null;
 let sourceNode = null;
 let audioChunks = []; // member {isSubChunk: boolean, data: Float32Array}
@@ -104,6 +104,9 @@ let singleAudioChunk = null; // one time audio process buffer
 let subAudioChunkLength = 0; // length of a sub audio chunk
 let subText = "";
 let speechToText = "";
+
+let timeToFirstToken = 0; // TTFT
+let numTokens = 0; // number of tokens
 
 const blacklistTags = [
   "[inaudible]",
@@ -148,7 +151,7 @@ function updateConfig() {
       accumulateSubChunks = pair[1].toLowerCase() === 'true';
     }
     if (pair[0] == 'mask_4d') {
-      mask_4d = pair[1].toLowerCase() === 'true';
+      mask4d = pair[1].toLowerCase() === 'true';
     }
   }
 }
@@ -185,9 +188,13 @@ async function process_audio(audio, starttime, idx, pos) {
       // run inference for 30 sec
       const xa = audio.slice(idx, idx + kSteps);
       const ret = await whisper.run(xa);
+      if (idx == 0) {
+        timeToFirstToken = ret.time_to_first_token;
+      }
+      numTokens += ret.num_tokens;
       // append results to outputText
-      outputText.innerText += ret;
-      logUser(ret);
+      outputText.innerText += ret.sentence;
+      logUser(ret.sentence);
       // outputText.scrollTop = outputText.scrollHeight;
       
       await process_audio(audio, starttime, idx + kSteps, pos + kMaxAudioLengthInSec);
@@ -196,19 +203,23 @@ async function process_audio(audio, starttime, idx, pos) {
     }
   } else {
     // done with audio buffer
-    const processing_time = (performance.now() - starttime) / 1000;
+    const processingTime = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
+    const tokensPerSecond = (numTokens - 1) / (processingTime - timeToFirstToken / 1000);
+    numTokens = 0;
     resultShow.setAttribute('class', 'show');
     progress.style.width = "100%";
 
     if(getMode()) {
-      latency.innerText = `100.0%, ${(
-        total / processing_time
-      ).toFixed(1)} x realtime`;
+      latency.innerText = `100.0%, ${
+        (total / processingTime).toFixed(1)
+      } x realtime, time to first token: ${
+        timeToFirstToken.toFixed(1)
+      }ms, ${tokensPerSecond.toFixed(1)} tokens/s`;
       log(
         `${
           latency.innerText
-        }, total ${processing_time.toFixed(
+        }, total ${processingTime.toFixed(
           1
         )}s processing time for ${total.toFixed(1)}s audio`
       );
@@ -226,7 +237,7 @@ async function process_audio(audio, starttime, idx, pos) {
 // transcribe audio source
 async function transcribe_file() {
   resultShow.setAttribute('class', 'show');
-  if (audio_src.src == "") {
+  if (audioSrc.src == "") {
     logError("Error · No audio input, please record the audio");
     ready();
     return;
@@ -236,7 +247,7 @@ async function transcribe_file() {
   log("Starting transcription ...");
   audioProcessing.setAttribute('class', 'show');
   try {
-    const buffer = await (await fetch(audio_src.src)).arrayBuffer();
+    const buffer = await (await fetch(audioSrc.src)).arrayBuffer();
     const audioBuffer = await context.decodeAudioData(buffer);
     const offlineContext = new OfflineAudioContext(
       audioBuffer.numberOfChannels,
@@ -265,10 +276,10 @@ async function startRecord() {
   speech.disabled = true;
   stream = null;
   outputText.innerText = '';
-  if (!audio_src.paused) {
-    audio_src.pause();
+  if (!audioSrc.paused) {
+    audioSrc.pause();
   }
-  audio_src.src == "";
+  audioSrc.src == "";
 
   resultShow.setAttribute('class', '');
   if (mediaRecorder === undefined) {
@@ -309,9 +320,9 @@ async function startRecord() {
         1
       )}s audio`
     );
-    audio_src.src = window.URL.createObjectURL(blob);
+    audioSrc.src = window.URL.createObjectURL(blob);
     initAudioMotion();
-    audio_src.play();
+    audioSrc.play();
     await transcribe_file();
   };
   mediaRecorder.start(kIntervalAudio_ms);
@@ -334,10 +345,10 @@ async function startSpeech() {
   fileUpload.disabled = true;
   record.disabled = true;
   speech.disabled = false;
-  if (!audio_src.paused) {
-    audio_src.pause();
+  if (!audioSrc.paused) {
+    audioSrc.pause();
   }
-  audio_src.src == "";
+  audioSrc.src == "";
   resultShow.setAttribute('class', '');
   speechState = SpeechStates.PROCESSING;
   await captureAudioStream();
@@ -510,17 +521,17 @@ async function processAudioBuffer() {
   if (processBufferLength > 0.16) {
     const start = performance.now();
     const ret = await whisper.run(processBuffer);
-    const processing_time = (performance.now() - start) / 1000;
+    const processingTime = (performance.now() - start) / 1000;
     resultShow.setAttribute('class', 'show');
 
     if(getMode()) {
       latency.innerText = `${(
-        processBufferLength / processing_time
+        processBufferLength / processingTime
       ).toFixed(1)} x realtime`;
       log(
         `${
           latency.innerText
-        }, ${processBufferLength}s audio processing time: ${processing_time.toFixed(2)}s`
+        }, ${processBufferLength}s audio processing time: ${processingTime.toFixed(2)}s`
       );
     } else {
       latency.innerText = `realtime`;
@@ -530,20 +541,20 @@ async function processAudioBuffer() {
     }
 
     // ignore slient, inaudible audio output, i.e. '[BLANK_AUDIO]'
-    if (!blacklistTags.includes(ret)) {
+    if (!blacklistTags.includes(ret.sentence)) {
       if (subAudioChunks.length > 0) {
         if (accumulateSubChunks) {
-          subText = ret;
+          subText = ret.sentence;
         } else {
-          subText += ret;
+          subText += ret.sentence;
         }
         outputText.innerText = speechToText + subText;
       } else {
         subText = '';
-        speechToText += ret;
+        speechToText += ret.sentence;
         outputText.innerText = speechToText;
       }
-      logUser(ret);
+      logUser(ret.sentence);
       // outputText.scrollTop = outputText.scrollHeight;
     }
   } else {
@@ -588,7 +599,7 @@ const initAudioMotion = () => {
     audioMotion = new AudioMotionAnalyzer(
       container,
       {
-        source: audio_src
+        source: audioSrc
       }
     );
     audioMotion.setOptions(options);
@@ -643,19 +654,19 @@ const main = async () => {
     record.disabled = true;
     speech.disabled = true;
     subText = "";
-    if (!audio_src.paused) {
-      audio_src.pause();
+    if (!audioSrc.paused) {
+      audioSrc.pause();
     }
-    audio_src.src == "";
+    audioSrc.src == "";
     let target = evt.target || window.event.src,
       files = target.files;
     if(files && files.length > 0) {
-      audio_src.src = URL.createObjectURL(files[0]);
+      audioSrc.src = URL.createObjectURL(files[0]);
       initAudioMotion();
-      audio_src.play();
+      audioSrc.play();
       await transcribe_file();
     } else {
-      audio_src.src = '';
+      audioSrc.src = '';
     }
   };
 
@@ -675,7 +686,7 @@ const main = async () => {
     const whisper_url = location.href.includes("github.io")
       ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
       : "./models/";
-    whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask_4d);
+    whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d);
     await whisper.create_whisper_processor();
     await whisper.create_whisper_tokenizer();
     await whisper.create_ort_sessions();
@@ -702,7 +713,7 @@ const main = async () => {
 const ui = async () => {
   device = document.getElementById('device');
   badge = document.getElementById('badge');
-  audio_src = document.querySelector("audio");
+  audioSrc = document.querySelector("audio");
   labelFileUpload = document.getElementById("label-file-upload");
   fileUpload = document.getElementById("file-upload");
   record = document.getElementById("record");
