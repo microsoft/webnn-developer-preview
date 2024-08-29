@@ -189,9 +189,9 @@ async function process_audio(audio, starttime, idx, pos) {
       const xa = audio.slice(idx, idx + kSteps);
       const ret = await whisper.run(xa);
       if (idx == 0) {
-        timeToFirstToken = ret.timeToFirstToken;
+        timeToFirstToken = ret.time_to_first_token;
       }
-      numTokens += ret.numTokens;
+      numTokens += ret.num_tokens;
       // append results to outputText
       outputText.innerText += ret.sentence;
       logUser(ret.sentence);
