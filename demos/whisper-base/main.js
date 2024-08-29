@@ -205,7 +205,7 @@ async function process_audio(audio, starttime, idx, pos) {
     // done with audio buffer
     const processing_time = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
-    const token_per_sec = (numTokens - 1) / (processing_time - timeToFirstToken / 1000);
+    const tokensPerSecond = (numTokens - 1) / (processing_time - timeToFirstToken / 1000);
     numTokens = 0;
     resultShow.setAttribute('class', 'show');
     progress.style.width = "100%";
