@@ -210,7 +210,23 @@
       <h2>WebNN Installation Guide</h2>
     </section>
     <div id='install-guides'>
-      To get started with WebNN on DirectML compatible devices you will need:
+      <h3>Enabling Insider version of Edge for WebNN Dev Preview GPU</h3>
+      WebNN Dev Preview GPU requires a compatible browser to run, and Windows* 11
+      v21H2 (DML 1.6.0) or higher:
+      <ol>
+        <li>Download the <a href="https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ">Microsoft Edge Canary or Dev</a> browser</li>
+        <li>To enable WebNN, in your browser address bar, enter
+          <code>about://flags</code>, and then press
+          <code>Enter</code>. An Experiments page opens
+        </li>
+        <li>In the Search flags box, enter <code>webnn</code>.
+          Enables WebNN API appears</li>
+        <li>In the drop-down menu, select <code>Enabled</code></li>
+        <li>Relaunch your browser</li>
+      </ol>
+
+      <h3>Enabling Insider version of Edge for WebNN Dev Preview NPU</h3>
+      To get started with WebNN NPU on DirectML compatible devices you will need:
       <ul>
         <li>Window 11, version 24H2 or newer</li>
         <li>Insider version of Edge (exact instructions provided below)</li>
@@ -221,7 +237,7 @@
           </ul>
         </li>
       </ul>
-      <h3>Enabling Insider version of Edge for WebNN Dev Preview</h3>
+      Enabling Insider version of Edge:
       <ol>
         <li>
           <a href="https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ">Microsoft Edge Canary or Dev Channel</a> with WebNN flag enabled in <code>about:flags</code>
