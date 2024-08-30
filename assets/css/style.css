@@ -43,8 +43,12 @@
   --grey-05: rgba(107, 114, 128, 0.5);
   --green: rgba(1, 212, 73, 1);
   --pink: rgba(255, 0, 129, 1);
+  --green-02: rgba(1, 212, 73, 0.2);
+  --pink-02: rgba(255, 0, 129, 0.2);
   --green-01: rgba(1, 212, 73, 0.1);
   --pink-01: rgba(255, 0, 129, 0.1);
+  --green-003: rgba(1, 212, 73, 0.03);
+  --pink-003: rgba(255, 0, 129, 0.03);
 }
 
 body {
@@ -76,6 +80,10 @@ body {
   align-self: center;
 }
 
+.banner-content.installation {
+  height: 10vh;
+}
+
 #banner h1 {
   font-size: max(48px, min(5vw, 68px));
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
@@ -87,7 +95,7 @@ body {
 }
 
 #install-guides {
-  margin: 0rem auto 5rem auto;
+  margin: 0rem auto;
   text-align: left;
   padding: 20px 40px;
 }
@@ -307,7 +315,9 @@ a:focus {
   padding: 0px 6px;
   border-radius: 3px;
   text-decoration: none;
-  background-color: var(--pink-01);
+  background-color: var(--pink-003);
+  border-bottom: 1px dashed var(--pink-02);
+  font-size: 0.9rem;
 }
 
 #install-guides a:hover {
@@ -315,16 +325,22 @@ a:focus {
   color: var(--white);
 }
 
-#install-guides ol li {
-    padding: 0 10px;
+#install-guides ol, #install-guides ul {
+  margin: 2px 0;
+}
+
+#install-guides ol li, #install-guides ul li {
+    padding: 2px 10px;
 }
 
 code {
   margin: 1px auto;
-  background-color: var(--green-01);
+  background-color: var(--green-003);
+  border-bottom: 1px dashed var(--green-02);
   display: inline-block;
   padding: 0px 6px;
   border-radius: 3px;
+  font-size: 0.9rem;
   font-family: "Courier New", Courier, monospace;
 }
 
