@@ -728,7 +728,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     executionProviders: [
       {
         name: executionProvider,
-        deviceType: Utils.getQueryVariable("device", "gpu")
+        deviceType: Utils.getQueryVariable("devicetype", "gpu")
       },
     ],
   };
@@ -1440,6 +1440,7 @@ async function generateNextImage() {
 
 const executionProvider = Utils.getQueryVariable("provider", "webnn");
 Utils.log("[Load] Execution Provider: " + executionProvider);
+Utils.log("[Load] EP device type: " + Utils.getQueryVariable("devicetype", "gpu"));
 
 const checkWebNN = async () => {
   let status = document.querySelector("#webnnstatus");

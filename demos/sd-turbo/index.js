@@ -36,7 +36,7 @@ function getConfig() {
     mode: "none",
     safetychecker: true,
     provider: "webnn",
-    device: "gpu",
+    devicetype: "gpu",
     threads: "1",
     images: "4",
     ort: "test"
@@ -222,6 +222,7 @@ const updateProgress = () => {
  */
 async function load_models(models) {
   log("[Load] ONNX Runtime Execution Provider: " + config.provider);
+  log("[Load] ONNX Runtime EP device type: " + config.devicetype);
   updateLoadWave(0.0);
   load.disabled = true;
 
@@ -1134,7 +1135,7 @@ const ui = async () => {
         opt.executionProviders = [
           {
             name: "webnn",
-            deviceType: config.device
+            deviceType: config.devicetype
           },
         ];
       }

@@ -99,7 +99,7 @@ function getConfig() {
     mode: "none",  
     model: "sam_b",
     provider: "webnn",
-    device: "gpu",
+    devicetype: "gpu",
     threads: "1",
     ort: "test"
   };
@@ -487,6 +487,7 @@ const getMode = () => {
  */
 async function load_models(models) {
   log("[Load] ONNX Runtime Execution Provider: " + config.provider);
+  log("[Load] ONNX Runtime EP device type: " + config.devicetype);
 
   for (const [id, model] of Object.entries(models)) {
     let start;
@@ -513,7 +514,7 @@ async function load_models(models) {
         opt.executionProviders = [
           {
             name: "webnn",
-            deviceType: "gpu",
+            deviceType: config.devicetype,
           },
         ];
         opt.freeDimensionOverrides = {
