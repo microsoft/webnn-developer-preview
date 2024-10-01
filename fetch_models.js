@@ -36,7 +36,7 @@ const models = [
       path: "./demos/sd-turbo/models/vae_decoder"
     },
     {
-      url: "microsoft/sd-turbo-webnn/resolve/main/safety_checker/model.onnx",
+      url: "microsoft/sd-turbo-webnn/resolve/main/safety_checker/safety_checker_int32_reduceSum.onnx",
       path: "./demos/sd-turbo/models/safety_checker"
     },
     {
@@ -52,7 +52,7 @@ const models = [
       path: "./demos/stable-diffusion-1.5/models"
     },
     {
-      url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/safety-checker.onnx",
+      url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/safety_checker_int32_reduceSum.onnx",
       path: "./demos/stable-diffusion-1.5/models"
     },
     {
@@ -105,8 +105,8 @@ const models = [
 
   const downloadFile = async (url, outputPath, retries = 2) => {
     // Proxy configuration
-    const proxyHost = 'proxy-ir.intel.com';
-    const proxyPort = 912;
+    const proxyHost = '';
+    const proxyPort = 8080;
     const proxyUrl = `http://${proxyHost}:${proxyPort}`;
     const proxyAgent = undefined;
     // Enable this line to use the proxy:
