@@ -292,7 +292,7 @@ export const getSafetyChecker = () => {
   }
 };
 
-export const webNnStatus = async () => {
+export const getWebnnStatus = async () => {
   let result = {};
   try {
     const context = await navigator.ml.createContext();

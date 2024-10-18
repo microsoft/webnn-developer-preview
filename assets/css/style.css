@@ -397,7 +397,7 @@ footer {
   color: var(--grey);
 }
 
-footer:hover {
+footer:hover ul li {
   color: var(--highlight);
 }
 
@@ -414,6 +414,45 @@ footer ul li {
 
 footer ul li a:hover {
   text-decoration: underline;
+}
+
+#status {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+#status>div {
+  padding: 2px 6px 1px 6px;
+  border-radius: 3px;
+}
+
+#status.red #support, #status.red #installation {
+  background-color: var(--pink);
+  color: white;
+}
+
+#status.red>a {
+  background-color: var(--pink);
+  color: white;
+  padding: 2px 6px 1px 6px;
+  border-radius: 3px;
+}
+
+#status #installation {
+  display: none;
+}
+
+#status.red #installation {
+  display: block;
+}
+
+#status.red #message a {
+  color: white;
+  text-decoration: none;
 }
 
 /* Largest devices such as desktops (1280px) */

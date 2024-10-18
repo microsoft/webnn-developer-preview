@@ -5,7 +5,7 @@
 //
 
 import { Whisper } from "./whisper.js";
-import { getQueryValue, webNnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
+import { getQueryValue, getWebnnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
 import { setupORT, showCompatibleChromiumVersion } from '../../assets/js/common_utils.js';
 import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
 import AudioMotionAnalyzer from './static/js/audioMotion-analyzer.js?min';
@@ -744,7 +744,7 @@ const ui = async () => {
     document.body.setAttribute('class', 'npu');
   }
   
-  let webnnStatus = await webNnStatus();
+  let webnnStatus = await getWebnnStatus();
 
   if (
     getQueryValue("provider") &&

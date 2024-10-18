@@ -1445,7 +1445,7 @@ Utils.log("[Load] EP device type: " + Utils.getQueryVariable("devicetype", "gpu"
 const checkWebNN = async () => {
   let status = document.querySelector("#webnnstatus");
   let info = document.querySelector("#info");
-  let webnnStatus = await Utils.webNnStatus();
+  let webnnStatus = await Utils.getWebnnStatus();
 
   if (webnnStatus.webnn) {
     status.setAttribute("class", "green");

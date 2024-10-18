@@ -185,7 +185,7 @@ export const setupORT = async (key, branch) => {
   ortVersionElement.innerHTML = versionHtml;
 };
 
-export const webNnStatus = async () => {
+export const getWebnnStatus = async () => {
   let result = {};
   try {
     const context = await navigator.ml.createContext();
