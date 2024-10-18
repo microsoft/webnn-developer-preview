@@ -123,11 +123,11 @@ export const getTime = () => {
 };
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
-  'stable-diffusion-1.5': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
-  'sd-turbo': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
-  'segment-anything': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
-  'whisper-base': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
-  'image-classification': { 'dev': '1.19.0-dev.20240804-ee2fe87e2d', 'stable': '1.20.0', 'test': 'test' },
+  'stable-diffusion-1.5': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
+  'sd-turbo': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
+  'segment-anything': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
+  'whisper-base': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
+  'image-classification': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
 };
 
 const ORT_BASE_URL = 'https://www.npmjs.com/package/onnxruntime-web/v/';
