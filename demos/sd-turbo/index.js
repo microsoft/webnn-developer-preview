@@ -914,7 +914,7 @@ const getTime = () => {
 const checkWebNN = async () => {
   let status = document.querySelector("#webnnstatus");
   let info = document.querySelector("#info");
-  let webnnStatus = await webNnStatus();
+  let webnnStatus = await getWebnnStatus();
 
   if (webnnStatus.webnn) {
     status.setAttribute("class", "green");
@@ -940,7 +940,7 @@ const checkWebNN = async () => {
   }
 };
 
-const webNnStatus = async () => {
+const getWebnnStatus = async () => {
   let result = {};
   try {
     const context = await navigator.ml.createContext();
@@ -1130,7 +1130,7 @@ const ui = async () => {
       opt.preferredOutputLocation = { last_hidden_state: "gpu-buffer" };
       break;
     case "webnn":
-      let webnnStatus = await webNnStatus();
+      let webnnStatus = await getWebnnStatus();
       if (webnnStatus.webnn) {
         opt.executionProviders = [
           {

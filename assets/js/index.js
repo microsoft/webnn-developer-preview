@@ -1,7 +1,7 @@
-import { webNnStatus } from './common_utils.js'
+import { getWebnnStatus } from './common_utils.js'
 
-async function webNNChecker() {
-  const webnnStatus = await webNnStatus();
+async function webnnChecker() {
+  const webnnStatus = await getWebnnStatus();
   const status = document.querySelector('#status');
   const browser = document.querySelector('#browser');
   const chromium = document.querySelector('#chromium');
@@ -41,4 +41,4 @@ async function webNNChecker() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', webNNChecker, false);
+document.addEventListener('DOMContentLoaded', webnnChecker, false);

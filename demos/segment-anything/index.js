@@ -650,7 +650,7 @@ const checkWebNN = async () => {
   let status = document.querySelector("#webnnstatus");
   let circle = document.querySelector("#circle");
   let info = document.querySelector("#info");
-  let webnnStatus = await webNnStatus();
+  let webnnStatus = await getWebnnStatus();
 
   if (webnnStatus.webnn) {
     status.setAttribute("class", "green");
@@ -677,7 +677,7 @@ const checkWebNN = async () => {
   }
 };
 
-const webNnStatus = async () => {
+const getWebnnStatus = async () => {
   let result = {};
   try {
     const context = await navigator.ml.createContext();

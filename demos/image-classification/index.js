@@ -10,7 +10,7 @@ import {
   log,
   logError,
   getQueryValue,
-  webNnStatus,
+  getWebnnStatus,
   updateQueryStringParameter,
   getMedian,
   getAverage,
@@ -198,7 +198,7 @@ const main = async () => {
 };
 
 const checkWebNN = async () => {
-  let webnnStatus = await webNnStatus();
+  let webnnStatus = await getWebnnStatus();
 
   if (
     getQueryValue("provider") &&
