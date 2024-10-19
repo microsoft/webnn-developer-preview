@@ -92,7 +92,7 @@ const main = async () => {
   }
 
   let device = 'webnn-gpu';
-  if(provider.toLowerCase() === "webnn") {
+  if (provider.toLowerCase() === "webnn") {
     device = `${provider}-${deviceType}`;
   } else {
     device = provider;
