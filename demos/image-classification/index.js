@@ -107,7 +107,7 @@ const main = async () => {
     },
   };
 
-  if(modelId === 'resnet-50') {
+  if (modelId === 'resnet-50') {
     options.session_options.freeDimensionOverrides = {
       batch_size: 1,
       num_channels: 3,
