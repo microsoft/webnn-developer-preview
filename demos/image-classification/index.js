@@ -3,10 +3,8 @@
 //
 // An example how to run Image Classification with webnn in onnxruntime-web.
 //
-import * as transformers from "../../assets/dist_transformers/dynamic-runs-1.19-dev/transformers.js";
+import * as transformers from "../../assets/dist_transformers/dynamic-runs-1.20-dev/transformers.js";
 import {
-  removeElement,
-  loadScript,
   log,
   logError,
   getQueryValue,
@@ -75,35 +73,6 @@ const main = async () => {
   uploadImage.disabled = true;
   classify.disabled = true;
 
-  let options = {
-    device: provider,
-    dtype: dataType,
-    session_options: {
-      executionProviders: [
-        {
-          name: provider,
-          deviceType: deviceType,
-          powerPreference: "default",
-          preferredLayout: "NHWC",
-        },
-      ],
-      freeDimensionOverrides: {},
-      logSeverityLevel: 0,
-    },
-  };
-  if (provider === "webnn") {
-    options.session_options = {
-      executionProviders: [
-        {
-          name: provider,
-          deviceType: deviceType,
-          powerPreference: "default",
-        },
-      ],
-      logSeverityLevel: 0,
-    };
-  }
-
   if (getQueryValue("model")) {
     modelId = getQueryValue("model");
     switch (modelId) {
@@ -112,12 +81,6 @@ const main = async () => {
         break;
       case "resnet-50":
         modelPath = "xenova/resnet-50";
-        options.session_options.freeDimensionOverrides = {
-          batch_size: 1,
-          num_channels: 3,
-          height: 224,
-          width: 224,
-        };
         break;
       case "efficientnet-lite4":
         modelPath = "webnn/efficientnet-lite4";
@@ -125,9 +88,32 @@ const main = async () => {
       default:
         modelPath = "xenova/resnet-50";
         break;
-      // webnn/squeezenet-1.0
-      // webnn/efficientnet-lite4
     }
+  }
+
+  let device = 'webnn-gpu';
+  if (provider.toLowerCase() === "webnn") {
+    device = `${provider}-${deviceType}`;
+  } else {
+    device = provider;
+  }
+
+  let options = {
+    dtype: dataType,
+    device: device, // 'webnn-gpu' and 'webnn-npu'
+    session_options: {
+      freeDimensionOverrides: {},
+      context: {}
+    },
+  };
+
+  if (modelId === 'resnet-50') {
+    options.session_options.freeDimensionOverrides = {
+      batch_size: 1,
+      num_channels: 3,
+      height: 224,
+      width: 224,
+    };
   }
 
   modelIdSpan.innerHTML = dataType;
@@ -490,18 +476,6 @@ const changeImage = async () => {
   await main();
 };
 
-const setupORT = async () => {
-  const ortVersionLabel = document.querySelector("#ortversion");
-  removeElement("onnxruntime-web");
-  const ortVersionString = "1.19.0-dev.20240621-69d522f4e9";
-  const ortLink = `https://www.npmjs.com/package/onnxruntime-web/v/${ortVersionString}`;
-  ortVersionLabel.innerHTML = `ONNX Runtime Web: <a href="${ortLink}">${ortVersionString}</a>`;
-  await loadScript(
-    "onnxruntime-web",
-    `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ortVersionString}/dist/ort.all.min.js`
-  );
-};
-
 const ui = async () => {
   imageUrl = "./static/tiger.jpg";
   if (
@@ -556,11 +530,9 @@ const ui = async () => {
   latencyDiv.setAttribute("class", "latency none");
   controls();
   updateUi();
-  await setupORT();
   showCompatibleChromiumVersion('image-classification');
-  const ortversion = document.querySelector("#ortversion");
-  let transformersJswithOrtVersion = ortversion.innerHTML;
-  ortversion.innerHTML = `${transformersJswithOrtVersion} · <a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a>`;
+  const transformersJs = document.querySelector("#ortversion");
+  transformersJs.innerHTML = `<a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a>`;
 
   console.log(`${provider} ${deviceType} ${modelId} ${runs}`);
 
