@@ -1,4 +1,4 @@
-import { getWebnnStatus } from './common_utils.js'
+import { getWebnnStatus } from './common_utils.js';
 
 async function webnnChecker() {
   const webnnStatus = await getWebnnStatus();
@@ -9,8 +9,9 @@ async function webnnChecker() {
   const message = document.querySelector('#message');
   let isEdge = false;
   if (navigator.userAgentData) {
-    navigator.userAgentData.getHighEntropyValues(["fullVersionList"])
-      .then((ua) => {
+    navigator.userAgentData
+      .getHighEntropyValues(['fullVersionList'])
+      .then(ua => {
         for (let i of ua.fullVersionList) {
           if (i.brand.toLowerCase().indexOf('brand') === -1) {
             if (i.brand.toLowerCase().indexOf('chromium') > -1) {

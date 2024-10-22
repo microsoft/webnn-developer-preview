@@ -1,17 +1,17 @@
-export const sleep = (ms) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = ms => {
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-export const getQueryValue = (name) => {
+export const getQueryValue = name => {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(name);
 };
 
 export const getQueryVariable = (name, defaults) => {
   const query = window.location.search.substring(1);
-  let vars = query.split("&");
+  let vars = query.split('&');
   for (var i = 0; i < vars.length; i++) {
-    let pair = vars[i].split("=");
+    let pair = vars[i].split('=');
     if (pair[0] == name) {
       return pair[1];
     }
@@ -25,7 +25,7 @@ export const randomNumber = () => {
 };
 
 const padNumber = (num, fill) => {
-  let len = ("" + num).length;
+  let len = ('' + num).length;
   return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
 };
 
@@ -43,6 +43,7 @@ export const getWebnnStatus = async () => {
     const context = await navigator.ml.createContext();
     if (context) {
       try {
+        // eslint-disable-next-line no-undef
         const builder = new MLGraphBuilder(context);
         if (builder) {
           result.webnn = true;
@@ -78,23 +79,23 @@ export let encoderCompileProgress = 0;
 export let decoderCompileProgress = 0;
 export let decoderCachedCompileProgress = 0;
 
-export const updateEncoderCompileProgress = (value) => {
+export const updateEncoderCompileProgress = value => {
   encoderCompileProgress = value;
 };
-export const updateDecoderCompileProgress = (value) => {
+export const updateDecoderCompileProgress = value => {
   decoderCompileProgress = value;
 };
-export const updateDecoderCachedCompileProgress = (value) => {
+export const updateDecoderCachedCompileProgress = value => {
   decoderCachedCompileProgress = value;
 };
-export const updateLoadProgress = (value) => {
+export const updateLoadProgress = value => {
   loadProgress = value;
 };
 
-progressBarInner = document.getElementById("p-bar-inner");
-progressBarLabel = document.getElementById("p-bar-label");
+progressBarInner = document.getElementById('p-bar-inner');
+progressBarLabel = document.getElementById('p-bar-label');
 
-export const updateProgressBar = (progress) => {
+export const updateProgressBar = progress => {
   progressBarInner.style.width = `${progress}%`;
 };
 
@@ -122,7 +123,7 @@ export async function getModelOPFS(name, url, updateModel) {
     const blob = await fileHandle.getFile();
     let buffer = await blob.arrayBuffer();
     if (buffer) {
-      if (name.toLowerCase().indexOf("decoder_cached_") > -1) {
+      if (name.toLowerCase().indexOf('decoder_cached_') > -1) {
         decoderCachedFetchProgress = 40.0;
         loadProgress =
           encoderFetchProgress +
@@ -133,9 +134,9 @@ export async function getModelOPFS(name, url, updateModel) {
           decoderCachedCompileProgress;
         updateProgressBar(loadProgress.toFixed(2));
         progressBarLabel.innerHTML = `Loading Whisper Base Decoder (KV-Cache) · ${loadProgress.toFixed(
-          2
+          2,
         )}%`;
-      } else if (name.toLowerCase().indexOf("decoder_") > -1) {
+      } else if (name.toLowerCase().indexOf('decoder_') > -1) {
         decoderFetchProgress = 40.0;
         loadProgress =
           encoderFetchProgress +
@@ -146,9 +147,9 @@ export async function getModelOPFS(name, url, updateModel) {
           decoderCachedCompileProgress;
         updateProgressBar(loadProgress.toFixed(2));
         progressBarLabel.innerHTML = `Loading Whisper Base Decoder · ${loadProgress.toFixed(
-          2
+          2,
         )}%`;
-      } else if (name.toLowerCase().indexOf("encoder_") > -1) {
+      } else if (name.toLowerCase().indexOf('encoder_') > -1) {
         encoderFetchProgress = 10.0;
         loadProgress =
           encoderFetchProgress +
@@ -159,20 +160,21 @@ export async function getModelOPFS(name, url, updateModel) {
           decoderCachedCompileProgress;
         updateProgressBar(loadProgress.toFixed(2));
         progressBarLabel.innerHTML = `Loading Whisper Base Encoder · ${loadProgress.toFixed(
-          2
+          2,
         )}%`;
       }
 
       return buffer;
     }
   } catch (e) {
+    console.log(e.message);
     return await updateFile();
   }
 }
 
 async function readResponse(name, response) {
-  const contentLength = response.headers.get("Content-Length");
-  let total = parseInt(contentLength ?? "0");
+  const contentLength = response.headers.get('Content-Length');
+  let total = parseInt(contentLength ?? '0');
   let buffer = new Uint8Array(total);
   let loaded = 0;
 
@@ -184,7 +186,7 @@ async function readResponse(name, response) {
     let newLoaded = loaded + value.length;
     let fetchProgress = (newLoaded / contentLength) * 100;
 
-    if (name.toLowerCase().indexOf("decoder_cached_") > -1) {
+    if (name.toLowerCase().indexOf('decoder_cached_') > -1) {
       decoderCachedFetchProgress = 0.4 * fetchProgress;
       loadProgress =
         encoderFetchProgress +
@@ -195,9 +197,9 @@ async function readResponse(name, response) {
         decoderCachedCompileProgress;
       updateProgressBar(loadProgress.toFixed(2));
       progressBarLabel.innerHTML = `Loading Whisper Base Decoder (KV-Cache) · ${loadProgress.toFixed(
-        2
+        2,
       )}%`;
-    } else if (name.toLowerCase().indexOf("decoder_") > -1) {
+    } else if (name.toLowerCase().indexOf('decoder_') > -1) {
       decoderFetchProgress = 0.4 * fetchProgress;
       loadProgress =
         encoderFetchProgress +
@@ -208,9 +210,9 @@ async function readResponse(name, response) {
         decoderCachedCompileProgress;
       updateProgressBar(loadProgress.toFixed(2));
       progressBarLabel.innerHTML = `Loading Whisper Base Decoder · ${loadProgress.toFixed(
-        2
+        2,
       )}%`;
-    } else if (name.toLowerCase().indexOf("encoder") > -1) {
+    } else if (name.toLowerCase().indexOf('encoder') > -1) {
       encoderFetchProgress = 0.1 * fetchProgress;
       loadProgress =
         encoderFetchProgress +
@@ -221,7 +223,7 @@ async function readResponse(name, response) {
         decoderCachedCompileProgress;
       updateProgressBar(loadProgress.toFixed(2));
       progressBarLabel.innerHTML = `Loading Whisper Base Encoder · ${loadProgress.toFixed(
-        2
+        2,
       )}%`;
     }
 
@@ -243,7 +245,7 @@ async function readResponse(name, response) {
 export function log(i) {
   console.log(i);
   if (getMode()) {
-    document.getElementById("status").innerHTML =
+    document.getElementById('status').innerHTML =
       `
         <div class="item app">
             <div class="head">
@@ -252,9 +254,9 @@ export function log(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + document.getElementById("status").innerHTML;
+        ` + document.getElementById('status').innerHTML;
   } else {
-    document.getElementById("status").innerHTML =
+    document.getElementById('status').innerHTML =
       `
         <div class="item app">
             <div class="head">
@@ -263,14 +265,14 @@ export function log(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + document.getElementById("status").innerHTML;
+        ` + document.getElementById('status').innerHTML;
   }
 }
 
-export const logError = (i) => {
+export const logError = i => {
   console.error(i);
   if (getMode()) {
-    document.getElementById("status").innerHTML =
+    document.getElementById('status').innerHTML =
       `
     <div class="item app">
         <div class="head">
@@ -279,9 +281,9 @@ export const logError = (i) => {
         </div>
         <div class="info">${i}</div>
     </div>
-    ` + document.getElementById("status").innerHTML;
+    ` + document.getElementById('status').innerHTML;
   } else {
-    document.getElementById("status").innerHTML =
+    document.getElementById('status').innerHTML =
       `
         <div class="item app">
             <div class="head">
@@ -290,14 +292,14 @@ export const logError = (i) => {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + document.getElementById("status").innerHTML;
+        ` + document.getElementById('status').innerHTML;
   }
 };
 
 export function logUser(i) {
   console.log(i);
   if (getMode()) {
-    document.getElementById("status").innerHTML =
+    document.getElementById('status').innerHTML =
       `
         <div class="item user">
             <div class="head">
@@ -306,9 +308,9 @@ export function logUser(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + document.getElementById("status").innerHTML;
+        ` + document.getElementById('status').innerHTML;
   } else {
-    document.getElementById("status").innerHTML =
+    document.getElementById('status').innerHTML =
       `
         <div class="item user">
             <div class="head">
@@ -317,7 +319,7 @@ export function logUser(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + document.getElementById("status").innerHTML;
+        ` + document.getElementById('status').innerHTML;
   }
 }
 
@@ -434,7 +436,7 @@ export function convertToUint16Array(fp32_array) {
 }
 
 export const getMode = () => {
-  return (getQueryValue("mode") === "normal") ? false : true;
+  return getQueryValue('mode') === 'normal' ? false : true;
 };
 
 export function concatBuffer(buffer, newBuffer) {

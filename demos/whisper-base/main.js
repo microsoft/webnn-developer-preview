@@ -1,20 +1,33 @@
+/* eslint-disable no-undef */
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 //
 // An example how to run whisper in onnxruntime-web.
 //
 
-import { Whisper } from "./whisper.js";
-import { getQueryValue, getWebnnStatus, log, logError, concatBuffer, concatBufferArray, logUser, getMode } from "./utils.js";
-import { setupORT, showCompatibleChromiumVersion } from '../../assets/js/common_utils.js';
-import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
+import { Whisper } from './whisper.js';
+import {
+  getQueryValue,
+  getWebnnStatus,
+  log,
+  logError,
+  concatBuffer,
+  concatBufferArray,
+  logUser,
+  getMode,
+} from './utils.js';
+import {
+  setupORT,
+  showCompatibleChromiumVersion,
+} from '../../assets/js/common_utils.js';
+import VADBuilder, { VADMode, VADEvent } from './vad/embedded.js';
 import AudioMotionAnalyzer from './static/js/audioMotion-analyzer.js?min';
-import { lcm } from "./vad/math.js";
+import { lcm } from './vad/math.js';
 
 const options = {
   mode: 10,
   channelLayout: 'single',
-  fillAlpha: .25,
+  fillAlpha: 0.25,
   frequencyScale: 'bark',
   gradientLeft: 'prism',
   gradientRight: 'prism',
@@ -31,8 +44,8 @@ const options = {
   weightingFilter: 'D',
   showScaleX: false,
   overlay: true,
-  showBgColor:true, 
-  bgAlpha: 0
+  showBgColor: true,
+  bgAlpha: 0,
 };
 
 const kSampleRate = 16000;
@@ -43,9 +56,9 @@ const kSteps = kSampleRate * kMaxAudioLengthInSec;
 // whisper class
 let whisper;
 
-let provider = "webnn";
+let provider = 'webnn';
 let deviceType = 'gpu';
-let dataType = "float16";
+let dataType = 'float16';
 
 // audio context
 let context = null;
@@ -102,50 +115,53 @@ let vad = null;
 
 let singleAudioChunk = null; // one time audio process buffer
 let subAudioChunkLength = 0; // length of a sub audio chunk
-let subText = "";
-let speechToText = "";
+let subText = '';
+let speechToText = '';
 
 let timeToFirstToken = 0; // TTFT
 let numTokens = 0; // number of tokens
 
 const blacklistTags = [
-  "[inaudible]",
-  " [inaudible]",
-  "[ Inaudible ]",
-  "[INAUDIBLE]",
-  " [INAUDIBLE]",
-  "[BLANK_AUDIO]",
-  " [BLANK_AUDIO]",
-  " [no audio]",
-  "[no audio]",
-  "[silent]",
+  '[inaudible]',
+  ' [inaudible]',
+  '[ Inaudible ]',
+  '[INAUDIBLE]',
+  ' [INAUDIBLE]',
+  '[BLANK_AUDIO]',
+  ' [BLANK_AUDIO]',
+  ' [no audio]',
+  '[no audio]',
+  '[silent]',
 ];
 
 function updateConfig() {
-  const query = window.location.search.substring("1");
-  const providers = ["webnn", "webgpu", "wasm"];
-  const deviceTypes = ['cpu', 'gpu', 'npu']
-  const dataTypes = ["float32", "float16"];
-  let vars = query.split("&");
+  const query = window.location.search.substring('1');
+  const providers = ['webnn', 'webgpu', 'wasm'];
+  const deviceTypes = ['cpu', 'gpu', 'npu'];
+  const dataTypes = ['float32', 'float16'];
+  let vars = query.split('&');
   for (let i = 0; i < vars.length; i++) {
-    let pair = vars[i].split("=");
-    if (pair[0] == "provider" && providers.includes(pair[1])) {
+    let pair = vars[i].split('=');
+    if (pair[0] == 'provider' && providers.includes(pair[1])) {
       provider = pair[1];
     }
-    if (pair[0].toLowerCase() == 'devicetype' && deviceTypes.includes(pair[1])) {
+    if (
+      pair[0].toLowerCase() == 'devicetype' &&
+      deviceTypes.includes(pair[1])
+    ) {
       deviceType = pair[1];
     }
-    if (pair[0].toLowerCase() == "datatype" && dataTypes.includes(pair[1])) {
+    if (pair[0].toLowerCase() == 'datatype' && dataTypes.includes(pair[1])) {
       dataType = pair[1];
     }
-    if (pair[0].toLowerCase() == "maxchunklength") {
+    if (pair[0].toLowerCase() == 'maxchunklength') {
       maxChunkLength = parseFloat(pair[1]);
     }
     if (pair[0].toLowerCase() == 'chunklength') {
       chunkLength = parseFloat(pair[1]);
     }
     if (pair[0].toLowerCase() == 'maxaudiolength') {
-        maxAudioLength = Math.min(parseInt(pair[1]), kMaxAudioLengthInSec);
+      maxAudioLength = Math.min(parseInt(pair[1]), kMaxAudioLengthInSec);
     }
     if (pair[0].toLowerCase() == 'accumulatesubchunks') {
       accumulateSubChunks = pair[1].toLowerCase() === 'true';
@@ -158,9 +174,9 @@ function updateConfig() {
 
 // transcribe active
 function busy() {
-  progress.parentNode.style.display = "block";
-  outputText.innerText = "";
-  latency.innerText = "0.0%";
+  progress.parentNode.style.display = 'block';
+  outputText.innerText = '';
+  latency.innerText = '0.0%';
   resultShow.setAttribute('class', 'show');
 }
 
@@ -171,7 +187,7 @@ function ready() {
   fileUpload.disabled = false;
   record.disabled = false;
   speech.disabled = false;
-  progress.style.width = "0%";
+  progress.style.width = '0%';
   // progress.parentNode.style.display = "none";
 }
 
@@ -182,8 +198,8 @@ async function process_audio(audio, starttime, idx, pos) {
     // not done
     try {
       // update progress bar
-      progress.style.width = ((idx * 100) / audio.length).toFixed(1) + "%";
-      latency.innerText = ((idx * 100) / audio.length).toFixed(1) + "%";
+      progress.style.width = ((idx * 100) / audio.length).toFixed(1) + '%';
+      latency.innerText = ((idx * 100) / audio.length).toFixed(1) + '%';
 
       // run inference for 30 sec
       const xa = audio.slice(idx, idx + kSteps);
@@ -196,8 +212,13 @@ async function process_audio(audio, starttime, idx, pos) {
       outputText.innerText += ret.sentence;
       logUser(ret.sentence);
       // outputText.scrollTop = outputText.scrollHeight;
-      
-      await process_audio(audio, starttime, idx + kSteps, pos + kMaxAudioLengthInSec);
+
+      await process_audio(
+        audio,
+        starttime,
+        idx + kSteps,
+        pos + kMaxAudioLengthInSec,
+      );
     } catch (e) {
       logError(`Error · ${e.message}`);
     }
@@ -205,30 +226,29 @@ async function process_audio(audio, starttime, idx, pos) {
     // done with audio buffer
     const processingTime = (performance.now() - starttime) / 1000;
     const total = audio.length / kSampleRate;
-    const tokensPerSecond = (numTokens - 1) / (processingTime - timeToFirstToken / 1000);
+    const tokensPerSecond =
+      (numTokens - 1) / (processingTime - timeToFirstToken / 1000);
     numTokens = 0;
     resultShow.setAttribute('class', 'show');
-    progress.style.width = "100%";
+    progress.style.width = '100%';
 
-    if(getMode()) {
-      latency.innerText = `100.0%, ${
-        (total / processingTime).toFixed(1)
-      } x realtime, time to first token: ${
-        timeToFirstToken.toFixed(1)
-      }ms, ${tokensPerSecond.toFixed(1)} tokens/s`;
+    if (getMode()) {
+      latency.innerText = `100.0%, ${(total / processingTime).toFixed(
+        1,
+      )} x realtime, time to first token: ${timeToFirstToken.toFixed(
+        1,
+      )}ms, ${tokensPerSecond.toFixed(1)} tokens/s`;
       log(
-        `${
-          latency.innerText
-        }, total ${processingTime.toFixed(
-          1
-        )}s processing time for ${total.toFixed(1)}s audio`
+        `${latency.innerText}, total ${processingTime.toFixed(
+          1,
+        )}s processing time for ${total.toFixed(1)}s audio`,
       );
     } else {
       latency.innerText = `100.0%`;
       log(
         `${
           latency.innerText
-        }, processing completed for ${total.toFixed(1)}s audio`
+        }, processing completed for ${total.toFixed(1)}s audio`,
       );
     }
   }
@@ -237,14 +257,14 @@ async function process_audio(audio, starttime, idx, pos) {
 // transcribe audio source
 async function transcribe_file() {
   resultShow.setAttribute('class', 'show');
-  if (audioSrc.src == "") {
-    logError("Error · No audio input, please record the audio");
+  if (audioSrc.src == '') {
+    logError('Error · No audio input, please record the audio');
     ready();
     return;
   }
 
   busy();
-  log("Starting transcription ...");
+  log('Starting transcription ...');
   audioProcessing.setAttribute('class', 'show');
   try {
     const buffer = await (await fetch(audioSrc.src)).arrayBuffer();
@@ -252,7 +272,7 @@ async function transcribe_file() {
     const offlineContext = new OfflineAudioContext(
       audioBuffer.numberOfChannels,
       audioBuffer.length,
-      audioBuffer.sampleRate
+      audioBuffer.sampleRate,
     );
     const source = offlineContext.createBufferSource();
     source.buffer = audioBuffer;
@@ -279,7 +299,7 @@ async function startRecord() {
   if (!audioSrc.paused) {
     audioSrc.pause();
   }
-  audioSrc.src == "";
+  audioSrc.src == '';
 
   resultShow.setAttribute('class', '');
   if (mediaRecorder === undefined) {
@@ -291,7 +311,7 @@ async function startRecord() {
             autoGainControl: true,
             noiseSuppression: true,
             channelCount: 1,
-            latency: 0
+            latency: 0,
           },
         });
       }
@@ -304,7 +324,7 @@ async function startRecord() {
   let recording_start = performance.now();
   let chunks = [];
 
-  mediaRecorder.ondataavailable = (e) => {
+  mediaRecorder.ondataavailable = e => {
     chunks.push(e.data);
     resultShow.setAttribute('class', 'show');
     latency.innerText = `recorded: ${(
@@ -314,11 +334,12 @@ async function startRecord() {
   };
 
   mediaRecorder.onstop = async () => {
-    const blob = new Blob(chunks, { type: "audio/ogg; codecs=opus" });
+    const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' });
     log(
-      `Preprocessing · Recorded ${((performance.now() - recording_start) / 1000).toFixed(
-        1
-      )}s audio`
+      `Preprocessing · Recorded ${(
+        (performance.now() - recording_start) /
+        1000
+      ).toFixed(1)}s audio`,
     );
     audioSrc.src = window.URL.createObjectURL(blob);
     initAudioMotion();
@@ -348,22 +369,22 @@ async function startSpeech() {
   if (!audioSrc.paused) {
     audioSrc.pause();
   }
-  audioSrc.src == "";
+  audioSrc.src == '';
   resultShow.setAttribute('class', '');
   speechState = SpeechStates.PROCESSING;
   await captureAudioStream();
   if (streamingNode != null) {
-    streamingNode.port.postMessage({ message: "STOP_PROCESSING", data: false });
+    streamingNode.port.postMessage({ message: 'STOP_PROCESSING', data: false });
   }
 }
 
 // stop speech
 async function stopSpeech() {
   // if (micStream) {
-	// 	audioMotion.disconnectInput( micStream, true );
+  // 	audioMotion.disconnectInput( micStream, true );
   // }
   if (streamingNode != null) {
-    streamingNode.port.postMessage({ message: "STOP_PROCESSING", data: true });
+    streamingNode.port.postMessage({ message: 'STOP_PROCESSING', data: true });
     speechState = SpeechStates.PAUSED;
   }
   silenceAudioCounter = 0;
@@ -380,7 +401,9 @@ async function stopSpeech() {
     }
   }
   console.warn(`max process audio length: ${maxProcessAudioBufferLength} sec`);
-  console.warn(`max unprocessed audio length: ${maxUnprocessedAudioLength} sec`);
+  console.warn(
+    `max unprocessed audio length: ${maxUnprocessedAudioLength} sec`,
+  );
   ready();
   // if (stream) {
   //     stream.getTracks().forEach(track => track.stop());
@@ -395,7 +418,7 @@ async function stopSpeech() {
 // use AudioWorklet API to capture real-time audio
 async function captureAudioStream() {
   try {
-    if (context && context.state === "suspended") {
+    if (context && context.state === 'suspended') {
       await context.resume();
     }
     // Get user's microphone and connect it to the AudioContext.
@@ -420,25 +443,25 @@ async function captureAudioStream() {
     vad = new VAD(VADMode.AGGRESSIVE, kSampleRate);
 
     // clear output context
-    outputText.innerText = "";
+    outputText.innerText = '';
     sourceNode = new MediaStreamAudioSourceNode(context, {
       mediaStream: stream,
     });
-    await context.audioWorklet.addModule("streaming_processor.js");
+    await context.audioWorklet.addModule('streaming_processor.js');
     // 128 is the minimum length for audio worklet processing.
     const minBufferSize = vad.getMinBufferSize(
-      lcm(chunkLength * kSampleRate, 128)
+      lcm(chunkLength * kSampleRate, 128),
     );
     console.log(`VAD minBufferSize: ${minBufferSize / kSampleRate} sec`);
     const streamProperties = {
       minBufferSize: minBufferSize,
     };
-    streamingNode = new AudioWorkletNode(context, "streaming-processor", {
+    streamingNode = new AudioWorkletNode(context, 'streaming-processor', {
       processorOptions: streamProperties,
     });
 
-    streamingNode.port.onmessage = async (e) => {
-      if (e.data.message === "START_TRANSCRIBE") {
+    streamingNode.port.onmessage = async e => {
+      if (e.data.message === 'START_TRANSCRIBE') {
         const frame = VAD.floatTo16BitPCM(e.data.buffer); // VAD requires Int16Array input
         const res = vad.processBuffer(frame);
         // has voice
@@ -497,11 +520,11 @@ async function processAudioBuffer() {
       processBuffer = concatBufferArray(subAudioChunks);
       subAudioChunks = [];
     } else {
-        if (accumulateSubChunks) {
-            processBuffer = concatBufferArray(subAudioChunks);
-        } else {
-            processBuffer = audioChunk.data;
-        }
+      if (accumulateSubChunks) {
+        processBuffer = concatBufferArray(subAudioChunks);
+      } else {
+        processBuffer = audioChunk.data;
+      }
     }
   } else {
     // Slience detected, concat all subAudoChunks to do rectification
@@ -514,7 +537,7 @@ async function processAudioBuffer() {
       processBuffer = audioChunk.data;
     }
   }
- 
+
   // ignore too small audio chunk, e.g. 0.16 sec
   // per testing, audios less than 0.16 sec are almost blank audio
   const processBufferLength = processBuffer.length / kSampleRate;
@@ -524,20 +547,18 @@ async function processAudioBuffer() {
     const processingTime = (performance.now() - start) / 1000;
     resultShow.setAttribute('class', 'show');
 
-    if(getMode()) {
-      latency.innerText = `${(
-        processBufferLength / processingTime
-      ).toFixed(1)} x realtime`;
+    if (getMode()) {
+      latency.innerText = `${(processBufferLength / processingTime).toFixed(
+        1,
+      )} x realtime`;
       log(
         `${
           latency.innerText
-        }, ${processBufferLength}s audio processing time: ${processingTime.toFixed(2)}s`
+        }, ${processBufferLength}s audio processing time: ${processingTime.toFixed(2)}s`,
       );
     } else {
       latency.innerText = `realtime`;
-      log(
-        `Realtime audio chunk processing completed`
-      );
+      log(`Realtime audio chunk processing completed`);
     }
 
     // ignore slient, inaudible audio output, i.e. '[BLANK_AUDIO]'
@@ -568,18 +589,20 @@ async function processAudioBuffer() {
 
   if (subAudioChunks.length == 0) {
     // clear subText
-    subText = "";
+    subText = '';
   }
 
   if (audioChunks.length > 0) {
     let unprocessedAudioLength = 0;
     for (let i = 0; i < audioChunks.length; ++i) {
-        unprocessedAudioLength += audioChunks[i].data.length;
+      unprocessedAudioLength += audioChunks[i].data.length;
     }
     unprocessedAudioLength /= kSampleRate;
-    console.warn(`un-processed audio chunk length: ${(unprocessedAudioLength)} sec`);
+    console.warn(
+      `un-processed audio chunk length: ${unprocessedAudioLength} sec`,
+    );
     if (unprocessedAudioLength > maxUnprocessedAudioLength) {
-        maxUnprocessedAudioLength = unprocessedAudioLength;
+      maxUnprocessedAudioLength = unprocessedAudioLength;
     }
 
     // recusive audioBuffer in audioChunks
@@ -595,18 +618,15 @@ async function processAudioBuffer() {
 }
 
 const initAudioMotion = () => {
-  if(!audioMotion){
-    audioMotion = new AudioMotionAnalyzer(
-      container,
-      {
-        source: audioSrc
-      }
-    );
+  if (!audioMotion) {
+    audioMotion = new AudioMotionAnalyzer(container, {
+      source: audioSrc,
+    });
     audioMotion.setOptions(options);
   }
-}
+};
 
-const main = async () => {  
+const main = async () => {
   labelFileUpload.setAttribute('class', 'file-upload-label disabled');
   fileUpload.disabled = true;
   record.disabled = true;
@@ -619,9 +639,9 @@ const main = async () => {
   ort.env.wasm.simd = true;
 
   // click on Record
-  record.addEventListener("click", (e) => {
-    if (record.getAttribute('class').indexOf("active") == -1) {
-      subText = "";
+  record.addEventListener('click', () => {
+    if (record.getAttribute('class').indexOf('active') == -1) {
+      subText = '';
       record.setAttribute('class', 'active');
       startRecord();
     } else {
@@ -631,13 +651,13 @@ const main = async () => {
   });
 
   // click on Speech
-  speech.addEventListener("click", async (e) => {
-    if (speech.getAttribute('class').indexOf("active") == -1) {
+  speech.addEventListener('click', async () => {
+    if (speech.getAttribute('class').indexOf('active') == -1) {
       if (!lastSpeechCompleted) {
-        log("Last speech-to-text has not completed yet, try later...");
+        log('Last speech-to-text has not completed yet, try later...');
         return;
       }
-      subText = "";
+      subText = '';
       speech.setAttribute('class', 'active');
       await startSpeech();
     } else {
@@ -653,14 +673,14 @@ const main = async () => {
     fileUpload.disabled = true;
     record.disabled = true;
     speech.disabled = true;
-    subText = "";
+    subText = '';
     if (!audioSrc.paused) {
       audioSrc.pause();
     }
-    audioSrc.src == "";
+    audioSrc.src == '';
     let target = evt.target || window.event.src,
       files = target.files;
-    if(files && files.length > 0) {
+    if (files && files.length > 0) {
       audioSrc.src = URL.createObjectURL(files[0]);
       initAudioMotion();
       audioSrc.play();
@@ -670,7 +690,7 @@ const main = async () => {
     }
   };
 
-  copy.addEventListener('click', async (e) => {
+  copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(outputText.innerText);
       logUser('The speech to text copied to clipboard');
@@ -678,19 +698,19 @@ const main = async () => {
       logUser('Failed to copy');
       console.error('Failed to copy: ', err);
     }
-  })
+  });
 
   log(`ONNX Runtime Web Execution Provider loaded · ${provider.toUpperCase()}`);
   try {
     context = new AudioContext({ sampleRate: kSampleRate });
-    const whisper_url = location.href.includes("github.io")
-      ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
-      : "./models/";
+    const whisper_url = location.href.includes('github.io')
+      ? 'https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/'
+      : './models/';
     whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d);
     await whisper.create_whisper_processor();
     await whisper.create_whisper_tokenizer();
     await whisper.create_ort_sessions();
-    log("Ready to transcribe ...");
+    log('Ready to transcribe ...');
     ready();
     context = new AudioContext({
       sampleRate: kSampleRate,
@@ -701,10 +721,9 @@ const main = async () => {
     });
     if (!context) {
       throw new Error(
-        "no AudioContext, make sure domain has access to Microphone"
+        'no AudioContext, make sure domain has access to Microphone',
       );
     }
-
   } catch (e) {
     logError(`Error · ${e.message}`);
   }
@@ -713,63 +732,69 @@ const main = async () => {
 const ui = async () => {
   device = document.getElementById('device');
   badge = document.getElementById('badge');
-  audioSrc = document.querySelector("audio");
-  labelFileUpload = document.getElementById("label-file-upload");
-  fileUpload = document.getElementById("file-upload");
-  record = document.getElementById("record");
-  speech = document.getElementById("speech");
-  progress = document.getElementById("progress");
-  outputText = document.getElementById("outputText");
-  resultShow = document.getElementById("result-show");
-  latency = document.getElementById("latency");
-  audioProcessing = document.getElementById("audio-processing");
-  copy = document.getElementById("copy");
+  audioSrc = document.querySelector('audio');
+  labelFileUpload = document.getElementById('label-file-upload');
+  fileUpload = document.getElementById('file-upload');
+  record = document.getElementById('record');
+  speech = document.getElementById('speech');
+  progress = document.getElementById('progress');
+  outputText = document.getElementById('outputText');
+  resultShow = document.getElementById('result-show');
+  latency = document.getElementById('latency');
+  audioProcessing = document.getElementById('audio-processing');
+  copy = document.getElementById('copy');
   container = document.getElementById('container');
 
-  let status = document.querySelector("#webnnstatus");
-  let info = document.querySelector("#info");
+  let status = document.querySelector('#webnnstatus');
+  let info = document.querySelector('#info');
   updateConfig();
 
-  if (deviceType.toLowerCase().indexOf("cpu") > -1 || provider.toLowerCase().indexOf("wasm") > -1) {
-    device.innerHTML = "CPU";
+  if (
+    deviceType.toLowerCase().indexOf('cpu') > -1 ||
+    provider.toLowerCase().indexOf('wasm') > -1
+  ) {
+    device.innerHTML = 'CPU';
     badge.setAttribute('class', 'cpu');
     document.body.setAttribute('class', 'cpu');
-  } else if (deviceType.toLowerCase().indexOf("gpu") > -1 || provider.toLowerCase().indexOf("webgpu") > -1) {
-    device.innerHTML = "GPU";
+  } else if (
+    deviceType.toLowerCase().indexOf('gpu') > -1 ||
+    provider.toLowerCase().indexOf('webgpu') > -1
+  ) {
+    device.innerHTML = 'GPU';
     badge.setAttribute('class', '');
     document.body.setAttribute('class', 'gpu');
-  } else if (deviceType.toLowerCase().indexOf("npu") > -1) {
-    device.innerHTML = "NPU";
+  } else if (deviceType.toLowerCase().indexOf('npu') > -1) {
+    device.innerHTML = 'NPU';
     badge.setAttribute('class', 'npu');
     document.body.setAttribute('class', 'npu');
   }
-  
+
   let webnnStatus = await getWebnnStatus();
 
   if (
-    getQueryValue("provider") &&
-    getQueryValue("provider").toLowerCase().indexOf("wasm") > -1
+    getQueryValue('provider') &&
+    getQueryValue('provider').toLowerCase().indexOf('wasm') > -1
   ) {
-    status.innerHTML = "";
-    title.innerHTML = "WebAssembly";
+    status.innerHTML = '';
+    title.innerHTML = 'WebAssembly';
     await main();
   } else if (
-    getQueryValue("provider") &&
-    getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1
+    getQueryValue('provider') &&
+    getQueryValue('provider').toLowerCase().indexOf('webgpu') > -1
   ) {
-    status.innerHTML = "";
-    title.innerHTML = "WebGPU";
+    status.innerHTML = '';
+    title.innerHTML = 'WebGPU';
     await main();
   } else {
     if (webnnStatus.webnn) {
-      status.setAttribute("class", "green");
+      status.setAttribute('class', 'green');
       info.innerHTML = `WebNN supported · <a href="./?devicetype=gpu">GPU</a> · <a href="./?devicetype=npu">NPU</a>`;
-      if(deviceType.toLowerCase() === 'npu') {
+      if (deviceType.toLowerCase() === 'npu') {
         try {
-          await navigator.ml.createContext({deviceType: 'npu'});
+          await navigator.ml.createContext({ deviceType: 'npu' });
           await main();
         } catch (error) {
-          status.setAttribute("class", "red");
+          status.setAttribute('class', 'red');
           info.innerHTML = `
             ${error}<br>
             Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed.`;
@@ -778,7 +803,9 @@ const ui = async () => {
           record.disabled = true;
           speech.disabled = true;
           logError(`[Error] ${error}`);
-          logError(`[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`);
+          logError(
+            `[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`,
+          );
           log(`<a href="./?devicetype=gpu">Switch to WebNN GPU</a>`);
         }
       } else {
@@ -790,17 +817,19 @@ const ui = async () => {
       }
     } else {
       if (webnnStatus.error) {
-        status.setAttribute("class", "red");
+        status.setAttribute('class', 'red');
         info.innerHTML = `WebNN not supported: ${webnnStatus.error} <a id="webnn_na" href="../../install.html" title="WebNN Installation Guide">Set up WebNN</a>`;
         logError(`[Error] ${webnnStatus.error}`);
-        log(`<a href="../../install.html" title="WebNN Installation Guide">WebNN Installation Guide</a>`);
+        log(
+          `<a href="../../install.html" title="WebNN Installation Guide">WebNN Installation Guide</a>`,
+        );
       } else {
-        status.setAttribute("class", "red");
-        info.innerHTML = "WebNN not supported";
-        logError("[Error] WebNN not supported");
+        status.setAttribute('class', 'red');
+        info.innerHTML = 'WebNN not supported';
+        logError('[Error] WebNN not supported');
       }
     }
   }
-}
+};
 
-document.addEventListener("DOMContentLoaded", ui, false);
+document.addEventListener('DOMContentLoaded', ui, false);

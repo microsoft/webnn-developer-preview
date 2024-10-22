@@ -1,17 +1,17 @@
-import { AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
+/* eslint-disable no-undef */
+import { AutoTokenizer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4';
 
 let tokenizers;
-document.addEventListener("DOMContentLoaded", async () => {
-  let path = "";
+document.addEventListener('DOMContentLoaded', async () => {
+  let path = '';
   if (
-    location.href.toLowerCase().indexOf("github.io") > -1 ||
-    location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-    location.href.toLowerCase().indexOf("vercel.app") > -1
+    location.href.toLowerCase().indexOf('github.io') > -1 ||
+    location.href.toLowerCase().indexOf('huggingface.co') > -1 ||
+    location.href.toLowerCase().indexOf('vercel.app') > -1
   ) {
-    path =
-      "microsoft/stable-diffusion-v1.5-webnn/resolve/main/tokenizer";
+    path = 'microsoft/stable-diffusion-v1.5-webnn/resolve/main/tokenizer';
   } else {
-    path = "../../demos/stable-diffusion-1.5/models/tokenizer/";
+    path = '../../demos/stable-diffusion-1.5/models/tokenizer/';
   }
 
   tokenizers = await AutoTokenizer.from_pretrained(path);
@@ -19,132 +19,134 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 export async function getTokenizers(text) {
   const { input_ids } = await tokenizers(text);
-  return Array.from(input_ids.data, (number) => Number(number)).flat();
+  return Array.from(input_ids.data, number => Number(number)).flat();
 }
 
-export const log = (i) => {
+export const log = i => {
   console.log(i);
-  if(getMode()) {
-    document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+  if (getMode()) {
+    document.getElementById('status').innerText += `\n[${getTime()}] ${i}`;
   } else {
-    document.getElementById("status").innerText += `\n${i}`;
+    document.getElementById('status').innerText += `\n${i}`;
   }
 };
 
-export const logError = (i) => {
+export const logError = i => {
   console.error(i);
-  if(getMode()) {
-    document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+  if (getMode()) {
+    document.getElementById('status').innerText += `\n[${getTime()}] ${i}`;
   } else {
-    document.getElementById("status").innerText += `\n${i}`;
+    document.getElementById('status').innerText += `\n${i}`;
   }
 };
 
 export function generateTensorFillValue(dataType, shape, value) {
   let size = 1;
-  shape.forEach((element) => {
+  shape.forEach(element => {
     size *= element;
   });
   switch (dataType) {
-    case "uint8":
+    case 'uint8':
       return new ort.Tensor(
         dataType,
         Uint8Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "int8":
+    case 'int8':
       return new ort.Tensor(
         dataType,
         Int8Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "uint16":
+    case 'uint16':
       return new ort.Tensor(
         dataType,
         Uint16Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "int16":
+    case 'int16':
       return new ort.Tensor(
         dataType,
         Int16Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "uint32":
+    case 'uint32':
       return new ort.Tensor(
         dataType,
         Uint32Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "int32":
+    case 'int32':
       return new ort.Tensor(
         dataType,
         Int32Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "float16":
+    case 'float16':
       return new ort.Tensor(
         dataType,
         Uint16Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "float32":
+    case 'float32':
       return new ort.Tensor(
         dataType,
         Float32Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "uint64":
+    case 'uint64':
       return new ort.Tensor(
         dataType,
         BigUint64Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
-    case "int64":
+    case 'int64':
       return new ort.Tensor(
         dataType,
         BigInt64Array.from({ length: size }, () => value),
-        shape
+        shape,
       );
   }
   throw new Error(`Input tensor type ${dataType} is unknown`);
 }
 
 export function generateTensorFromValues(dataType, shape, values) {
+  // eslint-disable-next-line no-unused-vars
   let size = 1;
-  shape.forEach((element) => {
+  shape.forEach(element => {
     size *= element;
   });
   //log(`values.byteLength: ${values.byteLength}`;
   //log(`size: ${size}`);
   switch (dataType) {
-    case "uint8":
+    case 'uint8':
       return new ort.Tensor(dataType, new Uint8Array(values), shape);
-    case "int8":
+    case 'int8':
       return new ort.Tensor(dataType, new Int8Array(values), shape);
-    case "uint16":
+    case 'uint16':
       return new ort.Tensor(dataType, new Uint16Array(values), shape);
-    case "int16":
+    case 'int16':
       return new ort.Tensor(dataType, new Int16Array(values), shape);
-    case "uint32":
+    case 'uint32':
       return new ort.Tensor(dataType, new Uint32Array(values), shape);
-    case "int32":
+    case 'int32':
       return new ort.Tensor(dataType, new Int32Array(values), shape);
-    case "float16":
+    case 'float16':
       return new ort.Tensor(dataType, new Uint16Array(values), shape);
-    case "float32":
+    case 'float32':
       return new ort.Tensor(dataType, new Float32Array(values), shape);
-    case "uint64":
+    case 'uint64':
       return new ort.Tensor(dataType, new BigUint64Array(values), shape);
-    case "int64":
+    case 'int64':
       return new ort.Tensor(dataType, new BigInt64Array(values), shape);
   }
   throw new Error(`Input tensor type ${dataType} is unknown`);
 }
 
 export function generateTensorFromBytes(dataType, shape, values) {
+  // eslint-disable-next-line no-unused-vars
   let size = 1;
-  shape.forEach((element) => {
+  shape.forEach(element => {
     size *= element;
   });
 
@@ -153,32 +155,32 @@ export function generateTensorFromBytes(dataType, shape, values) {
     values = values.buffer;
   }
   switch (dataType) {
-    case "uint8":
+    case 'uint8':
       return new ort.Tensor(dataType, new Uint8Array(values), shape);
-    case "int8":
+    case 'int8':
       return new ort.Tensor(dataType, new Int8Array(values), shape);
-    case "uint16":
+    case 'uint16':
       return new ort.Tensor(dataType, new Uint16Array(values), shape);
-    case "int16":
+    case 'int16':
       return new ort.Tensor(dataType, new Int16Array(values), shape);
-    case "uint32":
+    case 'uint32':
       return new ort.Tensor(dataType, new Uint32Array(values), shape);
-    case "int32":
+    case 'int32':
       return new ort.Tensor(dataType, new Int32Array(values), shape);
-    case "float16":
+    case 'float16':
       return new ort.Tensor(dataType, new Uint16Array(values), shape);
-    case "float32":
+    case 'float32':
       return new ort.Tensor(dataType, new Float32Array(values), shape);
-    case "uint64":
+    case 'uint64':
       return new ort.Tensor(dataType, new BigUint64Array(values), shape);
-    case "int64":
+    case 'int64':
       return new ort.Tensor(dataType, new BigInt64Array(values), shape);
   }
   throw new Error(`Input tensor type ${dataType} is unknown`);
 }
 
 export function decodeFloat16(binaryValue) /*: float Number*/ {
-  "use strict";
+  'use strict';
   let fraction = binaryValue & 0x03ff;
   let exponent = (binaryValue & 0x7c00) >> 10;
   return (
@@ -233,16 +235,16 @@ export function encodeFloat16(floatValue) /*: uint16 Number*/ {
   return bits;
 }
 
-export const getQueryValue = (name) => {
+export const getQueryValue = name => {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(name);
 };
 
 export const getQueryVariable = (name, defaults) => {
   const query = window.location.search.substring(1);
-  let vars = query.split("&");
+  let vars = query.split('&');
   for (var i = 0; i < vars.length; i++) {
-    let pair = vars[i].split("=");
+    let pair = vars[i].split('=');
     if (pair[0] == name) {
       return pair[1];
     }
@@ -252,13 +254,13 @@ export const getQueryVariable = (name, defaults) => {
 
 export const modelPath = () => {
   if (
-    location.href.toLowerCase().indexOf("github.io") > -1 ||
-    location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-    location.href.toLowerCase().indexOf("vercel.app") > -1
+    location.href.toLowerCase().indexOf('github.io') > -1 ||
+    location.href.toLowerCase().indexOf('huggingface.co') > -1 ||
+    location.href.toLowerCase().indexOf('vercel.app') > -1
   ) {
-    return "https://huggingface.co/microsoft/stable-diffusion-v1.5-webnn/resolve/main/";
+    return 'https://huggingface.co/microsoft/stable-diffusion-v1.5-webnn/resolve/main/';
   } else {
-    return "models/";
+    return 'models/';
   }
 };
 
@@ -268,7 +270,7 @@ export const randomNumber = () => {
 };
 
 const padNumber = (num, fill) => {
-  let len = ("" + num).length;
+  let len = ('' + num).length;
   return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
 };
 
@@ -281,12 +283,12 @@ export const getTime = () => {
 };
 
 export const getMode = () => {
-  return (getQueryValue("mode") === "normal") ? false : true;
+  return getQueryValue('mode') === 'normal' ? false : true;
 };
 
 export const getSafetyChecker = () => {
-  if(getQueryValue("safetychecker")) {
-    return (getQueryValue("safetychecker") === "true") ? true : false; 
+  if (getQueryValue('safetychecker')) {
+    return getQueryValue('safetychecker') === 'true' ? true : false;
   } else {
     return true;
   }

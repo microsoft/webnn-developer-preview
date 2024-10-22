@@ -4,15 +4,42 @@
   "description": "Run ONNX models in the browser with WebNN",
   "scripts": {
     "fetch-models": "node fetch_models.js",
+    "prepare": "husky install",
+    "lint": "eslint .",
+    "lint-fix": "eslint . --fix",
     "dev": "http-server"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js}": [
+      "prettier --write",
+      "eslint --cache --fix",
+      "git add"
+    ],
+    "*.{html,css}": [
+      "eslint",
+      "prettier --write",
+      "git add"
+    ]
   },
   "type": "module",
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.11.0",
     "http-server": "^14.1.1",
     "https-proxy-agent": "^7.0.5",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
     "node-fetch": "^3.3.2",
+    "prettier": "^3.3.3",
     "progress": "^2.0.3"
   }
 }
