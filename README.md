@@ -18,7 +18,6 @@ This Stable Diffusion 1.5 model has been optimized to work with WebNN. This mode
 
 This model is meant to be used with the corresponding sample on this repo for educational or testing purposes only.
 
-
 ### 2. SD-Turbo
 
 [SD-Turbo](https://huggingface.co/microsoft/sd-turbo-webnn/tree/main) is a fast generative text-to-image model that can synthesize photorealistic images from a text prompt in a single network evaluation. In the demo, you can generate an image in 2s on AI PC devices by leveraging WebNN API, a dedicated low-level API for neural network inference hardware acceleration.
@@ -26,7 +25,6 @@ This model is meant to be used with the corresponding sample on this repo for ed
 This Stable Diffusion Turbo model has been optimized to work with WebNN. This model is licensed under the [STABILITY AI NON-COMMERCIAL RESEARCH COMMUNITY LICENSE AGREEMENT](https://huggingface.co/stabilityai/sd-turbo/blob/main/LICENSE). For terms of use, please visit the [Acceptable Use Policy](https://stability.ai/use-policy). If you comply with the license and terms of use, you have the rights described therin. By using this Model, you accept the terms.
 
 This model is meant to be used with the corresponding sample on this repo for educational or testing purposes only.
-
 
 ### 3. Segment Anything
 
@@ -36,7 +34,6 @@ This Segment Anything Model has been optimized to work with WebNN. This model is
 
 This model is meant to be used with the corresponding sample on this repo for educational or testing purposes only.
 
-
 ### 4. Whisper Base
 
 [Whisper Base](https://huggingface.co/microsoft/whisper-base-webnn/tree/main) is a pre-trained model for automatic speech recognition (ASR) and speech translation. In the demo, you can experience the speech to text feature by using on-device inference powered by WebNN API and DirectML, especially the NPU acceleration.
@@ -44,7 +41,6 @@ This model is meant to be used with the corresponding sample on this repo for ed
 This Whisper-base model has been optimized to work with WebNN. This model is licensed under the [Apache-2.0 license](https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md). For terms of use, please visit the [Intended use](https://huggingface.co/openai/whisper-base#evaluated-use). If you comply with the license and terms of use, you have the rights described therin. By using this Model, you accept the terms.
 
 This model is meant to be used with the corresponding sample on this repo for educational or testing purposes only.
-
 
 ### 5. Image Classification
 
@@ -63,7 +59,7 @@ npm install
 
 **WebNN installation guides**
 
-WebNN requires a compatible browser to run, and Windows* 11 v21H2 (DML 1.6.0) or higher.
+WebNN requires a compatible browser to run, and Windows\* 11 v21H2 (DML 1.6.0) or higher.
 
 1. Download the latest [Microsoft Edge Canary](https://www.microsoft.com/edge/download/insider) browser
 2. To enable WebNN, in your browser address bar, enter `about://flags`, and then press `Enter`. An Experiments page opens
@@ -89,29 +85,29 @@ npm run fetch-models
 
 WebNN is a living specification and still subject to breaking changes, which may impact the samples depending on your browser version. The following are recent:
 
-- 2024-07-24 `MLContextOptions::MLPowerPreference` rename `auto` to `default` [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5716629)
-- 2024-07-24 Allow `MLGraphBuilder.build()` to be called only once - [spec change](https://github.com/webmachinelearning/webnn/pull/717), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5684454), [ORT change](https://github.com/microsoft/onnxruntime/pull/21514), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/21)
-- 2024-07-22 `LSTM`/`GRU` activation enum `MLRecurrentNetworkActivation` - [spec change](https://github.com/webmachinelearning/webnn/pull/718), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5689531)
-- 2024-07-22 `argMin`/`argMax` change to take scalar `axis` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/724]), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5721028)
-- 2024-07-15 `argMin`/`argMax` add `outputDataType` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/730), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5692538), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/19])
-- 2024-06-12 `softmax` axis argument - [spec change](https://github.com/webmachinelearning/webnn/pull/649), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5495877)
-- 2024-06-07 Remove incompatible `MLActivations` for recurrent ops [spec change](https://github.com/webmachinelearning/webnn/pull/703/files), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5494397), [baseline change](https://github.com/webmachinelearning/webnn-baseline/pull/95)
+-   2024-07-24 `MLContextOptions::MLPowerPreference` rename `auto` to `default` [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5716629)
+-   2024-07-24 Allow `MLGraphBuilder.build()` to be called only once - [spec change](https://github.com/webmachinelearning/webnn/pull/717), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5684454), [ORT change](https://github.com/microsoft/onnxruntime/pull/21514), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/21)
+-   2024-07-22 `LSTM`/`GRU` activation enum `MLRecurrentNetworkActivation` - [spec change](https://github.com/webmachinelearning/webnn/pull/718), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5689531)
+-   2024-07-22 `argMin`/`argMax` change to take scalar `axis` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/724]), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5721028)
+-   2024-07-15 `argMin`/`argMax` add `outputDataType` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/730), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5692538), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/19])
+-   2024-06-12 `softmax` axis argument - [spec change](https://github.com/webmachinelearning/webnn/pull/649), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5495877)
+-   2024-06-07 Remove incompatible `MLActivations` for recurrent ops [spec change](https://github.com/webmachinelearning/webnn/pull/703/files), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5494397), [baseline change](https://github.com/webmachinelearning/webnn-baseline/pull/95)
 
-Model                  | Known compatible Chromium version
------------------------|-------------------------------
-Segment Anything       | 129.0.6617.0
-Stable Diffusion Turbo | 129.0.6617.0
-Stable Diffusion 1.5   | 129.0.6617.0
-Whisper Base           | 129.0.6617.0
-ResNet50               | 129.0.6617.0
-MobileNet V2           | 129.0.6617.0
-EfficientNet Lite4     | 129.0.6617.0
+| Model                  | Known compatible Chromium version |
+| ---------------------- | --------------------------------- |
+| Segment Anything       | 129.0.6617.0                      |
+| Stable Diffusion Turbo | 129.0.6617.0                      |
+| Stable Diffusion 1.5   | 129.0.6617.0                      |
+| Whisper Base           | 129.0.6617.0                      |
+| ResNet50               | 129.0.6617.0                      |
+| MobileNet V2           | 129.0.6617.0                      |
+| EfficientNet Lite4     | 129.0.6617.0                      |
 
 You can check the version via "about://version" in the address bar. In Chrome, look for "Google Chrome". In Edge, heed the "Chromium version".
 
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 

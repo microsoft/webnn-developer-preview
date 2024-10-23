@@ -214,7 +214,8 @@
       WebNN Dev Preview GPU requires a compatible browser to run, and Windows* 11
       v21H2 (DML 1.6.0) or higher:
       <ol>
-        <li>Download the <a href="https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ">Microsoft Edge Canary or Dev</a> browser</li>
+        <li>Download the <a href="https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ">Microsoft Edge
+            Canary or Dev</a> browser</li>
         <li>To enable WebNN, in your browser address bar, enter
           <code>about://flags</code>, and then press
           <code>Enter</code>. An Experiments page opens
@@ -232,17 +233,22 @@
         <li>Insider version of Edge (exact instructions provided below)</li>
         <li>The latest driver from our WebNN NPU Partners:
           <ul>
-            <li><a href="https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html">Intel® Core™ Ultra NPU Driver for Windows</a></li>
-            <li><a href="https://qpm.qualcomm.com/#/main/tools/details/QHND">Qualcomm® Hexagon NPU Driver Package for windows</a></li>
+            <li><a href="https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html">Intel®
+                Core™ Ultra NPU Driver for Windows</a></li>
+            <li><a href="https://qpm.qualcomm.com/#/main/tools/details/QHND">Qualcomm® Hexagon NPU Driver Package for
+                windows</a></li>
           </ul>
         </li>
       </ul>
       Enabling Insider version of Edge:
       <ol>
         <li>
-          <a href="https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ">Microsoft Edge Canary or Dev Channel</a> with WebNN flag enabled in <code>about:flags</code>
+          <a href="https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ">Microsoft Edge Canary or Dev
+            Channel</a> with WebNN flag enabled in <code>about:flags</code>
           <ol style="list-style: lower-alpha;">
-            <li>Download from <a href="https://www.microsoft.com/en-us/edge/download/insider">https://www.microsoft.com/en-us/edge/download/insider</a></li>
+            <li>Download from <a
+                href="https://www.microsoft.com/en-us/edge/download/insider">https://www.microsoft.com/en-us/edge/download/insider</a>
+            </li>
             <li>Run installer</li>
             <li>Navigate to <code>about://flags</code></li>
             <li>Search for <code>Enables WebNN API</code> and change it to <code>Enabled</code></li>
@@ -252,12 +258,16 @@
         <li>
           Download DirectML redistributable
           <ol style="list-style: lower-alpha;">
-            <li>Download DirectML from <a href="https://www.nuget.org/packages/Microsoft.AI.DirectML/1.15.2">https://www.nuget.org/packages/Microsoft.AI.DirectML/1.15.2</a></li>
-            <li>Rename <code>microsoft.ai.directml.1.15.2.nupkg</code> to <code>microsoft.ai.directml.1.15.2.nupkg.zip</code> and extract it</li>
+            <li>Download DirectML from <a
+                href="https://www.nuget.org/packages/Microsoft.AI.DirectML/1.15.2">https://www.nuget.org/packages/Microsoft.AI.DirectML/1.15.2</a>
+            </li>
+            <li>Rename <code>microsoft.ai.directml.1.15.2.nupkg</code> to
+              <code>microsoft.ai.directml.1.15.2.nupkg.zip</code> and extract it</li>
           </ol>
         </li>
         <li>
-          Copy <code>microsoft.ai.directml.1.15.2.nupkg.zip\bin\&lt;arch&gt;-win\directml.dll</code> to the appropriate directory<br>(replace with x64 on Intel devices and arm64 on Qualcomm devices)
+          Copy <code>microsoft.ai.directml.1.15.2.nupkg.zip\bin\&lt;arch&gt;-win\directml.dll</code> to the appropriate
+          directory<br>(replace with x64 on Intel devices and arm64 on Qualcomm devices)
           <ol style="list-style: lower-alpha;">
             <li>Edge Dev: <code>C:\Program Files (x86)\Microsoft\Edge Dev\Application\129.0.2779.0\</code>
               <ol>
