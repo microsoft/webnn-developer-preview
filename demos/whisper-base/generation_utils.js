@@ -29,6 +29,7 @@ function filter_top_p(scores, top_p) {
     let sorted_args = scores.argsort();
     let sorted_scores = scores[sorted_args];
     // Compute the cumulative prob
+    // eslint-disable-next-line no-undef
     let cumulative_probs = softmax(sorted_scores).cumsum();
     // Get the index to remove
     let sorted_indices_to_remove = cumulative_probs.le(1 - top_p);
@@ -41,6 +42,7 @@ function filter_top_p(scores, top_p) {
 
 function sample(scores) {
     // Get the probability
+    // eslint-disable-next-line no-undef
     let probs = softmax(scores);
     // Get the sample index
     let sampled_index = random_choice(Array.from(Array(scores.length).keys()), probs);
@@ -69,7 +71,7 @@ export function get_new_tokens(logits, dims, do_sample = false, temperature = 1.
         }
 
         // Smooth scores using temperature
-        scores = scores.map((score) => score / temperature);
+        scores = scores.map(score => score / temperature);
 
         if (top_k > 0) {
             // Top k filtering

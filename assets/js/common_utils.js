@@ -3,11 +3,11 @@ const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
   'sd-turbo': '129.0.6617.0',
   'segment-anything': '129.0.6617.0',
   'whisper-base': '129.0.6617.0',
-  'image-classification': '129.0.6617.0'
-}
+  'image-classification': '129.0.6617.0',
+};
 
-export const showCompatibleChromiumVersion = (key) => {
-  const version = KNOWN_COMPATIBLE_CHROMIUM_VERSION[key]
+export const showCompatibleChromiumVersion = key => {
+  const version = KNOWN_COMPATIBLE_CHROMIUM_VERSION[key];
   if (version) {
     const chromiumVersionElement = document.querySelector('#chromiumversion');
     chromiumVersionElement.innerHTML = `Known compatible Chromium version: 
@@ -22,43 +22,43 @@ export const showCompatibleChromiumVersion = (key) => {
       </a>
     `;
   }
-}
+};
 
 export const loadScript = async (id, url) => {
   return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
+    const script = document.createElement('script');
     script.onload = resolve;
     script.onerror = reject;
     script.id = id;
     script.src = url;
-    if (url.startsWith("http")) {
-      script.crossOrigin = "anonymous";
+    if (url.startsWith('http')) {
+      script.crossOrigin = 'anonymous';
     }
     document.body.append(script);
   });
 };
 
-export const removeElement = async (id) => {
+export const removeElement = async id => {
   let el = document.querySelector(id);
   if (el) {
     el.parentNode.removeChild(el);
   }
 };
 
-export const sleep = (ms) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = ms => {
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-export const getQueryValue = (name) => {
+export const getQueryValue = name => {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get(name);
 };
 
 export const getQueryVariable = (name, defaults) => {
   const query = window.location.search.substring(1);
-  let vars = query.split("&");
+  let vars = query.split('&');
   for (var i = 0; i < vars.length; i++) {
-    let pair = vars[i].split("=");
+    let pair = vars[i].split('=');
     if (pair[0] == name) {
       return pair[1];
     }
@@ -67,30 +67,30 @@ export const getQueryVariable = (name, defaults) => {
 };
 
 export const updateQueryStringParameter = (uri, key, value) => {
-  var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
-  var separator = uri.indexOf("?") !== -1 ? "&" : "?";
+  var re = new RegExp('([?&])' + key + '=.*?(&|$)', 'i');
+  var separator = uri.indexOf('?') !== -1 ? '&' : '?';
   if (uri.match(re)) {
-    return uri.replace(re, "$1" + key + "=" + value + "$2");
+    return uri.replace(re, '$1' + key + '=' + value + '$2');
   } else {
-    return uri + separator + key + "=" + value;
+    return uri + separator + key + '=' + value;
   }
 };
 
-export const log = (i) => {
+export const log = i => {
   console.log(i);
   if (getMode()) {
-    document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+    document.getElementById('status').innerText += `\n[${getTime()}] ${i}`;
   } else {
-    document.getElementById("status").innerText += `\n${i}`;
+    document.getElementById('status').innerText += `\n${i}`;
   }
 };
 
-export const logError = (i) => {
+export const logError = i => {
   console.error(i);
   if (getMode()) {
-    document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+    document.getElementById('status').innerText += `\n[${getTime()}] ${i}`;
   } else {
-    document.getElementById("status").innerText += `\n${i}`;
+    document.getElementById('status').innerText += `\n${i}`;
   }
 };
 
@@ -100,7 +100,7 @@ export const randomNumber = () => {
 };
 
 export const padNumber = (num, fill) => {
-  let len = ("" + num).length;
+  let len = ('' + num).length;
   return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
 };
 
@@ -123,17 +123,38 @@ export const getTime = () => {
 };
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
-  'stable-diffusion-1.5': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
-  'sd-turbo': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
-  'segment-anything': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
-  'whisper-base': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
-  'image-classification': { 'dev': '1.20.0-dev.20240919-bd60add8ce', 'stable': '1.20.0', 'test': 'test' },
+  'stable-diffusion-1.5': {
+    dev: '1.20.0-dev.20240919-bd60add8ce',
+    stable: '1.20.0',
+    test: 'test',
+  },
+  'sd-turbo': {
+    dev: '1.20.0-dev.20240919-bd60add8ce',
+    stable: '1.20.0',
+    test: 'test',
+  },
+  'segment-anything': {
+    dev: '1.20.0-dev.20240919-bd60add8ce',
+    stable: '1.20.0',
+    test: 'test',
+  },
+  'whisper-base': {
+    dev: '1.20.0-dev.20240919-bd60add8ce',
+    stable: '1.20.0',
+    test: 'test',
+  },
+  'image-classification': {
+    dev: '1.20.0-dev.20240919-bd60add8ce',
+    stable: '1.20.0',
+    test: 'test',
+  },
 };
 
 const ORT_BASE_URL = 'https://www.npmjs.com/package/onnxruntime-web/v/';
 const ORT_CDN_URL = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@';
-const ORT_CDN_DATA_URL = 'https://data.jsdelivr.com/v1/packages/npm/onnxruntime-web';
-const ortLink = (version) => `${ORT_BASE_URL}${version}?activeTab=versions`;
+const ORT_CDN_DATA_URL =
+  'https://data.jsdelivr.com/v1/packages/npm/onnxruntime-web';
+const ortLink = version => `${ORT_BASE_URL}${version}?activeTab=versions`;
 
 // Get the latest dev version of ONNX Runtime Web dists
 const getLatestOrtWebDevVersion = async () => {
@@ -146,14 +167,16 @@ const getLatestOrtWebDevVersion = async () => {
     if (data.tags && data.tags.dev) {
       return data.tags.dev;
     } else {
-      console.error("Latest dev version of ONNX Runtime Web not found in the response");
+      console.error(
+        'Latest dev version of ONNX Runtime Web not found in the response',
+      );
     }
   } catch (error) {
     console.error('Error:', error.message);
   }
 };
 
-const loadScriptWithMessage = async (version) => {
+const loadScriptWithMessage = async version => {
   try {
     if (version === 'test') {
       await loadScript('onnxruntime-web', '../../assets/dist/ort.all.min.js');
@@ -162,7 +185,10 @@ const loadScriptWithMessage = async (version) => {
       if (version === 'latest') {
         version = await getLatestOrtWebDevVersion();
       }
-      await loadScript('onnxruntime-web', `${ORT_CDN_URL}${version}/dist/ort.all.min.js`);
+      await loadScript(
+        'onnxruntime-web',
+        `${ORT_CDN_URL}${version}/dist/ort.all.min.js`,
+      );
       return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
     }
   } catch (error) {
@@ -191,6 +217,7 @@ export const getWebnnStatus = async () => {
     const context = await navigator.ml.createContext();
     if (context) {
       try {
+        // eslint-disable-next-line no-undef
         const builder = new MLGraphBuilder(context);
         if (builder) {
           result.webnn = true;
@@ -219,7 +246,7 @@ export const random = () => {
   return (Math.random() * (1000 - 1) + 1).toFixed(2);
 };
 
-export const getMedian = (arr) => {
+export const getMedian = arr => {
   const sorted = arr.slice().sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2.0);
 
@@ -230,29 +257,29 @@ export const getMedian = (arr) => {
   }
 };
 
-export const getAverage = (arr) => {
+export const getAverage = arr => {
   const avg = arr.reduce((a, b) => a + b) / arr.length;
   return parseFloat(avg).toFixed(2);
-}
+};
 
-export const getMinimum = (arr) => {
+export const getMinimum = arr => {
   const minimum = Math.min(...arr);
   return parseFloat(minimum).toFixed(2);
-}
+};
 
 export const asyncErrorHandling = (promise, errorExt) => {
   return promise
     .then(data => [null, data])
     .catch(err => {
       if (errorExt) {
-        const parsedError = Object.assign({}, err, errorExt)
-        return [parsedError, undefined]
+        const parsedError = Object.assign({}, err, errorExt);
+        return [parsedError, undefined];
       }
 
-      return [err, undefined]
-    })
-}
+      return [err, undefined];
+    });
+};
 
 export const getMode = () => {
-  return (getQueryValue("mode") === "normal") ? false : true;
+  return getQueryValue('mode') === 'normal' ? false : true;
 };

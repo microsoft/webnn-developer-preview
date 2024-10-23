@@ -1,7 +1,18 @@
+/* eslint-disable no-undef */
 import { toHalf } from "./utils.js";
 
-export function cache_update(decoder_input, past_key_values, inf_iter, max_sequence_length = 448, num_init_tokens = 4, position_ids = 0, data_type = 'float32') {
-    const cache_precision = data_type == 'float32' ? Float32Array : Uint16Array;
+export function cache_update(
+    decoder_input,
+    past_key_values,
+    inf_iter,
+    // eslint-disable-next-line no-unused-vars
+    max_sequence_length = 448,
+    // eslint-disable-next-line no-unused-vars
+    num_init_tokens = 4,
+    position_ids = 0,
+    data_type = "float32",
+) {
+    const cache_precision = data_type == "float32" ? Float32Array : Uint16Array;
     // at the output of the first inference model, we perform right padding on kv cache
     if (inf_iter === 0) {
         // perform padding for each attention head
@@ -15,8 +26,16 @@ export function cache_update(decoder_input, past_key_values, inf_iter, max_seque
             // seq len dim of KV cache is same as max seq len
             // output of decoder non cache is in fp16 precision,
             // so we create the padded KV in same precision
-            decoder_input[`past_key_values.${i}.decoder.key`] = new ort.Tensor(data_type, new cache_precision(8 * 127 * 64).fill(0), [1, 8, 127, 64]);
-            decoder_input[`past_key_values.${i}.decoder.value`] = new ort.Tensor(data_type, new cache_precision(8 * 127 * 64).fill(0), [1, 8, 127, 64]);
+            decoder_input[`past_key_values.${i}.decoder.key`] = new ort.Tensor(
+                data_type,
+                new cache_precision(8 * 127 * 64).fill(0),
+                [1, 8, 127, 64],
+            );
+            decoder_input[`past_key_values.${i}.decoder.value`] = new ort.Tensor(
+                data_type,
+                new cache_precision(8 * 127 * 64).fill(0),
+                [1, 8, 127, 64],
+            );
             for (let h = 0; h < 8; h++) {
                 for (let d = 0; d < 64; d++) {
                     for (let s = 0; s < 4; s++) {
@@ -35,17 +54,26 @@ export function cache_update(decoder_input, past_key_values, inf_iter, max_seque
             // NHSD (batch, head, squence_length, hidden_dimension) [1,8,1,64]
             for (let h = 0; h < 8; h++) {
                 for (let d = 0; d < 64; d++) {
-                    decoder_input[`past_key_values.${i}.decoder.key`].cpuData[h * 127 * 64 + (position_ids - 1) * 64 + d] =
-                        past_key_values[`present_key_values.${i}.decoder.key`].cpuData[h * 64 + d];
-                    decoder_input[`past_key_values.${i}.decoder.value`].cpuData[h * 127 * 64 + (position_ids - 1) * 64 + d] =
-                        past_key_values[`present_key_values.${i}.decoder.value`].cpuData[h * 64 + d];
+                    decoder_input[`past_key_values.${i}.decoder.key`].cpuData[
+                        h * 127 * 64 + (position_ids - 1) * 64 + d
+                    ] = past_key_values[`present_key_values.${i}.decoder.key`].cpuData[h * 64 + d];
+                    decoder_input[`past_key_values.${i}.decoder.value`].cpuData[
+                        h * 127 * 64 + (position_ids - 1) * 64 + d
+                    ] = past_key_values[`present_key_values.${i}.decoder.value`].cpuData[h * 64 + d];
                 }
             }
         }
     }
 }
 
-export function attention_mask_update(attention_mask, inf_iter, max_sequence_length = 448, num_init_tokens = 4, position_ids = 0, mask_4d = false) {
+export function attention_mask_update(
+    attention_mask,
+    inf_iter,
+    max_sequence_length = 448,
+    num_init_tokens = 4,
+    position_ids = 0,
+    mask_4d = false,
+) {
     if (inf_iter === 0) {
         if (!mask_4d) {
             // -1 added to allow space for new token such that attention mask 2nd dim is restricted to max seq len
@@ -65,7 +93,6 @@ export function attention_mask_update(attention_mask, inf_iter, max_sequence_len
             updated_mask[updated_mask.length - 1] = 0;
             attention_mask = updated_mask;
         }
-
     } else {
         // if using 2d mask, we fill position id location with 1 else fill with 0
         // last element is already set to 1 for 2d mask and 0 for 4d mask to account for new token

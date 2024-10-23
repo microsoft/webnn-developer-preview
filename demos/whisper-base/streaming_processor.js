@@ -7,9 +7,7 @@ class StreamingProcessor extends AudioWorkletProcessor {
         this.minBufferSize = 0;
         this.length = 0; // length of this._streamingBuffer data
         if (options && options.processorOptions) {
-            const {
-                minBufferSize,
-            } = options.processorOptions;
+            const { minBufferSize } = options.processorOptions;
 
             this.minBufferSize = minBufferSize;
             console.assert(minBufferSize % audioDataSize === 0, `${minBufferSize} % ${audioDataSize} is not 0`);
@@ -18,13 +16,13 @@ class StreamingProcessor extends AudioWorkletProcessor {
         this._streamingBuffer = new Float32Array(this.minBufferSize);
 
         this.port.onmessage = e => {
-            if (e.data.message === 'STOP_PROCESSING') {
+            if (e.data.message === "STOP_PROCESSING") {
                 this.stopProcessing = e.data.data;
             }
         };
     }
 
-    process(inputs, outputs, params) {
+    process(inputs) {
         if (this.stopProcessing) {
             // Do nothing, suspend the audio processing
         } else {
@@ -34,10 +32,13 @@ class StreamingProcessor extends AudioWorkletProcessor {
             this.length += inputs[0][0].length;
             // Should publish, clear this._streamingBuffer and this.index
             if (this.length == this.minBufferSize) {
-                this.port.postMessage({
-                    message: 'START_TRANSCRIBE',
-                    buffer: this._streamingBuffer,
-                }, [this._streamingBuffer.buffer.slice()]);
+                this.port.postMessage(
+                    {
+                        message: "START_TRANSCRIBE",
+                        buffer: this._streamingBuffer,
+                    },
+                    [this._streamingBuffer.buffer.slice()],
+                );
                 this._streamingBuffer.fill(0);
                 this.length = 0;
             }
@@ -46,4 +47,4 @@ class StreamingProcessor extends AudioWorkletProcessor {
     }
 }
 
-registerProcessor('streaming-processor', StreamingProcessor);
+registerProcessor("streaming-processor", StreamingProcessor);
