@@ -209,12 +209,10 @@ h1.title span {
 
 #back:hover {
   border: 1px solid var(--main);
-  background: linear-gradient(
-    135deg,
-    var(--main) 0%,
-    var(--main-dark) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main) 0%,
+      var(--main-dark) 40%,
+      var(--main-darker) 100%);
   color: var(--bg);
   box-shadow: 0 3px 15px -1px var(--main-05);
   cursor: pointer;
@@ -381,12 +379,10 @@ h1.title span {
   cursor: pointer;
   background: var(--main);
   border: 1px solid var(--main);
-  background: linear-gradient(
-    135deg,
-    var(--main) 0%,
-    var(--main-dark) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main) 0%,
+      var(--main-dark) 40%,
+      var(--main-darker) 100%);
   color: var(--bg);
   font-family: "Archivo", system-ui, sans-serif;
   text-shadow: var(--main-darker) 1px 2px 1px;
@@ -396,12 +392,10 @@ h1.title span {
   background: var(--main-dark);
   border: 1px solid var(--main-dark);
   color: var(--bg);
-  background: linear-gradient(
-    135deg,
-    var(--main-dark) 0%,
-    var(--main-darker) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main-dark) 0%,
+      var(--main-darker) 40%,
+      var(--main-darker) 100%);
   box-shadow: 0 3px 15px -1px var(--main-05);
 }
 
@@ -556,6 +550,7 @@ h1.title span {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -661,6 +656,7 @@ h1.title span {
 }
 
 @keyframes wave {
+
   from,
   0% {
     width: 50%;
@@ -668,9 +664,11 @@ h1.title span {
     background: var(--main-alpha-2);
     opacity: 1;
   }
+
   30% {
     opacity: 1;
   }
+
   to,
   100% {
     width: 150%;
@@ -681,6 +679,7 @@ h1.title span {
 }
 
 @keyframes rotates {
+
   to,
   100% {
     transform: rotate(360deg);
@@ -813,12 +812,6 @@ h1.title span {
   text-align: right;
 }
 
-#versions svg {
-  height: 16px;
-  width: 16px;
-  margin-bottom: -3px;
-}
-
 #versions a {
   color: var(--font);
   text-decoration: underline var(--border);
@@ -915,8 +908,7 @@ h1.title span {
 }
 
 /* Largest devices such as desktops (1280px) */
-@media only screen and (max-width: 80em) {
-}
+@media only screen and (max-width: 80em) {}
 
 /* Large devices such as laptops (1024px) */
 @media only screen and (max-width: 64em) {
@@ -988,6 +980,7 @@ h1.title span {
     grid-template-rows: 1fr 1fr;
     row-gap: 10px;
   }
+
   .grid-4 {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr 1fr 1fr;

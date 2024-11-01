@@ -94,12 +94,10 @@ body {
   padding: 4px 10px;
   color: var(--bg);
   box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(
-    to right bottom,
-    var(--pink-06),
-    var(--pink-08),
-    var(--pink)
-  );
+  background: linear-gradient(to right bottom,
+      var(--pink-06),
+      var(--pink-08),
+      var(--pink));
   display: grid;
   grid-template-columns: 2fr 1fr;
   grid-template-rows: 1fr;
@@ -111,12 +109,10 @@ body {
 }
 
 #badge:hover {
-  background: linear-gradient(
-    135deg,
-    var(--pink-08) 0%,
-    var(--pink) 40%,
-    var(--pink) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--pink-08) 0%,
+      var(--pink) 40%,
+      var(--pink) 100%);
   box-shadow: 0 3px 15px -1px var(--pink-06);
 }
 
@@ -125,12 +121,10 @@ body {
 }
 
 #badge.npu:hover {
-  background: linear-gradient(
-    to right bottom,
-    rgba(117, 116, 242),
-    var(--npu-08),
-    var(--npu)
-  );
+  background: linear-gradient(to right bottom,
+      rgba(117, 116, 242),
+      var(--npu-08),
+      var(--npu));
   box-shadow: 0 3px 15px -1px var(--npu);
 }
 
@@ -139,12 +133,10 @@ body {
 }
 
 #badge.cpu:hover {
-  background: linear-gradient(
-    to right bottom,
-    var(--main),
-    var(--main-dark),
-    var(--main-darker)
-  );
+  background: linear-gradient(to right bottom,
+      var(--main),
+      var(--main-dark),
+      var(--main-darker));
   box-shadow: 0 3px 15px -1px var(--main-darker);
 }
 
@@ -185,13 +177,15 @@ body {
   margin: 0 6px 0 10px;
 }
 
-.v1:hover #webnn-logo path._logo_n1, .v1:hover #webnn-logo circle._logo_n1 {
+.v1:hover #webnn-logo path._logo_n1,
+.v1:hover #webnn-logo circle._logo_n1 {
   fill: #4777c0;
 }
 
-.v1:hover #webnn-logo path._logo_n2, .v1:hover #webnn-logo circle._logo_n2 {
+.v1:hover #webnn-logo path._logo_n2,
+.v1:hover #webnn-logo circle._logo_n2 {
   stroke: #61bafb;
-  fill:#61bafb;
+  fill: #61bafb;
 }
 
 .v1:hover #webnn-logo circle._logo_n3 {
@@ -273,12 +267,10 @@ h1.title span {
 
 #back:hover {
   border: 1px solid var(--main);
-  background: linear-gradient(
-    135deg,
-    var(--main) 0%,
-    var(--main-dark) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main) 0%,
+      var(--main-dark) 40%,
+      var(--main-darker) 100%);
   color: var(--bg);
   box-shadow: 0 3px 15px -1px var(--main-05);
   cursor: pointer;
@@ -337,7 +329,7 @@ h1.title span {
   text-decoration: dashed;
 }
 
-#indicator:hover{
+#indicator:hover {
   border: 1px solid var(--pink);
   background-color: var(--bg);
   color: var(--pink);
@@ -372,7 +364,7 @@ h1.title span {
   padding: 0 40px;
 }
 
-#controls > div {
+#controls>div {
   text-align: center;
 }
 
@@ -399,12 +391,10 @@ h1.title span {
   background: var(--main-dark);
   border: 1px solid var(--main-dark);
   color: var(--bg);
-  background: linear-gradient(
-    135deg,
-    var(--main-dark) 0%,
-    var(--main-darker) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main-dark) 0%,
+      var(--main-darker) 40%,
+      var(--main-darker) 100%);
   box-shadow: 0 3px 15px -1px var(--main-05);
 }
 
@@ -435,6 +425,7 @@ input[type="range"] {
   margin: 0 auto;
   outline: 0;
 }
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   background-color: var(--main);
@@ -445,10 +436,12 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
   transition: 0.3s ease-in-out;
 }
+
 ​ input[type="range"]::-webkit-slider-thumb:hover {
   background-color: white;
   border: 2px solid var(--main-dark);
 }
+
 input[type="range"]::-webkit-slider-thumb:active {
   transform: scale(1.5);
 }
@@ -465,7 +458,8 @@ input[type="range"]::-webkit-slider-thumb:active {
   margin-right: 6px;
 }
 
-.key button, .key label {
+.key button,
+.key label {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -481,36 +475,36 @@ input[type="range"]::-webkit-slider-thumb:active {
   background: transparent;
 }
 
-.key button svg path, .key label svg path {
+.key button svg path,
+.key label svg path {
   fill: var(--font);
 }
 
-.key button.active, .key label.active {
+.key button.active,
+.key label.active {
   border: 1px solid var(--main);
-  background: linear-gradient(
-    135deg,
-    var(--main) 0%,
-    var(--main-dark) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main) 0%,
+      var(--main-dark) 40%,
+      var(--main-darker) 100%);
   color: var(--bg);
   text-shadow: var(--main-darker) 1px 2px 1px;
 }
 
-.key button:hover, .key label:hover {
+.key button:hover,
+.key label:hover {
   background: var(--main-dark);
   border: 1px solid var(--main-dark);
   color: var(--bg);
-  background: linear-gradient(
-    135deg,
-    var(--main-dark) 0%,
-    var(--main-darker) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main-dark) 0%,
+      var(--main-darker) 40%,
+      var(--main-darker) 100%);
   box-shadow: 0 3px 15px -1px var(--main-05);
 }
 
-.key button:disabled, .key label.disabled {
+.key button:disabled,
+.key label.disabled {
   --active: 0;
   cursor: not-allowed;
   color: var(--border);
@@ -520,21 +514,25 @@ input[type="range"]::-webkit-slider-thumb:active {
   text-shadow: none;
 }
 
-.key button:hover svg path, .key label:hover svg path {
+.key button:hover svg path,
+.key label:hover svg path {
   fill: var(--bg);
 }
 
-.key button:disabled svg path, .key label.disabled svg path{
+.key button:disabled svg path,
+.key label.disabled svg path {
   fill: var(--border);
 }
 
-.key button:disabled:hover, .key label.disabled:hover{
+.key button:disabled:hover,
+.key label.disabled:hover {
   background: var(--disabled);
   border: 1px solid var(--border);
   box-shadow: none;
 }
 
-.key button:disabled:hover svg path, .key label.disabled:hover svg path {
+.key button:disabled:hover svg path,
+.key label.disabled:hover svg path {
   fill: var(--border);
 }
 
@@ -742,7 +740,8 @@ h4 {
   color: var(--bg);
 }
 
-#full-result tr th, #full-result tr td {
+#full-result tr th,
+#full-result tr td {
   text-align: center !important;
   min-width: 40%;
 }
@@ -756,7 +755,9 @@ h4 {
   display: none;
 }
 
-#result.none, #full-result.none, .latency.none {
+#result.none,
+#full-result.none,
+.latency.none {
   display: none;
 }
 
@@ -820,12 +821,6 @@ h4 {
   font-size: 0.9rem;
   display: block;
   text-align: right;
-}
-
-#versions svg {
-  height: 16px;
-  width: 16px;
-  margin-bottom: -3px;
 }
 
 #versions a {
@@ -904,17 +899,18 @@ h4 {
 }
 
 /* Largest devices such as desktops (1280px) */
-@media only screen and (max-width: 80em) {
-}
+@media only screen and (max-width: 80em) {}
 
 /* Large devices such as laptops (1024px) */
 @media only screen and (max-width: 64em) {
+
   .grid-2,
   .grid-2-41 {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
     row-gap: 10px;
   }
+
   .grid-2-41 {
     grid-template-columns: 2fr 1fr;
   }
@@ -922,6 +918,7 @@ h4 {
 
 /* Medium devices such as tablets (718px) */
 @media only screen and (max-width: 718px) {
+
   .grid-2,
   .grid-2-41 {
     grid-template-columns: 1fr;
@@ -937,10 +934,11 @@ h4 {
   .data table {
     width: auto;
   }
-  
+
 }
 
 @media only screen and (max-width: 40em) {
+
   .grid-2,
   .grid-2-41 {
     grid-template-columns: 1fr;
@@ -969,7 +967,7 @@ h4 {
   .footerinfo {
     margin-bottom: 0;
   }
-  
+
   h1 {
     font-size: 1rem;
   }
@@ -994,8 +992,9 @@ h4 {
   .button-group {
     gap: 0.5rem;
   }
-  
-  .key button, .key label {
+
+  .key button,
+  .key label {
     width: 38vw;
     padding: 6px 14px;
   }

@@ -212,12 +212,10 @@ h1.title span {
 
 #back:hover {
   border: 1px solid var(--main);
-  background: linear-gradient(
-    135deg,
-    var(--main) 0%,
-    var(--main-dark) 40%,
-    var(--main-darker) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--main) 0%,
+      var(--main-dark) 40%,
+      var(--main-darker) 100%);
   color: var(--bg);
   box-shadow: 0 3px 15px -1px var(--main-05);
   cursor: pointer;
@@ -249,16 +247,14 @@ h1.title span {
 
 .progress-striped .progress-bar {
   background-color: var(--main-05);
-  background-image: linear-gradient(
-    45deg,
-    var(--main-06) 25%,
-    transparent 25%,
-    transparent 50%,
-    var(--main-06) 50%,
-    var(--main-06) 75%,
-    transparent 75%,
-    transparent
-  );
+  background-image: linear-gradient(45deg,
+      var(--main-06) 25%,
+      transparent 25%,
+      transparent 50%,
+      var(--main-06) 50%,
+      var(--main-06) 75%,
+      transparent 75%,
+      transparent);
 }
 
 .right {
@@ -433,12 +429,6 @@ h1.title span {
   text-align: right;
 }
 
-#versions svg {
-  height: 16px;
-  width: 16px;
-  margin-bottom: -3px;
-}
-
 #versions a {
   color: var(--font);
   text-decoration: underline var(--border);
@@ -500,18 +490,16 @@ h1.title span {
 }
 
 /* Largest devices such as desktops (1280px) */
-@media only screen and (max-width: 80em) {
-}
+@media only screen and (max-width: 80em) {}
 
 /* Large devices such as laptops (1024px) */
-@media only screen and (max-width: 64em) {
-}
+@media only screen and (max-width: 64em) {}
 
 /* Medium devices such as tablets (718px) */
-@media only screen and (max-width: 718px) {
-}
+@media only screen and (max-width: 718px) {}
 
 @media only screen and (max-width: 40em) {
+
   #placeholder,
   #placeholder canvas {
     width: 88vw;
