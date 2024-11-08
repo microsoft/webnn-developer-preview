@@ -72,34 +72,19 @@ const models = [
         path: "./demos/segment-anything/models",
     },
     {
-        url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm_4dmask.onnx",
-        path: "./demos/whisper-base/models",
-        note: "Decoder model with 4dmask for WebNN GPU",
-    },
-    {
         url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm_gelu_4dmask.onnx",
         path: "./demos/whisper-base/models",
-        note: "Gelu and 4dmask are used for decoder on WebNN NPU",
-    },
-    {
-        url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm_4dmask.onnx",
-        path: "./demos/whisper-base/models",
-        note: "Decoder model with 4dmask for WebNN GPU",
+        note: "Gelu and 4dmask are used for decoder",
     },
     {
         url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm_gelu_4dmask.onnx",
         path: "./demos/whisper-base/models",
-        note: "Gelu and 4dmask are used for decoder on WebNN NPU",
-    },
-    {
-        url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_encoder_lm_fp16_layernorm.onnx",
-        path: "./demos/whisper-base/models",
-        note: "Encoder model for WebNN GPU",
+        note: "Gelu and 4dmask are used for decoder",
     },
     {
         url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_encoder_lm_fp16_layernorm_gelu.onnx",
         path: "./demos/whisper-base/models",
-        note: "Gelu is used for encoder on WebNN NPU",
+        note: "Gelu is used for encoder",
     },
 ];
 
