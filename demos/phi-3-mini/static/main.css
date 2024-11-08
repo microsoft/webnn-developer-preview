@@ -1102,6 +1102,10 @@ h1.title span {
     flex-direction: column;
   }
 
+  .response-message {
+    max-width: 90vw;
+  }
+
   #buttons {
     width: 90vw;
   }
