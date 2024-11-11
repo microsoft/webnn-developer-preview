@@ -194,17 +194,16 @@ body {
   background-color: var(--black-01);
   padding: 0.5rem 1rem;
   border-radius: 1.5rem;
-  max-width: 58vw;
   text-overflow: ellipsis;
   overflow-x: hidden;
 }
 
 .response-message-outer {
   display: grid;
-  grid-template-columns: 20fr 1fr 1fr;
+  grid-template-columns: 20fr 1fr;
   grid-template-rows: 1fr;
   row-gap: 1rem;
-  column-gap: 1rem;
+  column-gap: 0.4rem;
   align-items: center;
   margin: 0.5rem 0 1rem 0;
 }
@@ -239,25 +238,36 @@ body {
   fill: var(--main);
 }
 
+#performance-indicator {
+  display: flex;
+  justify-content: center;
+  margin-top: -1rem;
+  column-gap: 1rem;
+}
+
 .performance-data {
-  width: 9rem;
   display: flex;
   align-items: center;
-  flex-direction: column;
+  transform: skew(-15deg);
+  border-radius: 3px;
+  border: 1px solid var(--pink);
+  color: var(--pink);
+  font-size: 1rem;
 }
 
 .performance-data .tokens-per-second-performance-data {
-  font-size: 3rem;
-  font-weight: bold;
-  color: var(--font);
+  padding: 0.125rem 0.75rem;
 }
 
 .performance-data .tokens-per-second-performance-unit {
   color: var(--bg);
-  transform: skew(-15deg);
-  border-radius: 3px;
   background-color: var(--pink);
-  padding: 0.125rem 0.5rem;
+  padding: 0.125rem 0.75rem;
+}
+
+.performance-data:hover .tokens-per-second-performance-data {
+  color: var(--bg);
+  background-color: var(--pink);
 }
 
 .button-group {
@@ -308,7 +318,7 @@ body {
 .dots {
   font-size: 1rem;
   letter-spacing: 2px;
-  border: 1px solid var(--border);
+  border: 0px solid var(--border);
   background-color: transparent;
   width: 4rem;
   height: 2rem;
@@ -1100,10 +1110,6 @@ h1.title span {
   .response-message-outer {
     display: flex;
     flex-direction: column;
-  }
-
-  .response-message {
-    max-width: 90vw;
   }
 
   #buttons {

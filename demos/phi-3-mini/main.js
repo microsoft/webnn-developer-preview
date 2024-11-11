@@ -11,8 +11,7 @@ import { env, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transfo
 import { LLM } from "./llm.js";
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
-// eslint-disable-next-line no-unused-vars
-let progress, outputText, resultShow, latency, container;
+let performanceIndicator;
 let userInput, chatHistory;
 let sendButton, stopButton, buttons, scrollWrapper;
 let provider = "webnn";
@@ -108,6 +107,7 @@ async function submitRequest(e) {
     if (continuation) {
         logUser(`Continuation: ${continuation}`);
     } else {
+        performanceIndicator.innerHTML = "";
         logUser(`Continuation: ${continuation}. New conversation started.`);
     }
 
@@ -243,6 +243,7 @@ function token_to_text(tokenizer, tokens) {
 
 async function Query(continuation, query, cb) {
     console.log("continuation: ", continuation);
+    performanceIndicator.innerHTML = "";
 
     logUser(`Prompt: ${query}`);
     let prompt = `<|user|>\n${query}<|end|>\n<|assistant|>\n`;
@@ -275,21 +276,34 @@ async function Query(continuation, query, cb) {
     log(`${seqlen} tokens in ${took.toFixed(2)} sec<br/>
     Time to first token: ${time_to_first_token.toFixed(2)} sec<br/>
     New tokens per second: ${((seqlen - 1) / time_to_new_tokens).toFixed(2)} tokens/sec`);
+
+    const timeToFirstTokenPerformanceUnit = document.createElement("div");
+    timeToFirstTokenPerformanceUnit.className = "tokens-per-second-performance-unit";
+    timeToFirstTokenPerformanceUnit.innerHTML = `time to first token`;
+    const timeToFirstTokenPerformance = document.createElement("div");
+    timeToFirstTokenPerformance.className = "tokens-per-second-performance-data";
+    timeToFirstTokenPerformance.innerHTML = `${time_to_first_token.toFixed(2)}s`;
+    const performanceDataTtfs = document.createElement("div");
+    performanceDataTtfs.className = "performance-data";
+    performanceDataTtfs.setAttribute("title", "Time to first token");
+    performanceDataTtfs.appendChild(timeToFirstTokenPerformanceUnit);
+    performanceDataTtfs.appendChild(timeToFirstTokenPerformance);
+
     const tokensPerSecondPerformance = document.createElement("div");
     tokensPerSecondPerformance.className = "tokens-per-second-performance-data";
     tokensPerSecondPerformance.innerHTML = `${((seqlen - 1) / time_to_new_tokens).toFixed(2)}`;
-    tokensPerSecondPerformance.setAttribute("title", "New tokens per second");
     const tokensPerSecondPerformanceUnit = document.createElement("div");
     tokensPerSecondPerformanceUnit.className = "tokens-per-second-performance-unit";
-    tokensPerSecondPerformanceUnit.innerHTML = `tokens / sec`;
-    tokensPerSecondPerformanceUnit.setAttribute("title", "New tokens per second");
-    const performanceData = document.createElement("div");
-    performanceData.className = "performance-data";
-    performanceData.appendChild(tokensPerSecondPerformance);
-    performanceData.appendChild(tokensPerSecondPerformanceUnit);
-    let responseMessageOuter = $$(".response-message-outer");
-    let lastResponseMessageOuter = responseMessageOuter[responseMessageOuter.length - 1];
-    lastResponseMessageOuter.appendChild(performanceData);
+    tokensPerSecondPerformanceUnit.innerHTML = `tokens/s`;
+
+    const performanceDataTps = document.createElement("div");
+    performanceDataTps.className = "performance-data";
+    performanceDataTps.setAttribute("title", "tokens per second");
+    performanceDataTps.appendChild(tokensPerSecondPerformance);
+    performanceDataTps.appendChild(tokensPerSecondPerformanceUnit);
+    performanceIndicator.innerHTML = "";
+    performanceIndicator.appendChild(performanceDataTtfs);
+    performanceIndicator.appendChild(performanceDataTps);
 }
 
 const main = async () => {
@@ -338,14 +352,10 @@ const main = async () => {
 const ui = async () => {
     device = $("#device");
     badge = $("#badge");
-    progress = $("#progress");
-    outputText = $("#outputText");
-    resultShow = $("#result-show");
-    latency = $("#latency");
-    container = $("#container");
     sendButton = $("#send-button");
     stopButton = $("#stop-button");
     buttons = $("#buttons");
+    performanceIndicator = $("#performance-indicator");
     scrollWrapper = $("#scroll-wrapper");
     userInput = $("#user-input");
     chatHistory = $("#chat-history");
