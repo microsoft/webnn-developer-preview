@@ -112,11 +112,7 @@ export class Whisper {
             try {
                 let url = this.url + this.models[name]["url"];
                 if (this.dataType == "float16") {
-                    if (this.deviceType == "npu") {
-                        url = url.replace(".onnx", "_fp16_layernorm_gelu.onnx");
-                    } else {
-                        url = url.replace(".onnx", "_fp16_layernorm.onnx");
-                    }
+                    url = url.replace(".onnx", "_fp16_layernorm_gelu.onnx");
                     if (name.includes("decoder") && this.mask_4d) {
                         url = url.replace(".onnx", "_4dmask.onnx");
                     }
