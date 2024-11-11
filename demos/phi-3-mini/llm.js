@@ -35,7 +35,7 @@ export class LLM {
     kv_dims = [];
     dtype = "float16";
     max_seq = 128;
-    max_cache = 256;
+    max_cache = 1024;
     attn_mask_len = 384;
     start_len = 0;
     ml_context = undefined;
