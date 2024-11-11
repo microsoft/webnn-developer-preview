@@ -418,7 +418,7 @@ input[type="range"]::-webkit-slider-thumb {
     transition: 0.3s ease-in-out;
 }
 
-​ input[type="range"]::-webkit-slider-thumb:hover {
+input[type="range"]::-webkit-slider-thumb:hover {
     background-color: white;
     border: 2px solid var(--main-dark);
 }
