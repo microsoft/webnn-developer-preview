@@ -1,111 +1,110 @@
 @font-face {
-  font-display: swap;
-  font-family: "Archivo";
-  font-style: normal;
-  font-weight: 300;
-  src: url("../fonts/archivo/archivo-v19-latin-300.woff2") format("woff2");
+    font-display: swap;
+    font-family: "Archivo";
+    font-style: normal;
+    font-weight: 300;
+    src: url("../fonts/archivo/archivo-v19-latin-300.woff2") format("woff2");
 }
 
 @font-face {
-  font-display: swap;
-  font-family: "Archivo";
-  font-style: normal;
-  font-weight: 400;
-  src: url("../fonts/archivo/archivo-v19-latin-regular.woff2") format("woff2");
+    font-display: swap;
+    font-family: "Archivo";
+    font-style: normal;
+    font-weight: 400;
+    src: url("../fonts/archivo/archivo-v19-latin-regular.woff2") format("woff2");
 }
 
 @font-face {
-  font-display: swap;
-  font-family: "Archivo";
-  font-style: normal;
-  font-weight: 600;
-  src: url("../fonts/archivo/archivo-v19-latin-600.woff2") format("woff2");
+    font-display: swap;
+    font-family: "Archivo";
+    font-style: normal;
+    font-weight: 600;
+    src: url("../fonts/archivo/archivo-v19-latin-600.woff2") format("woff2");
 }
 
 @font-face {
-  font-display: swap;
-  font-family: "Archivo";
-  font-style: normal;
-  font-weight: 700;
-  src: url("../fonts/archivo/archivo-v19-latin-700.woff2") format("woff2");
+    font-display: swap;
+    font-family: "Archivo";
+    font-style: normal;
+    font-weight: 700;
+    src: url("../fonts/archivo/archivo-v19-latin-700.woff2") format("woff2");
 }
 
 :root {
-  --font: rgba(45, 45, 45, 1);
-  --highlight: rgba(39, 94, 254, 1);
-  --highlight-08: rgba(39, 94, 254, 0.8);
-  --highlight-05: rgba(39, 94, 254, 0.5);
-  --darker: rgba(24, 79, 238, 1);
-  --darkest: rgba(20, 74, 204, 1);
-  --white: rgba(255, 255, 255, 1);
-  --white-02: rgba(255, 255, 255, 0.2);
-  --grey: rgba(107, 114, 128, 1);
-  --grey-05: rgba(107, 114, 128, 0.5);
-  --green: rgba(1, 212, 73, 1);
-  --pink: rgba(255, 0, 129, 1);
-  --green-02: rgba(1, 212, 73, 0.2);
-  --pink-02: rgba(255, 0, 129, 0.2);
-  --green-01: rgba(1, 212, 73, 0.1);
-  --pink-01: rgba(255, 0, 129, 0.1);
-  --green-003: rgba(1, 212, 73, 0.03);
-  --pink-003: rgba(255, 0, 129, 0.03);
+    --font: rgba(45, 45, 45, 1);
+    --highlight: rgba(39, 94, 254, 1);
+    --highlight-08: rgba(39, 94, 254, 0.8);
+    --highlight-05: rgba(39, 94, 254, 0.5);
+    --darker: rgba(24, 79, 238, 1);
+    --darkest: rgba(20, 74, 204, 1);
+    --white: rgba(255, 255, 255, 1);
+    --white-02: rgba(255, 255, 255, 0.2);
+    --grey: rgba(107, 114, 128, 1);
+    --grey-05: rgba(107, 114, 128, 0.5);
+    --green: rgba(1, 212, 73, 1);
+    --pink: rgba(255, 0, 129, 1);
+    --green-02: rgba(1, 212, 73, 0.2);
+    --pink-02: rgba(255, 0, 129, 0.2);
+    --green-01: rgba(1, 212, 73, 0.1);
+    --pink-01: rgba(255, 0, 129, 0.1);
+    --green-003: rgba(1, 212, 73, 0.03);
+    --pink-003: rgba(255, 0, 129, 0.03);
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: var(--font);
-  background-color: var(--white);
-  font-family: "Archivo", "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica,
-    Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--font);
+    background-color: var(--white);
+    font-family: "Archivo", "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 #banner {
-  background: transparent;
-  background-size: cover;
-  display: flex;
-  flex-direction: column;
+    background: transparent;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
 }
 
 .banner-content {
-  padding: 0 40px;
-  height: 30vh;
-  max-width: 90vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
+    padding: 0 40px;
+    height: 30vh;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
 }
 
 .banner-content.installation {
-  height: 10vh;
+    height: 10vh;
 }
 
 #banner h1 {
-  font-size: max(48px, min(5vw, 68px));
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
+    font-size: max(48px, min(5vw, 68px));
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 #banner h2 {
-  font-size: max(36px, min(4vw, 48px));
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
+    font-size: max(36px, min(4vw, 48px));
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 #install-guides {
-  margin: 0rem auto;
-  text-align: left;
-  padding: 20px 40px;
+    margin: 0rem auto;
+    text-align: left;
+    padding: 20px 40px;
 }
 
 header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 20px 40px;
-  gap: 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 20px 40px;
+    gap: 10px;
 }
 
 header a {
@@ -113,461 +112,461 @@ header a {
 }
 
 header svg {
-  width: 208px;
-  height: 50px;
+    width: 208px;
+    height: 50px;
 }
 
 #directml-logo {
-  height: 40px;
-  width: 110px;
-  display: grid;
-  align-items: center;
-  font-size: 27px;
-  font-family: "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color: rgba(116, 116, 116, 1.0);
-  font-weight: 600;
+    height: 40px;
+    width: 110px;
+    display: grid;
+    align-items: center;
+    font-size: 27px;
+    font-family: "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: rgba(116, 116, 116, 1);
+    font-weight: 600;
 }
 
 #ort-logo {
-  width: 124px;
-  height: 40px;
+    width: 124px;
+    height: 40px;
 }
 
 #webnn-logo {
-  margin-left: 4px;
-  width: 208px;
-  height: 50px;
+    margin-left: 4px;
+    width: 208px;
+    height: 50px;
 }
 
-header:hover #webnn-logo path._logo_n1, header:hover #webnn-logo circle._logo_n1 {
-  fill: #4777c0;
+header:hover #webnn-logo path._logo_n1,
+header:hover #webnn-logo circle._logo_n1 {
+    fill: #4777c0;
 }
 
-header:hover #webnn-logo path._logo_n2, header:hover #webnn-logo circle._logo_n2 {
-  stroke: #61bafb;
-  fill:#61bafb;
+header:hover #webnn-logo path._logo_n2,
+header:hover #webnn-logo circle._logo_n2 {
+    stroke: #61bafb;
+    fill: #61bafb;
 }
 
 header:hover #webnn-logo circle._logo_n3 {
-  stroke: #61bafb;
+    stroke: #61bafb;
 }
 
 h1 {
-  font-size: 1.2rem;
-  margin: 0;
+    font-size: 1.2rem;
+    margin: 0;
 }
 
 h2.title {
-  font-size: 1.3rem;
-  margin: 10px 0 -6px 0;
+    font-size: 1.3rem;
+    margin: 10px 0 -6px 0;
 }
 
 .category {
-  font-size: 14px;
-  color: var(--grey-05);
+    font-size: 14px;
+    color: var(--grey-05);
 }
 
 .description:hover .category,
 .description:hover a {
-  color: var(--highlight);
-  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+    color: var(--highlight);
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
 }
 
 .card_4 {
-  margin: 20px 40px 40px 40px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-column-gap: 2px;
-  grid-row-gap: 10px;
-  justify-content: center;
-  justify-items: center;
+    margin: 20px 40px 40px 40px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-column-gap: 2px;
+    grid-row-gap: 10px;
+    justify-content: center;
+    justify-items: center;
 }
 
 .g2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-column-gap: 2px;
-  grid-row-gap: 10px;
-  padding: 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-column-gap: 2px;
+    grid-row-gap: 10px;
+    padding: 0 0;
 }
 
 a {
-  outline: none;
-  color: var(--font);
-  text-decoration: none;
-  font-weight: inherit;
+    outline: none;
+    color: var(--font);
+    text-decoration: none;
+    font-weight: inherit;
 }
 
 a img {
-  border: none;
+    border: none;
 }
 
 a:hover,
 a:focus {
-  color: var(--highlight);
+    color: var(--highlight);
 }
 
 .thumb {
-  max-width: 320px;
-  position: relative;
-  aspect-ratio: 800 / 600;
-  overflow: hidden;
-  border-radius: 5px;
+    max-width: 320px;
+    position: relative;
+    aspect-ratio: 800 / 600;
+    overflow: hidden;
+    border-radius: 5px;
 }
 
 .thumb .filled {
-  position: relative;
-  overflow: hidden;
-  height: 100%;
-  display: block;
-  background-color: transparent;
-  background-repeat: no-repeat;
-  background-position: 50% 50%;
-  background-size: 140px;
-  border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    display: block;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 140px;
+    border-radius: 5px;
 }
 
 .thumb:hover {
-  box-shadow: 0 3px 15px -1px var(--highlight-05);
+    box-shadow: 0 3px 15px -1px var(--highlight-05);
 }
 
 .thumb:hover .sample::after,
 .thumb:focus .sample::after {
-  opacity: 1;
+    opacity: 1;
 }
 
 .thumb:hover .icon,
 .thumb:focus .icon {
-  opacity: 1;
-  pointer-events: auto;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .thumb img {
-  display: block;
-  height: 100%;
-  width: auto;
-  max-width: none;
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: none;
 }
 
 .thumb img {
-  display: block;
-  height: 100%;
-  width: auto;
-  max-width: none;
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: none;
 }
 
 .sample::after {
-  content: "View Demo \2197";
-  color: #fff;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  display: grid;
-  font-size: 0.9rem;
-  font-weight: 500;
-  place-items: center;
-  background: rgba(0, 0, 0, 0.7);
-  opacity: 0;
-  transition: opacity 0.3s;
+    content: "View Demo \2197";
+    color: #fff;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    display: grid;
+    font-size: 0.9rem;
+    font-weight: 500;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
 .archive {
-  margin: -2.5rem 12px 0 0;
-  position: relative;
-  z-index: 1000;
-  margin-top: -2.5rem;
-  display: flex;
-  align-items: flex-end;
-  justify-content: end;
-  pointer-events: none;
-  gap: 0.5rem;
+    margin: -2.5rem 12px 0 0;
+    position: relative;
+    z-index: 1000;
+    margin-top: -2.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: end;
+    pointer-events: none;
+    gap: 0.5rem;
 }
 
 .icon {
-  width: 30px;
-  height: 30px;
-  font-size: 0;
-  display: grid;
-  padding: 0;
-  border-radius: 50%;
-  background: #fff;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
+    width: 30px;
+    height: 30px;
+    font-size: 0;
+    display: grid;
+    padding: 0;
+    border-radius: 50%;
+    background: #fff;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
 .github {
-  background: var(--white-02) url(../icon/github.svg) no-repeat 50% 50%;
-  background-size: 16px;
+    background: var(--white-02) url(../icon/github.svg) no-repeat 50% 50%;
+    background-size: 16px;
 }
 
 .github:hover {
-  background: var(--highlight-05) url(../icon/github.svg) no-repeat 50% 50%;
-  background-size: 16px;
+    background: var(--highlight-05) url(../icon/github.svg) no-repeat 50% 50%;
+    background-size: 16px;
 }
 
 #install-guides a {
-  margin: 1px auto;
-  display: inline-block;
-  padding: 0px 6px;
-  border-radius: 3px;
-  text-decoration: none;
-  background-color: var(--pink-003);
-  border-bottom: 1px dashed var(--pink-02);
-  font-size: 0.9rem;
+    margin: 1px auto;
+    display: inline-block;
+    padding: 0px 6px;
+    border-radius: 3px;
+    text-decoration: none;
+    background-color: var(--pink-003);
+    border-bottom: 1px dashed var(--pink-02);
+    font-size: 0.9rem;
 }
 
 #install-guides a:hover {
-  background-color: var(--pink);
-  color: var(--white);
+    background-color: var(--pink);
+    color: var(--white);
 }
 
-#install-guides ol, #install-guides ul {
-  margin: 2px 0;
+#install-guides ol,
+#install-guides ul {
+    margin: 2px 0;
 }
 
-#install-guides ol li, #install-guides ul li {
+#install-guides ol li,
+#install-guides ul li {
     padding: 2px 10px;
 }
 
 code {
-  margin: 1px auto;
-  background-color: var(--green-003);
-  border-bottom: 1px dashed var(--green-02);
-  display: inline-block;
-  padding: 0px 6px;
-  border-radius: 3px;
-  font-size: 0.9rem;
-  font-family: "Courier New", Courier, monospace;
+    margin: 1px auto;
+    background-color: var(--green-003);
+    border-bottom: 1px dashed var(--green-02);
+    display: inline-block;
+    padding: 0px 6px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    font-family: "Courier New", Courier, monospace;
 }
 
 code:hover {
-  background-color: var(--green);
-  color: var(--white);
-  font-weight: 800;
+    background-color: var(--green);
+    color: var(--white);
+    font-weight: 800;
 }
 
 .description {
-  margin-top: 1rem;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: 320px;
+    margin-top: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 320px;
 }
 
 .tags {
-  text-transform: lowercase;
-  text-overflow: ellipsis;
-  font-size: 14px;
+    text-transform: lowercase;
+    text-overflow: ellipsis;
+    font-size: 14px;
 }
 
 .tags a,
 .tags span {
-  color: rgb(0 0 0 / 75%);
-  white-space: nowrap;
-  border: 1px solid var(--grey-05);
-  border-radius: 2rem;
-  padding: 1px 0.4rem 1px 0.4rem;
-  margin: 0 3px;
+    color: rgb(0 0 0 / 75%);
+    white-space: nowrap;
+    border: 1px solid var(--grey-05);
+    border-radius: 2rem;
+    padding: 1px 0.4rem 1px 0.4rem;
+    margin: 0 3px;
 }
 
 .backend {
-  justify-self: right;
+    justify-self: right;
 }
 
 .tags a:hover,
 .tags span:hover {
-  border: 1px solid var(--highlight);
-  color: var(--white);
-  background: linear-gradient(
-    135deg,
-    var(--highlight) 0%,
-    var(--highlight-08) 40%,
-    var(--highlight-08) 100%
-  );
-  box-shadow: 0 3px 15px -1px var(--highlight-05);
+    border: 1px solid var(--highlight);
+    color: var(--white);
+    background: linear-gradient(135deg, var(--highlight) 0%, var(--highlight-08) 40%, var(--highlight-08) 100%);
+    box-shadow: 0 3px 15px -1px var(--highlight-05);
 }
 
 footer {
-  font-size: 14px;
-  margin: 1rem auto;
-  text-align: center;
-  color: var(--grey);
+    font-size: 14px;
+    margin: 1rem auto;
+    text-align: center;
+    color: var(--grey);
 }
 
 footer:hover ul li {
-  color: var(--highlight);
+    color: var(--highlight);
 }
 
 footer ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 footer ul li {
-  padding: 0 6px;
-  display: inline-block;
+    padding: 0 6px;
+    display: inline-block;
 }
 
 footer ul li a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 #status {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
-#status>div {
-  padding: 2px 6px 1px 6px;
-  border-radius: 3px;
+#status > div {
+    padding: 2px 6px 1px 6px;
+    border-radius: 3px;
 }
 
-#status.red #support, #status.red #installation {
-  background-color: var(--pink);
-  color: white;
+#status.red #support,
+#status.red #installation {
+    background-color: var(--pink);
+    color: white;
 }
 
-#status.red>a {
-  background-color: var(--pink);
-  color: white;
-  padding: 2px 6px 1px 6px;
-  border-radius: 3px;
+#status.red > a {
+    background-color: var(--pink);
+    color: white;
+    padding: 2px 6px 1px 6px;
+    border-radius: 3px;
 }
 
 #status #installation {
-  display: none;
+    display: none;
 }
 
 #status.red #installation {
-  display: block;
+    display: block;
 }
 
 #status.red #message a {
-  color: white;
-  text-decoration: none;
+    color: white;
+    text-decoration: none;
 }
 
 /* Largest devices such as desktops (1280px) */
 @media only screen and (max-width: 80em) {
-  .card_4 {
-    grid-template-columns: repeat(3, 1fr);
-  }
+    .card_4 {
+        grid-template-columns: repeat(3, 1fr);
+    }
 
-  .g2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    .g2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* Large devices such as laptops (1024px) */
 @media only screen and (max-width: 64em) {
-  .card_4 {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    .card_4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
 
-  .g2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    .g2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* Medium devices such as tablets (768px) */
 @media only screen and (max-width: 48em) {
-  .card_4 {
-    grid-template-columns: repeat(2, 1fr);
-    column-gap: 10px;
-    row-gap: 30px;
-    margin-top: 40px;
-  }
+    .card_4 {
+        grid-template-columns: repeat(2, 1fr);
+        column-gap: 10px;
+        row-gap: 30px;
+        margin-top: 40px;
+    }
 
-  .g2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    .g2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
 
-  .g2 .tags {
-    margin-top: -2px;
-    margin-bottom: -8px;
-  }
+    .g2 .tags {
+        margin-top: -2px;
+        margin-bottom: -8px;
+    }
 
-  #install-guides {
-    margin: 0 auto 20px auto;
-  }
+    #install-guides {
+        margin: 0 auto 20px auto;
+    }
 }
 
 @media only screen and (max-width: 40em) {
-  header {
-    justify-content: space-between;
-  }
+    header {
+        justify-content: space-between;
+    }
 
-  #banner h1 {
-    font-size: max(28px, min(5vw, 16px));
-    margin-bottom: 10px;
-  }
+    #banner h1 {
+        font-size: max(28px, min(5vw, 16px));
+        margin-bottom: 10px;
+    }
 
-  #banner h2 {
-    font-size: max(24px, min(4vw, 14px));
-  }
+    #banner h2 {
+        font-size: max(24px, min(4vw, 14px));
+    }
 
-  header svg {
-    width: 68px;
-    height: 40px;
-  }
-  
-  #directml-logo {
-    height: 40px;
-    width: 70px;
-  }
-  
-  #ort-logo {
-    width: 74px;
-    height: 40px;
-  }
-  
-  #webnn-logo {
-    margin-left: 0px;
-    width: 128px;
-    height: 50px;
-  }
+    header svg {
+        width: 68px;
+        height: 40px;
+    }
 
-  .banner-content {
-    width: 80vw;
-    height: auto;
-  }
+    #directml-logo {
+        height: 40px;
+        width: 70px;
+    }
 
-  #install-guides {
-    margin: 0 auto;
-  }
+    #ort-logo {
+        width: 74px;
+        height: 40px;
+    }
 
-  #install-guides ol {
-    margin-bottom: 0;
-  }
+    #webnn-logo {
+        margin-left: 0px;
+        width: 128px;
+        height: 50px;
+    }
 
-  .card_4 {
-    grid-template-columns: repeat(1, 1fr);
-    row-gap: 20px;
-    margin-top: 30px;
-  }
+    .banner-content {
+        width: 80vw;
+        height: auto;
+    }
 
-  .g2 {
-    grid-template-columns: repeat(1, 1fr);
-  }
+    #install-guides {
+        margin: 0 auto;
+    }
 
-  .g2 .tags:last-child {
-    margin-bottom: -6px;
-  }
+    #install-guides ol {
+        margin-bottom: 0;
+    }
 
-  .thumb,
-  .description {
-    max-width: 82vw;
-  }
+    .card_4 {
+        grid-template-columns: repeat(1, 1fr);
+        row-gap: 20px;
+        margin-top: 30px;
+    }
 
-  .backend {
-    justify-self: left;
-  }
+    .g2 {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .g2 .tags:last-child {
+        margin-bottom: -6px;
+    }
+
+    .thumb,
+    .description {
+        max-width: 82vw;
+    }
+
+    .backend {
+        justify-self: left;
+    }
 }
