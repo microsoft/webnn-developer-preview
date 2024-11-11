@@ -85,7 +85,11 @@ npm run fetch-models
 
 WebNN is a living specification and still subject to breaking changes, which may impact the samples depending on your browser version. The following are recent:
 
--   2024-07-24 `MLContextOptions::MLPowerPreference` rename `auto` to `default` [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5716629)
+-   2024-10-29 Convert MLOperand methods into readonly attributes - [spec change](https://github.com/webmachinelearning/webnn/pull/774), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5975719)
+-   2024-09-30 (pending breaking change) Replace MLContext.compute() with MLContext.dispatch() - [spec change](https://github.com/webmachinelearning/webnn/pull/754), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5874589), [ORT change](https://github.com/microsoft/onnxruntime/pull/21301/), [sample change](https://github.com/webmachinelearning/webnn-samples/issues/275)
+-   2024-09-24 Make MLOperandDescriptor.shape a required dictionary member - [spec change](https://github.com/webmachinelearning/webnn/issues/758), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5850659)
+-   2024-09-17 Rename MLOperandDescriptor's "dimensions" key to "shape" - [spec change](https://github.com/webmachinelearning/webnn/pull/676), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5502631), [Chromium change 2](https://chromium-review.googlesource.com/c/chromium/src/+/5502631)
+-   2024-07-24 `MLContextOptions::MLPowerPreference` rename `auto` to `default` - [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5716629)
 -   2024-07-24 Allow `MLGraphBuilder.build()` to be called only once - [spec change](https://github.com/webmachinelearning/webnn/pull/717), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5684454), [ORT change](https://github.com/microsoft/onnxruntime/pull/21514), [sample change](https://github.com/microsoft/webnn-developer-preview/pull/21)
 -   2024-07-22 `LSTM`/`GRU` activation enum `MLRecurrentNetworkActivation` - [spec change](https://github.com/webmachinelearning/webnn/pull/718), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5689531)
 -   2024-07-22 `argMin`/`argMax` change to take scalar `axis` parameter - [spec change](https://github.com/webmachinelearning/webnn/pull/724]), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5721028)
