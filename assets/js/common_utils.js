@@ -3,8 +3,8 @@ const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
     "sd-turbo": "129.0.6617.0",
     "segment-anything": "129.0.6617.0",
     "whisper-base": "129.0.6617.0",
-    "phi-3-mini": "132.0.6823.0",
     "image-classification": "129.0.6617.0",
+    "phi-3-mini": "132.0.6823.0",
 };
 
 export const showCompatibleChromiumVersion = key => {
