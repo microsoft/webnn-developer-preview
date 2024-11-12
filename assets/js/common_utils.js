@@ -4,7 +4,7 @@ const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
     "segment-anything": "129.0.6617.0",
     "whisper-base": "129.0.6617.0",
     "image-classification": "129.0.6617.0",
-    "phi-3-mini": "132.0.6823.0",
+    "phi-3-mini": "132.0.6831.0",
 };
 
 export const showCompatibleChromiumVersion = key => {
@@ -119,33 +119,28 @@ export const getTime = () => {
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
     "stable-diffusion-1.5": {
-        dev: "1.20.0-dev.20240919-bd60add8ce",
-        stable: "1.20.0",
-        test: "test",
+        dev: "1.21.0-dev.20241109-d3ad76b2cf",
+        stable: "",
+        test: "",
     },
     "sd-turbo": {
-        dev: "1.20.0-dev.20240919-bd60add8ce",
-        stable: "1.20.0",
-        test: "test",
+        dev: "1.21.0-dev.20241109-d3ad76b2cf",
+        stable: "",
+        test: "",
     },
     "segment-anything": {
-        dev: "1.20.0-dev.20240919-bd60add8ce",
-        stable: "1.20.0",
+        dev: "",
+        stable: "",
         test: "test",
     },
     "whisper-base": {
-        dev: "1.20.0-dev.20240919-bd60add8ce",
-        stable: "1.20.0",
-        test: "test",
-    },
-    "image-classification": {
-        dev: "1.20.0-dev.20240919-bd60add8ce",
-        stable: "1.20.0",
-        test: "test",
+        dev: "1.21.0-dev.20241109-d3ad76b2cf",
+        stable: "",
+        test: "",
     },
     "phi-3-mini": {
-        dev: "1.20.0-dev.20240919-bd60add8ce",
-        stable: "1.20.0",
+        dev: "",
+        stable: "",
         test: "test",
     },
 };
