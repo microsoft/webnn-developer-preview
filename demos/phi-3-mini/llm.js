@@ -83,8 +83,6 @@ export class LLM {
             ],
         };
 
-        // TODO: there's a bug with specified preferredOutputLocation, looks the mltensor is not cached,
-        // memory is growing.
         switch (this.provider) {
             //     case 'webnn':
             //         // Bind kv cache outputs to ml-tensor
