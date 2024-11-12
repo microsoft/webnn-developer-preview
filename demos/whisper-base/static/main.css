@@ -957,12 +957,6 @@ button svg {
     text-align: right;
 }
 
-#versions svg {
-    height: 12px;
-    width: 12px;
-    margin-bottom: -2px;
-}
-
 #versions a {
     color: var(--main);
     text-decoration: none;

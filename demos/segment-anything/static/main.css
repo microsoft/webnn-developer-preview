@@ -427,12 +427,6 @@ h1.title span {
     text-align: right;
 }
 
-#versions svg {
-    height: 16px;
-    width: 16px;
-    margin-bottom: -3px;
-}
-
 #versions a {
     color: var(--font);
     text-decoration: underline var(--border);

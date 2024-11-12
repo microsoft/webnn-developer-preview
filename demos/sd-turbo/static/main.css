@@ -539,6 +539,7 @@ h1.title span {
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -651,9 +652,11 @@ h1.title span {
         background: var(--main-alpha-2);
         opacity: 1;
     }
+
     30% {
         opacity: 1;
     }
+
     to,
     100% {
         width: 150%;
@@ -794,12 +797,6 @@ h1.title span {
     font-size: 0.9rem;
     display: block;
     text-align: right;
-}
-
-#versions svg {
-    height: 16px;
-    width: 16px;
-    margin-bottom: -3px;
 }
 
 #versions a {
@@ -971,6 +968,7 @@ h1.title span {
         grid-template-rows: 1fr 1fr;
         row-gap: 10px;
     }
+
     .grid-4 {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr 1fr 1fr 1fr;
