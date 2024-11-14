@@ -184,7 +184,6 @@ export class LLM {
             const sink_range_tensor = await this.ml_context.createTensor({
                 dataType: "int32",
                 shape: [2],
-                usage: MLTensorUsage.WRITE,
                 writable: true,
             });
             this.ml_context.writeTensor(sink_range_tensor, Int32Array.from([0, 1]));
@@ -235,7 +234,6 @@ export class LLM {
             const token_id_desc = {
                 dataType: "int32",
                 shape: [1, 1],
-                usage: MLTensorUsage.READ,
                 readable: true,
             };
             const ort_token_id_desc = {

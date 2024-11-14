@@ -975,7 +975,7 @@ const ui = async () => {
         dataElement.setAttribute("class", "hide");
     }
 
-    await setupORT("sd-turbo", "dev");
+    await setupORT("sd-turbo", "test");
     showCompatibleChromiumVersion("sd-turbo");
 
     if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
