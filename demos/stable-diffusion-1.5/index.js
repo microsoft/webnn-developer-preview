@@ -7,6 +7,7 @@
 
 import * as Utils from "./utils.js";
 import { setupORT, showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+const $ = s => document.querySelector(s);
 
 // Configuration...
 const pixelWidth = 512;
@@ -108,11 +109,11 @@ const toHalf = (function () {
 })();
 
 function resize_image(targetWidth, targetHeight) {
-    const canvas = document.getElementById(`img_canvas_test`);
+    const canvas = $(`#img_canvas_test`);
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     let ctx = canvas.getContext("2d");
-    let canvas_source = document.getElementById(`canvas`);
+    let canvas_source = $(`#canvas`);
     ctx.drawImage(canvas_source, 0, 0, canvas_source.width, canvas_source.height, 0, 0, targetWidth, targetHeight);
     let imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
 
@@ -325,41 +326,42 @@ async function readResponse(name, response) {
 }
 
 Utils.log("[Load] Loading ONNX Runtime");
-const progressBarInner = document.getElementById("progress-bar-inner");
-const progressBarLabel = document.getElementById("progress-bar-label");
-const progressBarInnerInference = document.querySelector("#progress-bar-inner-inference");
-const progressBarLabelInference = document.querySelector("#progress-bar-label-inference");
+const progressBarInner = $("#progress-bar-inner");
+const progressBarLabel = $("#progress-bar-label");
+const progressBarInnerInference = $("#progress-bar-inner-inference");
+const progressBarLabelInference = $("#progress-bar-label-inference");
 
-const startButton = document.getElementById("generate_next_image");
-const loadButton = document.getElementById("load_models");
-const positiveInput = document.getElementById("positive_prompt");
-const negativeInput = document.getElementById("negative_prompt");
-const positiveTokenInfo = document.getElementById("positive_token_info");
-const negativeTokenInfo = document.getElementById("negative_token_info");
-const error = document.querySelector("#error");
-const userSeed = document.querySelector("#user_seed");
-const changeSeed = document.querySelector("#change_seed");
-const title = document.querySelector("#title");
-const data = document.querySelector("#data");
-const textEncoderLoad = document.querySelector("#textencoderload");
-const textEncoderFetch = document.querySelector("#textencoderfetch");
-const textEncoderCreate = document.querySelector("#textencodercreate");
-const textEncoderRun = document.querySelector("#textencoderrun");
-const unetLoad = document.querySelector("#unetload");
-const unetFetch = document.querySelector("#unetfetch");
-const unetCreate = document.querySelector("#unetcreate");
-const unetRun = document.querySelector("#unetrun");
-const vaeDecoderLoad = document.querySelector("#vaedecoderload");
-const vaeDecoderFetch = document.querySelector("#vaedecoderfetch");
-const vaeDecoderCreate = document.querySelector("#vaedecodercreate");
-const vaeDecoderRun = document.querySelector("#vaedecoderrun");
-const scTr = document.querySelector("#sc");
-const scLoad = document.querySelector("#scload");
-const scFetch = document.querySelector("#scfetch");
-const scCreate = document.querySelector("#sccreate");
-const scRun = document.querySelector("#scrun");
-const totalLoad = document.querySelector("#totalload");
-const totalRun = document.querySelector("#totalrun");
+const startButton = $("#generate_next_image");
+const loadButton = $("#load_models");
+const memoryReleaseSwitch = $("#memory_release");
+const positiveInput = $("#positive_prompt");
+const negativeInput = $("#negative_prompt");
+const positiveTokenInfo = $("#positive_token_info");
+const negativeTokenInfo = $("#negative_token_info");
+const error = $("#error");
+const userSeed = $("#user_seed");
+const changeSeed = $("#change_seed");
+const title = $("#title");
+const data = $("#data");
+const textEncoderLoad = $("#textencoderload");
+const textEncoderFetch = $("#textencoderfetch");
+const textEncoderCreate = $("#textencodercreate");
+const textEncoderRun = $("#textencoderrun");
+const unetLoad = $("#unetload");
+const unetFetch = $("#unetfetch");
+const unetCreate = $("#unetcreate");
+const unetRun = $("#unetrun");
+const vaeDecoderLoad = $("#vaedecoderload");
+const vaeDecoderFetch = $("#vaedecoderfetch");
+const vaeDecoderCreate = $("#vaedecodercreate");
+const vaeDecoderRun = $("#vaedecoderrun");
+const scTr = $("#sc");
+const scLoad = $("#scload");
+const scFetch = $("#scfetch");
+const scCreate = $("#sccreate");
+const scRun = $("#scrun");
+const totalLoad = $("#totalload");
+const totalRun = $("#totalrun");
 let inferenceProgress = 0;
 
 loadButton.onclick = async () => {
@@ -755,7 +757,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
 }
 
 function displayEmptyCanvasPlaceholder() {
-    const canvas = document.getElementById("canvas");
+    const canvas = $("#canvas");
     const context = canvas.getContext("2d");
     context.fillStyle = "rgba(255, 255, 255, 0.5)";
     context.strokeStyle = "rgba(255, 255, 255, 0.0)";
@@ -769,7 +771,7 @@ function displayEmptyCanvasPlaceholder() {
 }
 
 function displayPlanarRGB(planarPixelData /*: Float32Array or Uint16Array as float16 or Uint8Array*/) {
-    const canvas = document.getElementById("canvas");
+    const canvas = $("#canvas");
     const context = canvas.getContext("2d");
 
     // TODO: See if ORT's toImageData() is flexible enough to handle this instead.
@@ -820,11 +822,15 @@ async function loadStableDiffusion(executionProvider) {
     try {
         // Release sessions if load models again.
         if (textEncoderSession) {
-            await unetModelSession.release();
-            await textEncoderSession.release();
-            await vaeDecoderModelSession.release();
-            if (Utils.getSafetyChecker()) {
-                await scModelSession.release();
+            try {
+                await unetModelSession.release();
+                await textEncoderSession.release();
+                await vaeDecoderModelSession.release();
+                if (Utils.getSafetyChecker()) {
+                    await scModelSession.release();
+                }
+            } catch (e) {
+                Utils.logError(e.message);
             }
         }
 
@@ -1151,19 +1157,19 @@ async function executeStableDiffusionAndDisplayOutput() {
             has_nsfw_concepts.data[0] ? (nsfw = true) : (nsfw = false);
             Utils.log(`[Session Run] Safety Checker - not safe for work (NSFW) concepts: ${nsfw}`);
             if (has_nsfw_concepts.data[0]) {
-                document.querySelector(`#canvas`).setAttribute("class", "canvas nsfw");
-                document.querySelector(`#canvas`).setAttribute("title", "Not safe for work (NSFW) content");
-                document.querySelector(`#nsfw`).innerHTML = "Not safe for work (NSFW) content";
-                document.querySelector(`#nsfw`).setAttribute("class", "nsfw");
+                $(`#canvas`).setAttribute("class", "canvas nsfw");
+                $(`#canvas`).setAttribute("title", "Not safe for work (NSFW) content");
+                $(`#nsfw`).innerHTML = "Not safe for work (NSFW) content";
+                $(`#nsfw`).setAttribute("class", "nsfw");
             } else {
-                document.querySelector(`#canvas`).setAttribute("class", "canvas");
-                document.querySelector(`#canvas`).setAttribute("title", "");
-                document.querySelector(`#nsfw`).setAttribute("class", "");
+                $(`#canvas`).setAttribute("class", "canvas");
+                $(`#canvas`).setAttribute("title", "");
+                $(`#nsfw`).setAttribute("class", "");
             }
         } else {
-            document.querySelector(`#canvas`).setAttribute("class", "canvas");
-            document.querySelector(`#canvas`).setAttribute("title", "");
-            document.querySelector(`#nsfw`).setAttribute("class", "");
+            $(`#canvas`).setAttribute("class", "canvas");
+            $(`#canvas`).setAttribute("title", "");
+            $(`#nsfw`).setAttribute("class", "");
         }
     } catch (e) {
         error.setAttribute("class", "error");
@@ -1216,13 +1222,13 @@ Utils.log("[Load] Execution Provider: " + executionProvider);
 Utils.log("[Load] EP device type: " + Utils.getQueryVariable("devicetype", "gpu"));
 
 const checkWebNN = async () => {
-    let status = document.querySelector("#webnnstatus");
-    let info = document.querySelector("#info");
+    let status = $("#webnnstatus");
+    let info = $("#info");
     let webnnStatus = await Utils.getWebnnStatus();
 
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
-        info.innerHTML = "WebNN supported · 8GB available GPU memory required";
+        info.innerHTML = "WebNN supported";
         loadButton.disabled = false;
     } else {
         loadButton.disabled = true;
@@ -1266,3 +1272,26 @@ const updateSeed = () => {
 };
 
 changeSeed.addEventListener("click", updateSeed, false);
+
+memoryReleaseSwitch.addEventListener("change", () => {
+    if (memoryReleaseSwitch.checked) {
+        memoryReleaseSwitch.setAttribute("checked", "");
+    } else {
+        memoryReleaseSwitch.removeAttribute("checked");
+    }
+});
+
+window.addEventListener("beforeunload", () => {
+    if (memoryReleaseSwitch.checked) {
+        const sessions = [scModelSession, vaeDecoderModelSession, unetModelSession, textEncoderSession];
+        Promise.allSettled(sessions.filter(session => session).map(session => session.release())).catch(error =>
+            console.error("Session release error:", error),
+        );
+        startButton.disabled = true;
+        loadButton.disabled = false;
+        progressBarInner.style.width = "0%";
+        progressBarLabel.textContent = "0%";
+        progressBarInnerInference.style.width = "0%";
+        progressBarLabelInference.textContent = "0%";
+    }
+});

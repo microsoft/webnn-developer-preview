@@ -68,6 +68,8 @@
     --main-dark: rgb(24, 79, 238, 1);
     --main-darker: rgb(20, 74, 204, 1);
     --border: rgb(230, 230, 230, 1);
+    --border-05: rgb(230, 230, 230, 0.5);
+    --border-01: rgb(230, 230, 230, 0.1);
     --green: rgba(1, 212, 73, 1);
     --pink: rgb(255, 0, 129);
 }
@@ -93,6 +95,8 @@ body {
 
 .footerinfo {
     margin-bottom: 1rem;
+    font-size: 0.9rem;
+    text-align: right;
 }
 
 #webnn-logo {
@@ -131,6 +135,60 @@ body {
     color: var(--bg);
     border: 0px solid white;
     text-decoration: none;
+}
+
+#release {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: -0.1rem;
+}
+
+#release input[type=checkbox] {
+    height: 0;
+    width: 0;
+    visibility: hidden;
+}
+
+#release label {
+    cursor: pointer;
+    width: 40px;
+    height: 18px;
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--border-01) 0%, var(--border-05) 40%, var(--border) 100%);
+    display: inline-block;
+    border-radius: 18px;
+    position: relative;
+    margin-right: 0.2rem;
+}
+
+#release label:after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: var(--border);
+    border-radius: 14px;
+    transition: 0.3s;
+}
+
+#release input:checked+label {
+    background: #fff;
+}
+
+#release input:checked+label:after {
+    background-color: var(--main);
+}
+
+#release input:checked+label:after {
+    left: calc(100% - 5px);
+    transform: translateX(-100%);
+}
+
+#release label:active:after {
+    width: 40px;
 }
 
 .log-output::-webkit-scrollbar {
@@ -749,8 +807,7 @@ h1.title span {
 }
 
 /* Largest devices such as desktops (1280px) */
-@media only screen and (max-width: 80em) {
-}
+@media only screen and (max-width: 80em) {}
 
 /* Large devices such as laptops (1024px) */
 @media only screen and (max-width: 64em) {

@@ -6,22 +6,24 @@
 //
 
 import { setupORT, showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
 
 const log = i => {
     console.log(i);
     if (getMode()) {
-        document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+        $("#status").innerText += `\n[${getTime()}] ${i}`;
     } else {
-        document.getElementById("status").innerText += `\n${i}`;
+        $("#status").innerText += `\n${i}`;
     }
 };
 
 const logError = i => {
     console.error(i);
     if (getMode()) {
-        document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
+        $("#status").innerText += `\n[${getTime()}] ${i}`;
     } else {
-        document.getElementById("status").innerText += `\n${i}`;
+        $("#status").innerText += `\n${i}`;
     }
 };
 
@@ -80,6 +82,7 @@ function randn_latents(shape, noise_sigma) {
     return data;
 }
 
+let memoryReleaseSwitch;
 let textEncoderFetchProgress = 0;
 let unetFetchProgress = 0;
 let vaeDecoderFetchProgress = 0;
@@ -320,13 +323,13 @@ async function load_models(models) {
 
     updateLoadWave(100.0);
     log("[Session Create] Ready to generate images");
-    let image_area = document.querySelectorAll("#image_area>div");
+    let image_area = $$("#image_area>div");
     image_area.forEach(i => {
         i.setAttribute("class", "frame ready");
     });
     buttons.setAttribute("class", "button-group key loaded");
     generate.disabled = false;
-    document.querySelector("#user-input").setAttribute("class", "form-control enabled");
+    $("#user-input").setAttribute("class", "form-control enabled");
 }
 
 const config = getConfig();
@@ -429,7 +432,7 @@ function step(model_output, sample) {
 // eslint-disable-next-line no-unused-vars
 function draw_out_image(t) {
     const imageData = t.toImageData({ tensorLayout: "NHWC", format: "RGB" });
-    const canvas = document.getElementById(`img_canvas_safety`);
+    const canvas = $(`#img_canvas_safety`);
     canvas.width = imageData.width;
     canvas.height = imageData.height;
     canvas.getContext("2d").putImageData(imageData, 0, 0);
@@ -438,11 +441,11 @@ function draw_out_image(t) {
 function resize_image(image_nr, targetWidth, targetHeight) {
     // let canvas = document.createElement('canvas');
     // Use img_canvas_test to ensure the input
-    const canvas = document.getElementById(`img_canvas_test`);
+    const canvas = $(`#img_canvas_test`);
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     let ctx = canvas.getContext("2d");
-    let canvas_source = document.getElementById(`img_canvas_${image_nr}`);
+    let canvas_source = $(`#img_canvas_${image_nr}`);
     ctx.drawImage(canvas_source, 0, 0, canvas_source.width, canvas_source.height, 0, 0, targetWidth, targetHeight);
     let imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
 
@@ -519,7 +522,7 @@ function draw_image(t, image_nr) {
         pix[i] = x;
     }
     const imageData = t.toImageData({ tensorLayout: "NCHW", format: "RGB" });
-    const canvas = document.getElementById(`img_canvas_${image_nr}`);
+    const canvas = $(`#img_canvas_${image_nr}`);
     canvas.width = imageData.width;
     canvas.height = imageData.height;
     canvas.getContext("2d").putImageData(imageData, 0, 0);
@@ -553,13 +556,13 @@ async function generate_image() {
 
         if (getMode()) {
             for (let i = 1; i <= config.images; i++) {
-                document.querySelector(`#data${i}`).innerHTML = "... ms";
-                document.querySelector(`#data${i}`).setAttribute("class", "show");
+                $(`#data${i}`).innerHTML = "... ms";
+                $(`#data${i}`).setAttribute("class", "show");
             }
         } else {
             for (let i = 1; i <= config.images; i++) {
-                document.querySelector(`#data${i}`).innerHTML = "...";
-                document.querySelector(`#data${i}`).setAttribute("class", "show");
+                $(`#data${i}`).innerHTML = "...";
+                $(`#data${i}`).setAttribute("class", "show");
             }
         }
 
@@ -567,7 +570,7 @@ async function generate_image() {
 
         await loading;
 
-        const prompt = document.querySelector("#user-input");
+        const prompt = $("#user-input");
         const { input_ids } = await tokenizer(prompt.value, {
             padding: true,
             max_length: 77,
@@ -593,7 +596,7 @@ async function generate_image() {
         }
 
         for (let j = 0; j < config.images; j++) {
-            document.getElementById(`img_div_${j}`).setAttribute("class", "frame inferncing");
+            $(`#img_div_${j}`).setAttribute("class", "frame inferncing");
             let startTotal = performance.now();
             const latent_shape = [1, 4, 64, 64];
             let latent = new ort.Tensor(randn_latents(latent_shape, sigma), latent_shape);
@@ -612,7 +615,7 @@ async function generate_image() {
             };
             let { out_sample } = await models.unet.sess.run(feed);
             let unetRunTime = (performance.now() - start).toFixed(2);
-            document.getElementById(`unetRun${j + 1}`).innerHTML = unetRunTime;
+            $(`#unetRun${j + 1}`).innerHTML = unetRunTime;
 
             if (getMode()) {
                 log(`[Session Run][Image ${j + 1}] UNet execution time: ${unetRunTime}ms`);
@@ -632,7 +635,7 @@ async function generate_image() {
                 latent_sample: new_latents,
             });
             let vaeRunTime = (performance.now() - start).toFixed(2);
-            document.getElementById(`vaeRun${j + 1}`).innerHTML = vaeRunTime;
+            $(`#vaeRun${j + 1}`).innerHTML = vaeRunTime;
 
             if (getMode()) {
                 log(`[Session Run][Image ${j + 1}] VAE decode execution time: ${vaeRunTime}ms`);
@@ -646,13 +649,13 @@ async function generate_image() {
             if (getMode()) {
                 log(`[Total] Image ${j + 1} execution time: ${totalRunTime}ms`);
             }
-            document.getElementById(`runTotal${j + 1}`).innerHTML = totalRunTime;
-            document.querySelector(`#data${j + 1}`).setAttribute("class", "show");
+            $(`#runTotal${j + 1}`).innerHTML = totalRunTime;
+            $(`#data${j + 1}`).setAttribute("class", "show");
 
             if (getMode()) {
-                document.querySelector(`#data${j + 1}`).innerHTML = totalRunTime + "ms";
+                $(`#data${j + 1}`).innerHTML = totalRunTime + "ms";
             } else {
-                document.querySelector(`#data${j + 1}`).innerHTML = `${j + 1}`;
+                $(`#data${j + 1}`).innerHTML = `${j + 1}`;
             }
 
             if (getSafetyChecker()) {
@@ -667,7 +670,7 @@ async function generate_image() {
                 const { has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
                 // const { out_images, has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
                 let scRunTime = (performance.now() - start).toFixed(2);
-                document.getElementById(`scRun${j + 1}`).innerHTML = scRunTime;
+                $(`#scRun${j + 1}`).innerHTML = scRunTime;
 
                 if (getMode()) {
                     log(`[Session Run][Image ${j + 1}] Safety Checker execution time: ${scRunTime}ms`);
@@ -675,26 +678,26 @@ async function generate_image() {
                     log(`[Session Run][Image ${j + 1}] Safety Checker completed`);
                 }
 
-                document.getElementById(`img_div_${j}`).setAttribute("class", "frame done");
+                $(`#img_div_${j}`).setAttribute("class", "frame done");
 
                 let nsfw = false;
                 has_nsfw_concepts.data[0] ? (nsfw = true) : (nsfw = false);
                 log(`[Session Run][Image ${j + 1}] Safety Checker - not safe for work (NSFW) concepts: ${nsfw}`);
 
                 if (has_nsfw_concepts.data[0]) {
-                    document.querySelector(`#img_div_${j}`).setAttribute("class", "frame done nsfw");
+                    $(`#img_div_${j}`).setAttribute("class", "frame done nsfw");
                     if (getMode()) {
-                        document.querySelector(`#data${j + 1}`).innerHTML = totalRunTime + "ms · NSFW";
+                        $(`#data${j + 1}`).innerHTML = totalRunTime + "ms · NSFW";
                     } else {
-                        document.querySelector(`#data${j + 1}`).innerHTML = `${j + 1} · NSFW`;
+                        $(`#data${j + 1}`).innerHTML = `${j + 1} · NSFW`;
                     }
-                    document.querySelector(`#data${j + 1}`).setAttribute("class", "nsfw show");
-                    document.querySelector(`#data${j + 1}`).setAttribute("title", "Not safe for work (NSFW) content");
+                    $(`#data${j + 1}`).setAttribute("class", "nsfw show");
+                    $(`#data${j + 1}`).setAttribute("title", "Not safe for work (NSFW) content");
                 } else {
-                    document.querySelector(`#img_div_${j}`).setAttribute("class", "frame done");
+                    $(`#img_div_${j}`).setAttribute("class", "frame done");
                 }
             } else {
-                document.getElementById(`img_div_${j}`).setAttribute("class", "frame done");
+                $(`#img_div_${j}`).setAttribute("class", "frame done");
             }
 
             // let out_image = new ort.Tensor("float32", convertToFloat32Array(out_images.data), out_images.dims);
@@ -846,8 +849,8 @@ const getTime = () => {
 let webnnStatus;
 
 const checkWebNN = async () => {
-    let status = document.querySelector("#webnnstatus");
-    let info = document.querySelector("#info");
+    let status = $("#webnnstatus");
+    let info = $("#info");
     webnnStatus = await getWebnnStatus();
 
     if (webnnStatus.webnn) {
@@ -941,8 +944,8 @@ let loadwave = null;
 let loadwaveData = null;
 
 const updateLoadWave = value => {
-    loadwave = document.querySelectorAll(".loadwave");
-    loadwaveData = document.querySelectorAll(".loadwave-data strong");
+    loadwave = $$(".loadwave");
+    loadwaveData = $$(".loadwave-data strong");
 
     if (loadwave && loadwaveData) {
         loadwave.forEach(l => {
@@ -961,14 +964,23 @@ const updateLoadWave = value => {
 };
 
 const ui = async () => {
-    const prompt = document.querySelector("#user-input");
-    const title = document.querySelector("#title");
-    const dev = document.querySelector("#dev");
-    const dataElement = document.querySelector("#data");
-    const scTr = document.querySelector("#scTr");
-    load = document.querySelector("#load");
-    generate = document.querySelector("#generate");
-    buttons = document.querySelector("#buttons");
+    memoryReleaseSwitch = $("#memory_release");
+    const prompt = $("#user-input");
+    const title = $("#title");
+    const dev = $("#dev");
+    const dataElement = $("#data");
+    const scTr = $("#scTr");
+    load = $("#load");
+    generate = $("#generate");
+    buttons = $("#buttons");
+
+    memoryReleaseSwitch.addEventListener("change", () => {
+        if (memoryReleaseSwitch.checked) {
+            memoryReleaseSwitch.setAttribute("checked", "");
+        } else {
+            memoryReleaseSwitch.removeAttribute("checked");
+        }
+    });
 
     if (!getMode()) {
         dev.setAttribute("class", "mt-1");
@@ -982,9 +994,6 @@ const ui = async () => {
         title.innerHTML = "WebGPU";
     }
     await checkWebNN();
-
-    // const img_div_ids = ["#img_div_0", "#img_div_1", "#img_div_2", "#img_div_3"];
-    // [img_div_0, img_div_1, img_div_2, img_div_3] = img_div_ids.map(id => document.querySelector(id));
 
     const elementIds = [
         "#textEncoderFetch",
@@ -1046,7 +1055,7 @@ const ui = async () => {
         scRun2,
         scRun3,
         scRun4,
-    ] = elementIds.map(id => document.querySelector(id));
+    ] = elementIds.map(id => $(id));
 
     switch (config.provider) {
         case "webgpu":
@@ -1157,6 +1166,69 @@ const ui = async () => {
             },
         };
     }
+
+    window.addEventListener("beforeunload", () => {
+        if (memoryReleaseSwitch.checked) {
+            const sessions = [
+                models.safety_checker.sess,
+                models.vae_decoder.sess,
+                models.unet.sess,
+                models.text_encoder.sess,
+            ];
+
+            Promise.allSettled(sessions.filter(session => session).map(session => session.release())).catch(error =>
+                console.error("Session release error:", error),
+            );
+
+            load.disabled = false;
+            buttons.setAttribute("class", "button-group key");
+            generate.disabled = true;
+            $("#user-input").setAttribute("class", "form-control");
+            updateLoadWave(0.0);
+            const img_divs = [img_div_0, img_div_1, img_div_2, img_div_3];
+            img_divs.forEach(div => div.setAttribute("class", "frame"));
+            textEncoderFetchProgress = 0;
+            unetFetchProgress = 0;
+            vaeDecoderFetchProgress = 0;
+            textEncoderCompileProgress = 0;
+            unetCompileProgress = 0;
+            vaeDecoderCompileProgress = 0;
+            scFetchProgress = 0;
+            scCompileProgress = 0;
+            for (let i = 1; i <= config.images; i++) {
+                $(`#data${i}`).innerHTML = "... ms";
+                $(`#data${i}`).setAttribute("class", "");
+            }
+            textEncoderFetch.innerHTML = "";
+            textEncoderCreate.innerHTML = "";
+            textEncoderRun1.innerHTML = "";
+            textEncoderRun2.innerHTML = "";
+            textEncoderRun3.innerHTML = "";
+            textEncoderRun4.innerHTML = "";
+            unetFetch.innerHTML = "";
+            unetCreate.innerHTML = "";
+            unetRun1.innerHTML = "";
+            unetRun2.innerHTML = "";
+            unetRun3.innerHTML = "";
+            unetRun4.innerHTML = "";
+            vaeRun1.innerHTML = "";
+            vaeRun2.innerHTML = "";
+            vaeRun3.innerHTML = "";
+            vaeRun4.innerHTML = "";
+            scFetch.innerHTML = "";
+            scCreate.innerHTML = "";
+            scRun1.innerHTML = "";
+            scRun2.innerHTML = "";
+            scRun3.innerHTML = "";
+            scRun4.innerHTML = "";
+            vaeFetch.innerHTML = "";
+            vaeCreate.innerHTML = "";
+            runTotal1.innerHTML = "";
+            runTotal2.innerHTML = "";
+            runTotal3.innerHTML = "";
+            runTotal4.innerHTML = "";
+        }
+    });
 };
 
 document.addEventListener("DOMContentLoaded", ui, false);
