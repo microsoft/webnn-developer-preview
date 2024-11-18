@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import { AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
-
+import { getQueryValue } from "../../assets/js/common_utils.js";
 let tokenizers;
 document.addEventListener("DOMContentLoaded", async () => {
     let path = "";
@@ -21,24 +21,6 @@ export async function getTokenizers(text) {
     const { input_ids } = await tokenizers(text);
     return Array.from(input_ids.data, number => Number(number)).flat();
 }
-
-export const log = i => {
-    console.log(i);
-    if (getMode()) {
-        document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
-    } else {
-        document.getElementById("status").innerText += `\n${i}`;
-    }
-};
-
-export const logError = i => {
-    console.error(i);
-    if (getMode()) {
-        document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
-    } else {
-        document.getElementById("status").innerText += `\n${i}`;
-    }
-};
 
 export function generateTensorFillValue(dataType, shape, value) {
     let size = 1;
@@ -235,23 +217,6 @@ export function encodeFloat16(floatValue) /*: uint16 Number*/ {
     return bits;
 }
 
-export const getQueryValue = name => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
-};
-
-export const getQueryVariable = (name, defaults) => {
-    const query = window.location.search.substring(1);
-    let vars = query.split("&");
-    for (var i = 0; i < vars.length; i++) {
-        let pair = vars[i].split("=");
-        if (pair[0] == name) {
-            return pair[1];
-        }
-    }
-    return defaults;
-};
-
 export const modelPath = () => {
     if (
         location.href.toLowerCase().indexOf("github.io") > -1 ||
@@ -264,62 +229,10 @@ export const modelPath = () => {
     }
 };
 
-export const randomNumber = () => {
-    // generate 6 digital random number between 100, 000 and 999,999
-    return Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
-};
-
-const padNumber = (num, fill) => {
-    let len = ("" + num).length;
-    return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
-};
-
-export const getTime = () => {
-    let date = new Date(),
-        hour = padNumber(date.getHours(), 2),
-        min = padNumber(date.getMinutes(), 2),
-        sec = padNumber(date.getSeconds(), 2);
-    return `${hour}:${min}:${sec}`;
-};
-
-export const getMode = () => {
-    return getQueryValue("mode") === "normal" ? false : true;
-};
-
 export const getSafetyChecker = () => {
     if (getQueryValue("safetychecker")) {
         return getQueryValue("safetychecker") === "true" ? true : false;
     } else {
         return true;
-    }
-};
-
-export const getWebnnStatus = async () => {
-    let result = {};
-    try {
-        const context = await navigator.ml.createContext();
-        if (context) {
-            try {
-                const builder = new MLGraphBuilder(context);
-                if (builder) {
-                    result.webnn = true;
-                    return result;
-                } else {
-                    result.webnn = false;
-                    return result;
-                }
-            } catch (e) {
-                result.webnn = false;
-                result.error = e.message;
-                return result;
-            }
-        } else {
-            result.webnn = false;
-            return result;
-        }
-    } catch (ex) {
-        result.webnn = false;
-        result.error = ex.message;
-        return result;
     }
 };

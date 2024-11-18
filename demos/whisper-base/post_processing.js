@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { toHalf } from "./utils.js";
+import { toHalf } from "../../assets/js/common_utils.js";
 
 export function cache_update(
     decoder_input,

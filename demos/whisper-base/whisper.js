@@ -4,11 +4,10 @@ import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xeno
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
 import { attention_mask_update, cache_update } from "./post_processing.js";
+import { $, convertToUint16Array, convertToFloat32Array, toHalf } from "../../assets/js/common_utils.js";
 import {
     log,
     getModelOPFS,
-    convertToFloat32Array,
-    convertToUint16Array,
     updateDecoderCachedCompileProgress,
     updateDecoderCompileProgress,
     updateEncoderCompileProgress,
@@ -21,7 +20,6 @@ import {
     encoderCompileProgress,
     decoderCompileProgress,
     decoderCachedCompileProgress,
-    toHalf,
 } from "./utils.js";
 
 let tokenizerPath = "";
@@ -129,7 +127,7 @@ export class Whisper {
                 this.models[name]["sess"] = await ort.InferenceSession.create(modelBuffer, options);
                 log(`${this.models[name]["title"]} session created`);
 
-                let progressBarLabel = document.getElementById("p-bar-label");
+                let progressBarLabel = $("#p-bar-label");
                 if (name.toLowerCase().indexOf("decoder_cached") > -1) {
                     updateDecoderCachedCompileProgress(4.0);
                     updateLoadProgress(

@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+import { $ } from "../../assets/js/common_utils.js";
 import {
     getModelOPFS,
     log,
@@ -117,7 +118,7 @@ export class LLM {
             };
         }
 
-        let progressBarLabel = document.getElementById("p-bar-label");
+        let progressBarLabel = $("#p-bar-label");
         log("Create session for prefill process");
         console.log("Create session 1 with option: ");
         console.log({ ...session_options });

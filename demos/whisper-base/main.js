@@ -7,16 +7,14 @@
 
 import { Whisper } from "./whisper.js";
 import {
-    getQueryValue,
-    getWebnnStatus,
-    log,
-    logError,
-    concatBuffer,
-    concatBufferArray,
-    logUser,
+    $,
     getMode,
-} from "./utils.js";
-import { setupORT, showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+    getWebnnStatus,
+    getQueryValue,
+    setupORT,
+    showCompatibleChromiumVersion,
+} from "../../assets/js/common_utils.js";
+import { log, logError, concatBuffer, concatBufferArray, logUser } from "./utils.js";
 import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
 import AudioMotionAnalyzer from "./static/js/audioMotion-analyzer.js?min";
 import { lcm } from "./vad/math.js";
@@ -688,23 +686,23 @@ const main = async () => {
 };
 
 const ui = async () => {
-    device = document.getElementById("device");
-    badge = document.getElementById("badge");
-    audioSrc = document.querySelector("audio");
-    labelFileUpload = document.getElementById("label-file-upload");
-    fileUpload = document.getElementById("file-upload");
-    record = document.getElementById("record");
-    speech = document.getElementById("speech");
-    progress = document.getElementById("progress");
-    outputText = document.getElementById("outputText");
-    resultShow = document.getElementById("result-show");
-    latency = document.getElementById("latency");
-    audioProcessing = document.getElementById("audio-processing");
-    copy = document.getElementById("copy");
-    container = document.getElementById("container");
+    device = $("#device");
+    badge = $("#badge");
+    audioSrc = $("audio");
+    labelFileUpload = $("#label-file-upload");
+    fileUpload = $("#file-upload");
+    record = $("#record");
+    speech = $("#speech");
+    progress = $("#progress");
+    outputText = $("#outputText");
+    resultShow = $("#result-show");
+    latency = $("#latency");
+    audioProcessing = $("#audio-processing");
+    copy = $("#copy");
+    container = $("#container");
 
-    let status = document.querySelector("#webnnstatus");
-    let info = document.querySelector("#info");
+    let status = $("#webnnstatus");
+    let info = $("#info");
     updateConfig();
 
     if (deviceType.toLowerCase().indexOf("cpu") > -1 || provider.toLowerCase().indexOf("wasm") > -1) {

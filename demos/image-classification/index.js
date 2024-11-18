@@ -5,6 +5,8 @@
 //
 import * as transformers from "../../assets/dist_transformers/1.21.0-dev.20241109/transformers.js";
 import {
+    $,
+    $$,
     log,
     logError,
     getQueryValue,
@@ -278,8 +280,8 @@ const controls = async () => {
 
     range.addEventListener("input", getRange, false);
 
-    let backendBtns = document.querySelector("#backendBtns");
-    let modelBtns = document.querySelector("#modelBtns");
+    let backendBtns = $("#backendBtns");
+    let modelBtns = $("#modelBtns");
 
     const updateBackend = e => {
         backendLabels.forEach(label => {
@@ -428,52 +430,52 @@ const ui = async () => {
         location.replace(url);
     }
 
-    status = document.querySelector("#webnnstatus");
-    circle = document.querySelector("#circle");
-    info = document.querySelector("#info");
-    range = document.querySelector("#range");
-    rangeValue = document.querySelector(".rangevalue");
-    runSpan = document.querySelector("#run-span");
-    backendLabels = document.querySelectorAll(".backends label");
-    modelLabels = document.querySelectorAll(".models label");
-    label_webgpu = document.querySelector("#label_webgpu");
-    label_webnn_gpu = document.querySelector("#label_webnn_gpu");
-    label_webnn_npu = document.querySelector("#label_webnn_npu");
-    label_mobilenetV2 = document.querySelector("#label_mobilenet-v2");
-    label_resnet50 = document.querySelector("#label_resnet-50");
-    label_efficientnetLite4 = document.querySelector("#label_efficientnet-lite4");
-    image = document.querySelector("#image");
-    uploadImage = document.querySelector("#upload-image");
-    label_uploadImage = document.querySelector("#label_upload-image");
-    classify = document.querySelector("#classify-image");
-    fullResult = document.querySelector("#full-result");
-    first = document.querySelector("#first");
-    average = document.querySelector("#average");
-    median = document.querySelector("#median");
-    best = document.querySelector("#best");
-    throughput = document.querySelector("#throughput");
-    label1 = document.querySelector("#label1");
-    label2 = document.querySelector("#label2");
-    label3 = document.querySelector("#label3");
-    score1 = document.querySelector("#score1");
-    score2 = document.querySelector("#score2");
-    score3 = document.querySelector("#score3");
-    result = document.querySelector("#result");
-    title = document.querySelector("#title");
-    device = document.querySelector("#device");
-    badge = document.querySelector("#badge");
-    indicator = document.querySelector("#indicator");
-    modelIdSpan = document.querySelector("#data-type");
-    dataTypeSpan = document.querySelector("#model-id");
-    latency = document.querySelector("#latency");
-    latencyDiv = document.querySelector(".latency");
+    status = $("#webnnstatus");
+    circle = $("#circle");
+    info = $("#info");
+    range = $("#range");
+    rangeValue = $(".rangevalue");
+    runSpan = $("#run-span");
+    backendLabels = $$(".backends label");
+    modelLabels = $$(".models label");
+    label_webgpu = $("#label_webgpu");
+    label_webnn_gpu = $("#label_webnn_gpu");
+    label_webnn_npu = $("#label_webnn_npu");
+    label_mobilenetV2 = $("#label_mobilenet-v2");
+    label_resnet50 = $("#label_resnet-50");
+    label_efficientnetLite4 = $("#label_efficientnet-lite4");
+    image = $("#image");
+    uploadImage = $("#upload-image");
+    label_uploadImage = $("#label_upload-image");
+    classify = $("#classify-image");
+    fullResult = $("#full-result");
+    first = $("#first");
+    average = $("#average");
+    median = $("#median");
+    best = $("#best");
+    throughput = $("#throughput");
+    label1 = $("#label1");
+    label2 = $("#label2");
+    label3 = $("#label3");
+    score1 = $("#score1");
+    score2 = $("#score2");
+    score3 = $("#score3");
+    result = $("#result");
+    title = $("#title");
+    device = $("#device");
+    badge = $("#badge");
+    indicator = $("#indicator");
+    modelIdSpan = $("#data-type");
+    dataTypeSpan = $("#model-id");
+    latency = $("#latency");
+    latencyDiv = $(".latency");
     fullResult.setAttribute("class", "none");
     result.setAttribute("class", "none");
     latencyDiv.setAttribute("class", "latency none");
     controls();
     updateUi();
     showCompatibleChromiumVersion("image-classification");
-    const transformersJs = document.querySelector("#ortversion");
+    const transformersJs = $("#ortversion");
     transformersJs.innerHTML = `<a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a>`;
 
     console.log(`${provider} ${deviceType} ${modelId} ${runs}`);

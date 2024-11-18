@@ -5,8 +5,15 @@
 // An example how to run Phi-3 Mini in onnxruntime-web.
 //
 
-import { getQueryValue, getWebnnStatus, log, logUser, logError } from "./utils.js";
-import { setupORT, showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+import { log, logUser, logError } from "./utils.js";
+import {
+    $,
+    $$,
+    getQueryValue,
+    getWebnnStatus,
+    setupORT,
+    showCompatibleChromiumVersion,
+} from "../../assets/js/common_utils.js";
 import { env, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1";
 import { LLM } from "./llm.js";
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
@@ -21,8 +28,6 @@ let badge;
 let ctrl = false,
     ready = false,
     cleanKV = false;
-const $ = s => document.querySelector(s);
-const $$ = s => [...document.querySelectorAll(s)];
 
 const clipboardIcon = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clipboard' viewBox='0 0 16 16'>
 <path d='M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z'/>
@@ -179,7 +184,7 @@ async function submitRequest(e) {
 //
 // event listener for Ctrl+Enter or Enter
 //
-document.getElementById("user-input").addEventListener("keydown", async function (e) {
+$("#user-input").addEventListener("keydown", async function (e) {
     if (e.ctrlKey && e.key === "Enter") {
         ctrl = true;
         cleanKV = true;
