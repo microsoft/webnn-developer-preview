@@ -5,7 +5,16 @@
 // An example how to run segment-anything with webnn in onnxruntime-web.
 //
 
-import { showCompatibleChromiumVersion, setupORT } from "../../assets/js/common_utils.js";
+import {
+    $,
+    log,
+    logError,
+    getMode,
+    getQueryValue,
+    getWebnnStatus,
+    showCompatibleChromiumVersion,
+    setupORT,
+} from "../../assets/js/common_utils.js";
 
 // the image size on canvas
 const MAX_WIDTH = 480;
@@ -69,24 +78,6 @@ let imageImageData;
 let isClicked = false;
 let maskImageData;
 let num_points = 1;
-
-const log = i => {
-    console.log(i);
-    if (getMode()) {
-        document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
-    } else {
-        document.getElementById("status").innerText += `\n${i}`;
-    }
-};
-
-const logError = i => {
-    console.error(i);
-    if (getMode()) {
-        document.getElementById("status").innerText += `\n[${getTime()}] ${i}`;
-    } else {
-        document.getElementById("status").innerText += `\n${i}`;
-    }
-};
 
 /**
  * create config from url
@@ -453,10 +444,6 @@ async function readResponse(name, response) {
     return buffer;
 }
 
-const getMode = () => {
-    return getQueryValue("mode") === "normal" ? false : true;
-};
-
 /*
  * load models one at a time
  */
@@ -549,7 +536,7 @@ async function main() {
         decoder(points, labels);
     });
 
-    let img = document.getElementById("original-image");
+    let img = $("#original-image");
 
     await load_models(MODELS[config.model]).then(
         () => {
@@ -578,23 +565,10 @@ async function main() {
     );
 }
 
-const padNumber = (num, fill) => {
-    let len = ("" + num).length;
-    return Array(fill > len ? fill - len + 1 || 0 : 0).join(0) + num;
-};
-
-const getTime = () => {
-    let date = new Date(),
-        hour = padNumber(date.getHours(), 2),
-        min = padNumber(date.getMinutes(), 2),
-        sec = padNumber(date.getSeconds(), 2);
-    return `${hour}:${min}:${sec}`;
-};
-
 const checkWebNN = async () => {
-    let status = document.querySelector("#webnnstatus");
-    let circle = document.querySelector("#circle");
-    let info = document.querySelector("#info");
+    let status = $("#webnnstatus");
+    let circle = $("#circle");
+    let info = $("#info");
     let webnnStatus = await getWebnnStatus();
 
     if (webnnStatus.webnn) {
@@ -619,57 +593,22 @@ const checkWebNN = async () => {
     }
 };
 
-const getWebnnStatus = async () => {
-    let result = {};
-    try {
-        const context = await navigator.ml.createContext();
-        if (context) {
-            try {
-                const builder = new MLGraphBuilder(context);
-                if (builder) {
-                    result.webnn = true;
-                    return result;
-                } else {
-                    result.webnn = false;
-                    return result;
-                }
-            } catch (e) {
-                result.webnn = false;
-                result.error = e.message;
-                return result;
-            }
-        } else {
-            result.webnn = false;
-            return result;
-        }
-    } catch (ex) {
-        result.webnn = false;
-        result.error = ex.message;
-        return result;
-    }
-};
-
-const getQueryValue = name => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
-};
-
 const updateProgressBar = progress => {
     progressBar.style.width = `${progress}%`;
 };
 
 const ui = async () => {
-    placeholder = document.querySelector("#placeholder div");
-    canvas = document.querySelector("#img_canvas");
-    filein = document.querySelector("#file-in");
-    clear = document.querySelector("#clear-button");
-    cut = document.querySelector("#cut-button");
-    actionBar = document.querySelector("#action-bar");
-    progressBar = document.querySelector("#progress-bar");
-    progressInfo = document.querySelector("#progress-info");
-    decoder_latency = document.querySelector("#decoder_latency");
-    unit = document.querySelector("#unit");
-    samDecoderIndicator = document.querySelector("#sam-decoder-indicator");
+    placeholder = $("#placeholder div");
+    canvas = $("#img_canvas");
+    filein = $("#file-in");
+    clear = $("#clear-button");
+    cut = $("#cut-button");
+    actionBar = $("#action-bar");
+    progressBar = $("#progress-bar");
+    progressInfo = $("#progress-info");
+    decoder_latency = $("#decoder_latency");
+    unit = $("#unit");
+    samDecoderIndicator = $("#sam-decoder-indicator");
 
     canvas.setAttribute("class", "none");
     await setupORT("segment-anything", "test");

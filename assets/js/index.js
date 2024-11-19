@@ -1,12 +1,12 @@
-import { getWebnnStatus } from "./common_utils.js";
+import { $, getWebnnStatus } from "./common_utils.js";
 
 async function webnnChecker() {
     const webnnStatus = await getWebnnStatus();
-    const status = document.querySelector("#status");
-    const browser = document.querySelector("#browser");
-    const chromium = document.querySelector("#chromium");
-    const webnn = document.querySelector("#webnn");
-    const message = document.querySelector("#message");
+    const status = $("#status");
+    const browser = $("#browser");
+    const chromium = $("#chromium");
+    const webnn = $("#webnn");
+    const message = $("#message");
     let isEdge = false;
     if (navigator.userAgentData) {
         navigator.userAgentData.getHighEntropyValues(["fullVersionList"]).then(ua => {
