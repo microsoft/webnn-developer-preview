@@ -1,98 +1,3 @@
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 300;
-    src: url("./fonts/archivo/archivo-v19-latin-300.woff2") format("woff2");
-}
-
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 400;
-    src: url("./fonts/archivo/archivo-v19-latin-regular.woff2") format("woff2");
-}
-
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 600;
-    src: url("./fonts/archivo/archivo-v19-latin-600.woff2") format("woff2");
-}
-
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 700;
-    src: url("./fonts/archivo/archivo-v19-latin-700.woff2") format("woff2");
-}
-
-/* :root {
-  --bg: #000000;
-  --black-02: rgba(0, 0, 0, 0.2);
-  --font: rgba(255,255,255, 1);
-  --font-weak: rgba(255, 255, 255, 0.5);
-  --disabled: rgba(75, 75, 75, 1);
-  --bg-2: rgba(10, 10, 10, 1.0);
-  --bg-3: rgba(20, 20, 20, 1.0);
-  --bg-btn: rgba(15, 15, 15, 1);
-  --main-01: rgba(123, 59, 252, 0.1);
-  --main-001: rgba(123, 59, 252, 0.01);
-  --main-06: rgba(123, 59, 252, 0.6);
-  --main: rgba(123, 59, 252, 1);
-  --border: rgba(32, 33, 37);
-  --green: rgba(127, 255, 0, 1);
-  --yellow: rgba(231, 255, 80, 1);
-} */
-
-:root {
-    --bg: rgba(255, 255, 255, 1);
-    --black-02: rgba(240, 240, 240, 0.2);
-    --font: rgba(45, 45, 45, 1);
-    --font-weak: rgba(0, 0, 0, 0.6);
-    --disabled: rgba(245, 245, 245, 0.2);
-    --bg-2: rgb(230, 230, 230, 0.2);
-    --bg-2h: rgb(230, 230, 230, 0.4);
-    --bg-3: rgba(200, 200, 200, 0.2);
-    --bg-btn: rgba(255, 255, 255, 1);
-    --main-01: rgba(39, 94, 254, 0.1);
-    --main-001: rgba(39, 94, 254, 0.01);
-    --main-05: rgba(39, 94, 254, 0.5);
-    --main-06: rgba(39, 94, 254, 0.6);
-    --scroll: rgb(0, 0, 0, 0.1);
-    --scroll-2: rgb(0, 0, 0, 0.2);
-    --main: rgb(39, 94, 254, 1);
-    --main-dark: rgb(24, 79, 238, 1);
-    --main-darker: rgb(20, 74, 204, 1);
-    --border: rgb(230, 230, 230, 1);
-    --border-05: rgb(230, 230, 230, 0.5);
-    --border-01: rgb(230, 230, 230, 0.1);
-    --green: rgba(1, 212, 73, 1);
-    --pink: rgb(255, 0, 129);
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    font-family: "Archivo", "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 400;
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg);
-    color: var(--font);
-    font-size: 16px;
-}
-
-body {
-    scrollbar-width: auto;
-    scrollbar-color: var(--main-01), transparent;
-}
-
 .footerinfo {
     margin-bottom: 1rem;
     font-size: 0.9rem;
@@ -104,21 +9,6 @@ body {
     height: 30px;
     display: inline-block;
     margin: 0 6px 0 10px;
-}
-
-.v1:hover #webnn-logo path._logo_n1,
-.v1:hover #webnn-logo circle._logo_n1 {
-    fill: #4777c0;
-}
-
-.v1:hover #webnn-logo path._logo_n2,
-.v1:hover #webnn-logo circle._logo_n2 {
-    stroke: #61bafb;
-    fill: #61bafb;
-}
-
-.v1:hover #webnn-logo circle._logo_n3 {
-    stroke: #61bafb;
 }
 
 #webnnstatus a#webnn_na {
@@ -155,7 +45,7 @@ body {
     width: 40px;
     height: 18px;
     border: 1px solid var(--border);
-    background: linear-gradient(135deg, var(--border-01) 0%, var(--border-05) 40%, var(--border) 100%);
+    background: linear-gradient(135deg, var(--border-1) 0%, var(--border-5) 40%, var(--border) 100%);
     display: inline-block;
     border-radius: 18px;
     position: relative;
@@ -191,55 +81,17 @@ body {
     width: 40px;
 }
 
-.log-output::-webkit-scrollbar {
-    width: 3px !important;
-    height: 3px !important;
-}
-
-.log-output::-webkit-scrollbar-track {
-    background: var(--main-001);
-}
-
-.log-output::-webkit-scrollbar-thumb {
-    background-color: var(--scroll);
-    border-radius: 5px;
-    border: 3px solid transparent;
-}
-
-.log-output:hover::-webkit-scrollbar-thumb {
-    background-color: var(--scroll-2);
-}
-
-textarea::-webkit-scrollbar {
-    width: 3px !important;
-    height: 3px !important;
-}
-
-textarea::-webkit-scrollbar-track {
-    background: var(--main-001);
-}
-
-textarea::-webkit-scrollbar-thumb {
-    background-color: var(--scroll);
-    border-radius: 5px;
-    border: 3px solid transparent;
-}
-
-textarea:hover::-webkit-scrollbar-thumb {
-    background-color: var(--scroll-2);
-}
-
 .left::-webkit-scrollbar {
     width: 3px !important;
     height: 3px !important;
 }
 
 .left::-webkit-scrollbar-track {
-    background: var(--main-001);
+    background: var(--main-01);
 }
 
 .left::-webkit-scrollbar-thumb {
-    background-color: var(--scroll);
+    background-color: var(--scroll-1);
     border-radius: 5px;
     border: 3px solid transparent;
 }
@@ -273,7 +125,7 @@ h1.title span {
     width: 24px;
     height: 24px;
     border-radius: 48px;
-    border: 1px solid var(--main-05);
+    border: 1px solid var(--main-5);
     display: grid;
     align-items: center;
     justify-items: center;
@@ -285,14 +137,14 @@ h1.title span {
 }
 
 #back svg path {
-    fill: var(--main-05);
+    fill: var(--main-5);
 }
 
 #back:hover {
     border: 1px solid var(--main);
     background: linear-gradient(135deg, var(--main) 0%, var(--main-dark) 40%, var(--main-darker) 100%);
     color: var(--bg);
-    box-shadow: 0 3px 15px -1px var(--main-05);
+    box-shadow: 0 3px 15px -1px var(--main-5);
     cursor: pointer;
 }
 
@@ -318,18 +170,18 @@ h1.title span {
 }
 
 .left:hover {
-    background: var(--bg-2);
+    background: var(--main-alpha-2);
 }
 
 .right {
     display: grid;
     align-items: center;
     justify-self: stretch;
-    background: var(--bg-2);
+    background: var(--main-alpha-2);
 }
 
 .right:hover {
-    background: var(--bg-2h);
+    background: var(--main-alpha-4);
 }
 
 .right div {
@@ -351,7 +203,7 @@ h1.title span {
     padding: 8px 8px;
     border: 1px solid var(--border);
     color: var(--font);
-    background-color: var(--bg-2);
+    background-color: var(--main-alpha-2);
     border-radius: 5px;
     font-family: "Archivo", "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -363,7 +215,7 @@ h1.title span {
     color: var(--main-dark);
     border: 1px solid var(--main);
     outline: none;
-    background-color: var(--black-02);
+    background-color: var(--black-2);
 }
 
 #negative_prompt {
@@ -464,7 +316,7 @@ h1.title span {
     border: 1px solid var(--main-dark);
     color: var(--bg);
     background: linear-gradient(135deg, var(--main-dark) 0%, var(--main-darker) 40%, var(--main-darker) 100%);
-    box-shadow: 0 3px 15px -1px var(--main-05);
+    box-shadow: 0 3px 15px -1px var(--main-5);
 }
 
 .key button:disabled {
@@ -532,7 +384,7 @@ h1.title span {
 .log-output {
     height: 22vh;
     padding: 10px 10px;
-    background-color: var(--bg-2);
+    background-color: var(--main-alpha-2);
     border: 1px solid var(--border);
     font-size: 0.9rem;
     border-radius: 5px;

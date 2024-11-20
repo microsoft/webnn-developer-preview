@@ -2,7 +2,7 @@ import { $, getWebnnStatus } from "./common_utils.js";
 
 async function webnnChecker() {
     const webnnStatus = await getWebnnStatus();
-    const status = $("#status");
+    const status = $("#log");
     const browser = $("#browser");
     const chromium = $("#chromium");
     const webnn = $("#webnn");

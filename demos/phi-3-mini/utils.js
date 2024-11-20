@@ -116,7 +116,7 @@ async function readResponse(name, response) {
 export function log(i) {
     console.log(i);
     if (getMode()) {
-        $("#status").innerHTML =
+        $("#log").innerHTML =
             `
         <div class="item app">
             <div class="head">
@@ -125,9 +125,9 @@ export function log(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + $("#status").innerHTML;
+        ` + $("#log").innerHTML;
     } else {
-        $("#status").innerHTML =
+        $("#log").innerHTML =
             `
         <div class="item app">
             <div class="head">
@@ -136,14 +136,14 @@ export function log(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + $("#status").innerHTML;
+        ` + $("#log").innerHTML;
     }
 }
 
 export const logError = i => {
     console.error(i);
     if (getMode()) {
-        $("#status").innerHTML =
+        $("#log").innerHTML =
             `
     <div class="item app">
         <div class="head">
@@ -152,9 +152,9 @@ export const logError = i => {
         </div>
         <div class="info">${i}</div>
     </div>
-    ` + $("#status").innerHTML;
+    ` + $("#log").innerHTML;
     } else {
-        $("#status").innerHTML =
+        $("#log").innerHTML =
             `
         <div class="item app">
             <div class="head">
@@ -163,14 +163,14 @@ export const logError = i => {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + $("#status").innerHTML;
+        ` + $("#log").innerHTML;
     }
 };
 
 export function logUser(i) {
     console.log(i);
     if (getMode()) {
-        $("#status").innerHTML =
+        $("#log").innerHTML =
             `
         <div class="item user">
             <div class="head">
@@ -179,9 +179,9 @@ export function logUser(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + $("#status").innerHTML;
+        ` + $("#log").innerHTML;
     } else {
-        $("#status").innerHTML =
+        $("#log").innerHTML =
             `
         <div class="item user">
             <div class="head">
@@ -190,6 +190,6 @@ export function logUser(i) {
             </div>
             <div class="info">${i}</div>
         </div>
-        ` + $("#status").innerHTML;
+        ` + $("#log").innerHTML;
     }
 }

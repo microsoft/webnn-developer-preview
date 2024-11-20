@@ -31,34 +31,156 @@
 }
 
 :root {
-    --font: rgba(45, 45, 45, 1);
-    --highlight: rgba(39, 94, 254, 1);
-    --highlight-08: rgba(39, 94, 254, 0.8);
-    --highlight-05: rgba(39, 94, 254, 0.5);
+    --bg: rgba(255, 255, 255, 1);
+    --bg-05: rgb(255, 255, 255, 0.05);
+    --bg-2: rgb(255, 255, 255, 0.2);
+    --bg-3: rgba(200, 200, 200, 0.2);
+    --bg-4: rgba(255, 255, 255, 0.4);
+    --bg-6: rgb(255, 255, 255, 0.6);
+    --bg-8: rgba(255, 255, 255, 0.8);
+    --bg-btn: rgba(255, 255, 255, 1);
+    --black-02: rgba(0, 0, 0, 0.02);
+    --black-05: rgba(0, 0, 0, 0.05);
+    --black-2: rgba(240, 240, 240, 0.2);
+    --border: rgb(230, 230, 230, 1);
+    --border-1: rgb(230, 230, 230, 0.1);
+    --border-5: rgb(230, 230, 230, 0.5);
+    --border-6: rgb(230, 230, 230, 0.6);
     --darker: rgba(24, 79, 238, 1);
     --darkest: rgba(20, 74, 204, 1);
-    --white: rgba(255, 255, 255, 1);
-    --white-02: rgba(255, 255, 255, 0.2);
-    --grey: rgba(107, 114, 128, 1);
-    --grey-05: rgba(107, 114, 128, 0.5);
+    --disabled: rgba(245, 245, 245, 0.2);
+    --font: rgba(45, 45, 45, 1);
+    --font-2: rgba(53, 53, 53, 1);
+    --font-weak: rgba(0, 0, 0, 0.6);
     --green: rgba(1, 212, 73, 1);
+    --green-1: rgba(1, 212, 73, 0.1);
+    --green-2: rgba(1, 212, 73, 0.2);
+    --green-03: rgba(1, 212, 73, 0.03);
+    --grey: rgba(107, 114, 128, 1);
+    --grey-5: rgba(107, 114, 128, 0.5);
+    --highlight: rgba(39, 94, 254, 1);
+    --highlight-5: rgba(39, 94, 254, 0.5);
+    --highlight-8: rgba(39, 94, 254, 0.8);
+    --main: rgba(38, 92, 255, 1);
+    --main-01: rgba(39, 94, 254, 0.01);
+    --main-05: rgba(39, 94, 254, 0.05);
+    --main-1: rgba(39, 94, 254, 0.1);
+    --main-5: rgba(39, 94, 254, 0.5);
+    --main-6: rgba(39, 94, 254, 0.6);
+    --main-alpha-2: rgba(230, 230, 230, 0.2);
+    --main-alpha-4: rgba(230, 230, 230, 0.4);
+    --main-dark: rgb(24, 79, 238, 1);
+    --main-darker: rgb(20, 74, 204, 1);
+    --npu: rgba(1, 7, 52, 1);
+    --npu-08: rgba(1, 7, 52, 0.8);
     --pink: rgba(255, 0, 129, 1);
-    --green-02: rgba(1, 212, 73, 0.2);
-    --pink-02: rgba(255, 0, 129, 0.2);
-    --green-01: rgba(1, 212, 73, 0.1);
-    --pink-01: rgba(255, 0, 129, 0.1);
-    --green-003: rgba(1, 212, 73, 0.03);
-    --pink-003: rgba(255, 0, 129, 0.03);
+    --pink-03: rgba(255, 0, 129, 0.03);
+    --pink-1: rgba(255, 0, 129, 0.1);
+    --pink-2: rgba(255, 0, 129, 0.2);
+    --pink-6: rgba(255, 0, 129, 0.6);
+    --pink-8: rgba(255, 0, 129, 0.8);
+    --scroll-1: rgb(0, 0, 0, 0.1);
+    --scroll-2: rgb(0, 0, 0, 0.2);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     margin: 0;
     padding: 0;
     font-size: 1rem;
-    line-height: 1.5;
     color: var(--font);
-    background-color: var(--white);
     font-family: "Archivo", "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    scrollbar-width: auto;
+    scrollbar-color: var(--main-1), transparent;
+    font-weight: 400;
+    background-color: var(--bg);
+}
+
+#badge {
+    border-radius: 3px;
+    align-self: center;
+    padding: 4px 10px;
+    color: var(--bg);
+    box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(to right bottom, var(--pink-6), var(--pink-8), var(--pink));
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr;
+    column-gap: 10px;
+    align-items: center;
+    justify-items: center;
+    width: 120px;
+    justify-self: flex-end;
+}
+
+#badge:hover {
+    background: linear-gradient(135deg, var(--pink-8) 0%, var(--pink) 40%, var(--pink) 100%);
+    box-shadow: 0 3px 15px -1px var(--pink-6);
+}
+
+#badge.npu {
+    background: linear-gradient(to right bottom, rgba(117, 116, 242), var(--npu));
+}
+
+#badge.npu:hover {
+    background: linear-gradient(to right bottom, rgba(117, 116, 242), var(--npu-08), var(--npu));
+    box-shadow: 0 3px 15px -1px var(--npu);
+}
+
+#badge.cpu {
+    background: linear-gradient(to right bottom, var(--main-6), var(--main));
+}
+
+#badge.cpu:hover {
+    background: linear-gradient(to right bottom, var(--main), var(--main-dark), var(--main-darker));
+    box-shadow: 0 3px 15px -1px var(--main-darker);
+}
+
+.badge-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.badge-text span {
+    font-size: 0.6rem;
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr;
+    column-gap: 2px;
+    row-gap: 2px;
+    align-items: center;
+}
+
+.tile {
+    border: 1px solid var(--bg);
+    padding: 2px;
+    border-radius: 1px;
+}
+
+.t4 {
+    border-color: var(--bg-8);
+}
+
+.t3 {
+    border-color: var(--bg-6);
+}
+
+.t2 {
+    border-color: var(--bg-4);
+}
+
+.t1 {
+    border-color: var(--bg-2);
+}
+
+.t0 {
+    border-color: var(--bg-05);
 }
 
 #banner {
@@ -69,9 +191,10 @@ body {
 }
 
 .banner-content {
-    padding: 0 40px;
+    padding: 0px;
     height: 30vh;
     max-width: 90vw;
+    line-height: 1.5;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -153,6 +276,67 @@ header:hover #webnn-logo circle._logo_n3 {
     stroke: #61bafb;
 }
 
+.v1:hover #webnn-logo path._logo_n1,
+.v1:hover #webnn-logo circle._logo_n1 {
+    fill: #4777c0;
+}
+
+.v1:hover #webnn-logo path._logo_n2,
+.v1:hover #webnn-logo circle._logo_n2 {
+    stroke: #61bafb;
+    fill: #61bafb;
+}
+
+.v1:hover #webnn-logo circle._logo_n3 {
+    stroke: #61bafb;
+}
+
+.log-output::-webkit-scrollbar,
+#outputText::-webkit-scrollbar,
+#scroll-wrapper::-webkit-scrollbar {
+    width: 2px !important;
+    height: 2px !important;
+}
+
+.log-output::-webkit-scrollbar-track,
+#outputText::-webkit-scrollbar-track,
+#scroll-wrapper::-webkit-scrollbar-track {
+    background: var(--main-01);
+}
+
+.log-output::-webkit-scrollbar-thumb,
+#outputText::-webkit-scrollbar-thumb,
+#scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: var(--border-6);
+    border-radius: 5px;
+    border: 2px solid transparent;
+}
+
+.log-output:hover::-webkit-scrollbar-thumb,
+#outputText:hover::-webkit-scrollbar-thumb,
+#scroll-wrapper:hover::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+}
+
+textarea::-webkit-scrollbar {
+    width: 3px !important;
+    height: 3px !important;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: var(--main-01);
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background-color: var(--scroll-1);
+    border-radius: 5px;
+    border: 3px solid transparent;
+}
+
+textarea:hover::-webkit-scrollbar-thumb {
+    background-color: var(--scroll-2);
+}
+
 h1 {
     font-size: 1.2rem;
     margin: 0;
@@ -160,12 +344,12 @@ h1 {
 
 h2.title {
     font-size: 1.3rem;
-    margin: 10px 0 -6px 0;
+    margin: 0.5rem 0 0px 0;
 }
 
 .category {
     font-size: 14px;
-    color: var(--grey-05);
+    color: var(--grey-5);
 }
 
 .description:hover .category,
@@ -179,7 +363,7 @@ h2.title {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-column-gap: 2px;
-    grid-row-gap: 10px;
+    grid-row-gap: 1rem;
     justify-content: center;
     justify-items: center;
 }
@@ -188,7 +372,7 @@ h2.title {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     grid-column-gap: 2px;
-    grid-row-gap: 10px;
+    grid-row-gap: 1rem;
     padding: 0 0;
 }
 
@@ -229,7 +413,7 @@ a:focus {
 }
 
 .thumb:hover {
-    box-shadow: 0 3px 15px -1px var(--highlight-05);
+    box-shadow: 0 3px 15px -1px var(--highlight-5);
 }
 
 .thumb:hover .sample::after,
@@ -301,12 +485,12 @@ a:focus {
 }
 
 .github {
-    background: var(--white-02) url(../icon/github.svg) no-repeat 50% 50%;
+    background: var(--bg-2) url(../icon/github.svg) no-repeat 50% 50%;
     background-size: 16px;
 }
 
 .github:hover {
-    background: var(--highlight-05) url(../icon/github.svg) no-repeat 50% 50%;
+    background: var(--highlight-5) url(../icon/github.svg) no-repeat 50% 50%;
     background-size: 16px;
 }
 
@@ -316,14 +500,14 @@ a:focus {
     padding: 0px 6px;
     border-radius: 3px;
     text-decoration: none;
-    background-color: var(--pink-003);
-    border-bottom: 1px dashed var(--pink-02);
+    background-color: var(--pink-03);
+    border-bottom: 1px dashed var(--pink-2);
     font-size: 0.9rem;
 }
 
 #install-guides a:hover {
     background-color: var(--pink);
-    color: var(--white);
+    color: var(--bg);
 }
 
 #install-guides ol,
@@ -338,8 +522,8 @@ a:focus {
 
 code {
     margin: 1px auto;
-    background-color: var(--green-003);
-    border-bottom: 1px dashed var(--green-02);
+    background-color: var(--green-03);
+    border-bottom: 1px dashed var(--green-2);
     display: inline-block;
     padding: 0px 6px;
     border-radius: 3px;
@@ -349,7 +533,7 @@ code {
 
 code:hover {
     background-color: var(--green);
-    color: var(--white);
+    color: var(--bg);
     font-weight: 800;
 }
 
@@ -370,7 +554,7 @@ code:hover {
 .tags span {
     color: rgb(0 0 0 / 75%);
     white-space: nowrap;
-    border: 1px solid var(--grey-05);
+    border: 1px solid var(--grey-5);
     border-radius: 2rem;
     padding: 1px 0.4rem 1px 0.4rem;
     margin: 0 3px;
@@ -383,9 +567,9 @@ code:hover {
 .tags a:hover,
 .tags span:hover {
     border: 1px solid var(--highlight);
-    color: var(--white);
-    background: linear-gradient(135deg, var(--highlight) 0%, var(--highlight-08) 40%, var(--highlight-08) 100%);
-    box-shadow: 0 3px 15px -1px var(--highlight-05);
+    color: var(--bg);
+    background: linear-gradient(135deg, var(--highlight) 0%, var(--highlight-8) 40%, var(--highlight-8) 100%);
+    box-shadow: 0 3px 15px -1px var(--highlight-5);
 }
 
 footer {
@@ -423,7 +607,7 @@ footer ul li a:hover {
     margin-bottom: 10px;
 }
 
-#status > div {
+#status>div {
     padding: 2px 6px 1px 6px;
     border-radius: 3px;
 }
@@ -434,7 +618,7 @@ footer ul li a:hover {
     color: white;
 }
 
-#status.red > a {
+#status.red>a {
     background-color: var(--pink);
     color: white;
     padding: 2px 6px 1px 6px;

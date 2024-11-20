@@ -77,18 +77,18 @@ export const updateQueryStringParameter = (uri, key, value) => {
 export const log = i => {
     console.log(i);
     if (getMode()) {
-        $("#status").innerText += `\n[${getTime()}] ${i}`;
+        $("#log").innerText += `\n[${getTime()}] ${i}`;
     } else {
-        $("#status").innerText += `\n${i}`;
+        $("#log").innerText += `\n${i}`;
     }
 };
 
 export const logError = i => {
     console.error(i);
     if (getMode()) {
-        $("#status").innerText += `\n[${getTime()}] ${i}`;
+        $("#log").innerText += `\n[${getTime()}] ${i}`;
     } else {
-        $("#status").innerText += `\n${i}`;
+        $("#log").innerText += `\n${i}`;
     }
 };
 
