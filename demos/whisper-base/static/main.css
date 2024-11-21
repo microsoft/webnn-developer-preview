@@ -1,177 +1,3 @@
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 300;
-    src: url("./fonts/archivo/archivo-v19-latin-300.woff2") format("woff2");
-}
-
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 400;
-    src: url("./fonts/archivo/archivo-v19-latin-regular.woff2") format("woff2");
-}
-
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 600;
-    src: url("./fonts/archivo/archivo-v19-latin-600.woff2") format("woff2");
-}
-
-@font-face {
-    font-display: swap;
-    font-family: "Archivo";
-    font-style: normal;
-    font-weight: 700;
-    src: url("./fonts/archivo/archivo-v19-latin-700.woff2") format("woff2");
-}
-
-:root {
-    --bg: rgba(255, 255, 255, 1);
-    --black-02: rgba(240, 240, 240, 0.2);
-    --font: rgba(45, 45, 45, 1);
-    --font-2: rgba(53, 53, 53, 1);
-    --font-weak: rgba(0, 0, 0, 0.6);
-    --disabled: rgba(245, 245, 245, 0.2);
-    --bg-05: rgb(255, 255, 255, 0.05);
-    --bg-2: rgb(255, 255, 255, 0.2);
-    --bg-4: rgba(255, 255, 255, 0.4);
-    --bg-6: rgb(255, 255, 255, 0.6);
-    --bg-8: rgba(255, 255, 255, 0.8);
-    --bg-btn: rgba(255, 255, 255, 1);
-    --npu: rgba(1, 7, 52, 1);
-    --npu-08: rgba(1, 7, 52, 0.8);
-    --main-01: rgba(39, 94, 254, 0.1);
-    --main-04: rgba(39, 94, 254, 0.4);
-    --main-001: rgba(39, 94, 254, 0.01);
-    --main-005: rgba(39, 94, 254, 0.05);
-    --main-05: rgba(39, 94, 254, 0.5);
-    --main-06: rgba(39, 94, 254, 0.6);
-    --scroll: rgb(0, 0, 0, 0.1);
-    --scroll-2: rgb(0, 0, 0, 0.2);
-    --main: rgba(39, 94, 254, 1);
-    --main-dark: rgb(24, 79, 238, 1);
-    --main-darker: rgb(20, 74, 204, 1);
-    --border: rgb(230, 230, 230, 1);
-    --border-2: rgb(230, 230, 230, 0.6);
-    --green: rgba(1, 212, 73, 1);
-    --pink: rgba(255, 0, 129, 1);
-    --pink-08: rgba(255, 0, 129, 0.8);
-    --pink-06: rgba(255, 0, 129, 0.6);
-    --green-01: rgba(1, 212, 73, 0.1);
-    --pink-01: rgba(255, 0, 129, 0.1);
-    --green-02: rgba(1, 212, 73, 0.2);
-    --pink-02: rgba(255, 0, 129, 0.2);
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    font-family: "Archivo", "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 400;
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg);
-    color: var(--font);
-    font-size: 16px;
-    /* background-image: linear-gradient(0deg, #ffffff 0%, #FFDEE9 33%, #B5FFFC 66%, #ffffff 100%);   */
-}
-
-body {
-    scrollbar-width: auto;
-    scrollbar-color: var(--main-01), transparent;
-}
-
-#badge {
-    border-radius: 3px;
-    align-self: center;
-    padding: 4px 10px;
-    color: var(--bg);
-    box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.2);
-    background: linear-gradient(to right bottom, var(--pink-06), var(--pink-08), var(--pink));
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    grid-template-rows: 1fr;
-    column-gap: 10px;
-    align-items: center;
-    justify-items: center;
-    width: 120px;
-    justify-self: flex-end;
-}
-
-#badge:hover {
-    background: linear-gradient(135deg, var(--pink-08) 0%, var(--pink) 40%, var(--pink) 100%);
-    box-shadow: 0 3px 15px -1px var(--pink-06);
-}
-
-#badge.npu {
-    background: linear-gradient(to right bottom, rgba(117, 116, 242), var(--npu));
-}
-
-#badge.npu:hover {
-    background: linear-gradient(to right bottom, rgba(117, 116, 242), var(--npu-08), var(--npu));
-    box-shadow: 0 3px 15px -1px var(--npu);
-}
-
-#badge.cpu {
-    background: linear-gradient(to right bottom, var(--main-06), var(--main));
-}
-
-#badge.cpu:hover {
-    background: linear-gradient(to right bottom, var(--main), var(--main-dark), var(--main-darker));
-    box-shadow: 0 3px 15px -1px var(--main-darker);
-}
-
-.badge-text {
-    display: flex;
-    flex-direction: column;
-}
-
-.badge-text span {
-    font-size: 0.6rem;
-}
-
-.tiles {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr;
-    column-gap: 2px;
-    row-gap: 2px;
-    align-items: center;
-}
-
-.tile {
-    border: 1px solid var(--bg);
-    padding: 2px;
-    border-radius: 1px;
-}
-
-.t4 {
-    border-color: var(--bg-8);
-}
-
-.t3 {
-    border-color: var(--bg-6);
-}
-
-.t2 {
-    border-color: var(--bg-4);
-}
-
-.t1 {
-    border-color: var(--bg-2);
-}
-
-.t0 {
-    border-color: var(--bg-05);
-}
-
 .main {
     width: 100%;
 }
@@ -227,21 +53,6 @@ body {
     margin: 0 6px 0 10px;
 }
 
-.v1:hover #webnn-logo path._logo_n1,
-.v1:hover #webnn-logo circle._logo_n1 {
-    fill: #4777c0;
-}
-
-.v1:hover #webnn-logo path._logo_n2,
-.v1:hover #webnn-logo circle._logo_n2 {
-    stroke: #61bafb;
-    fill: #61bafb;
-}
-
-.v1:hover #webnn-logo circle._logo_n3 {
-    stroke: #61bafb;
-}
-
 #webnnstatus a#webnn_na {
     color: var(--pink);
     background-color: rgba(255, 255, 255, 0.8);
@@ -257,29 +68,6 @@ body {
     color: var(--bg);
     border: 0px solid white;
     text-decoration: none;
-}
-
-.log-output::-webkit-scrollbar,
-#outputText::-webkit-scrollbar {
-    width: 3px !important;
-    height: 3px !important;
-}
-
-.log-output::-webkit-scrollbar-track,
-#outputText::-webkit-scrollbar-track {
-    background: var(--main-001);
-}
-
-.log-output::-webkit-scrollbar-thumb,
-#outputText::-webkit-scrollbar-thumb {
-    background-color: var(--scroll);
-    border-radius: 5px;
-    border: 3px solid transparent;
-}
-
-.log-output:hover::-webkit-scrollbar-thumb,
-#outputText::-webkit-scrollbar-thumb {
-    background-color: var(--scroll-2);
 }
 
 h1 {
@@ -310,7 +98,7 @@ h1.title span {
 }
 
 #back svg path {
-    fill: var(--main-05);
+    fill: var(--main-5);
 }
 
 #back:hover {
@@ -353,7 +141,7 @@ h1.title span {
     display: flex;
 }
 
-#action-bar > div {
+#action-bar>div {
     border: 1px solid var(--border);
     border-bottom-right-radius: 5px;
     border-bottom-left-radius: 5px;
@@ -391,7 +179,7 @@ h1.title span {
     display: none;
 }
 
-.indicator > div {
+.indicator>div {
     color: var(--bg);
     transform: skew(-15deg);
     border-radius: 3px;
@@ -498,17 +286,15 @@ h1.title span {
 }
 
 .progress-striped .progress-bar {
-    background-color: var(--main-05);
-    background-image: linear-gradient(
-        45deg,
-        var(--main-06) 25%,
-        transparent 25%,
-        transparent 50%,
-        var(--main-06) 50%,
-        var(--main-06) 75%,
-        transparent 75%,
-        transparent
-    );
+    background-color: var(--main-5);
+    background-image: linear-gradient(45deg,
+            var(--main-6) 25%,
+            transparent 25%,
+            transparent 50%,
+            var(--main-6) 50%,
+            var(--main-6) 75%,
+            transparent 75%,
+            transparent);
 }
 
 .p-fetch-compile {
@@ -712,7 +498,7 @@ button svg {
 #controls label:hover {
     color: var(--main);
     border: 1px solid var(--main);
-    background-color: var(--main-001);
+    background-color: var(--main-01);
     cursor: pointer;
 }
 
@@ -744,7 +530,7 @@ button svg {
 }
 
 .log-output:hover {
-    border: 1px solid var(--border-2);
+    border: 1px solid var(--border-6);
     background-color: var(--bg-8);
 }
 
@@ -806,13 +592,14 @@ button svg {
     align-items: center;
     padding: 0.5rem;
     margin-bottom: 10px;
-    border: 1px solid var(--border-2);
+    border: 1px solid var(--border-6);
     border-radius: 5px;
     color: var(--font-2);
     background-color: var(--bg-6);
 }
 
 @keyframes bounce {
+
     0%,
     20%,
     50%,
@@ -874,11 +661,11 @@ button svg {
 }
 
 .item.app .head span {
-    background-color: var(--pink-01);
+    background-color: var(--pink-1);
 }
 
 .item.user .head span {
-    background-color: var(--green-01);
+    background-color: var(--green-1);
 }
 
 .item.app:hover .head span {
@@ -1102,8 +889,7 @@ button svg {
 }
 
 /* Largest devices such as desktops (1280px) */
-@media only screen and (max-width: 80em) {
-}
+@media only screen and (max-width: 80em) {}
 
 /* Large devices such as laptops (1024px) */
 @media only screen and (max-width: 64em) {
@@ -1117,10 +903,10 @@ button svg {
 }
 
 /* Medium devices such as tablets (718px) */
-@media only screen and (max-width: 718px) {
-}
+@media only screen and (max-width: 718px) {}
 
 @media only screen and (max-width: 40em) {
+
     #placeholder,
     #placeholder canvas {
         width: 88vw;
