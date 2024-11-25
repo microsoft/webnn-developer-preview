@@ -611,7 +611,7 @@ const ui = async () => {
     samDecoderIndicator = $("#sam-decoder-indicator");
 
     canvas.setAttribute("class", "none");
-    await setupORT("segment-anything", "test");
+    await setupORT("segment-anything", "dev");
     showCompatibleChromiumVersion("segment-anything");
 
     // ort.env.wasm.wasmPaths = 'dist/';

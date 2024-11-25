@@ -1203,7 +1203,7 @@ const checkWebNN = async () => {
 };
 
 const ui = async () => {
-    await setupORT("stable-diffusion-1.5", "test");
+    await setupORT("stable-diffusion-1.5", "dev");
     showCompatibleChromiumVersion("stable-diffusion-1.5");
     if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
         title.innerHTML = "WebGPU";
