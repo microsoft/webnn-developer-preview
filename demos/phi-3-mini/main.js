@@ -312,7 +312,7 @@ async function Query(continuation, query, cb) {
 }
 
 const main = async () => {
-    await setupORT("phi-3-mini", "test");
+    await setupORT("phi-3-mini", "dev");
     showCompatibleChromiumVersion("phi-3-mini");
 
     ort.env.wasm.numThreads = 4;
