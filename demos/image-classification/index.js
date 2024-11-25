@@ -3,7 +3,8 @@
 //
 // An example how to run Image Classification with webnn in onnxruntime-web.
 //
-import * as transformers from "../../assets/dist_transformers/1.21.0-dev.20241109/transformers.js";
+
+import * as transformers from "../../assets/dist_transformers/1.21.0-dev.20241122/transformers.js";
 import {
     $,
     $$,
@@ -23,7 +24,7 @@ import {
 transformers.env.backends.onnx.wasm.proxy = false;
 transformers.env.backends.onnx.wasm.simd = true;
 transformers.env.backends.onnx.wasm.numThreads = 1;
-transformers.env.backends.onnx.wasm.wasmPaths = "../../assets/dist_transformers/1.21.0-dev.20241109/";
+transformers.env.backends.onnx.wasm.wasmPaths = "../../assets/dist_transformers/1.21.0-dev.20241122/";
 
 const useRemoteModels = location.hostname.includes("github.io");
 transformers.env.allowRemoteModels = useRemoteModels;
