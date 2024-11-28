@@ -88,6 +88,7 @@ const SpeechStates = {
 let speechState = SpeechStates.UNINITIALIZED;
 
 let mask4d = true; // use 4D mask input for decoder models
+let iobinding = true;
 let streamingNode = null;
 let sourceNode = null;
 let audioChunks = []; // member {isSubChunk: boolean, data: Float32Array}
@@ -160,6 +161,9 @@ function updateConfig() {
         }
         if (pair[0] == "mask_4d") {
             mask4d = pair[1].toLowerCase() === "true";
+        }
+        if (pair[0] == 'iobinding') {
+            iobinding = pair[1].toLowerCase() === 'true';
         }
     }
 }
@@ -664,7 +668,7 @@ const main = async () => {
         const whisper_url = location.href.includes("github.io")
             ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
             : "./models/";
-        whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d);
+        whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d, iobinding);
         await whisper.create_whisper_processor();
         await whisper.create_whisper_tokenizer();
         await whisper.create_ort_sessions();
