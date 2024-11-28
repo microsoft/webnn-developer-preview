@@ -40,12 +40,13 @@ if (
 
 // wrapper around onnxruntime and model
 export class Whisper {
-    constructor(url, provider, deviceType = "gpu", dataType, mask_4d = true) {
+    constructor(url, provider, deviceType = "gpu", dataType, mask_4d = true, iobinding) {
         this.url = url;
         this.provider = provider;
         this.deviceType = deviceType;
         this.dataType = dataType;
         this.mask_4d = mask_4d;
+        this.iobinding = iobinding && deviceType == 'gpu';
         ort.env.wasm.simd = true;
 
         this.models = {
@@ -101,6 +102,19 @@ export class Whisper {
                     deviceType: this.deviceType,
                 },
             ],
+            preferredOutputLocation: this.iobinding ? (() => {
+                const pairs = {};
+                pairs['last_hidden_state'] = "ml-tensor";
+                for (let i = 0; i < 6; i++) {
+                    pairs[`padded_present_key_values.${i}.decoder.key`] = "ml-tensor";
+                    pairs[`padded_present_key_values.${i}.decoder.value`] = "ml-tensor";
+                    pairs[`present_key_values.${i}.encoder.key`] = "ml-tensor";
+                    pairs[`present_key_values.${i}.encoder.value`] = "ml-tensor";
+                    pairs[`updated_present_key_values.${i}.decoder.key`] = "ml-tensor";
+                    pairs[`updated_present_key_values.${i}.decoder.value`] = "ml-tensor";
+                }
+                return pairs;
+            })() : undefined,
             logSeverityLevel: 0,
         };
 
@@ -111,8 +125,13 @@ export class Whisper {
                 let url = this.url + this.models[name]["url"];
                 if (this.dataType == "float16") {
                     url = url.replace(".onnx", "_fp16_layernorm_gelu.onnx");
-                    if (name.includes("decoder") && this.mask_4d) {
-                        url = url.replace(".onnx", "_4dmask.onnx");
+                    if (name.includes("decoder")) {
+                        if (this.mask_4d) {
+                            url = url.replace(".onnx", "_4dmask.onnx");
+                        }
+                        if (this.iobinding) {
+                            url = url.replace(".onnx", "_iobinding.onnx");
+                        }
                     }
                     log(`Loading ${this.models[name]["title"]} · ${this.dataType} · ${this.models[name]["fp16size"]}`);
                 } else {
@@ -120,7 +139,8 @@ export class Whisper {
                     log(`Loading ${this.models[name]["title"]} · ${this.dataType} · ${this.models[name]["fp32size"]}`);
                 }
 
-                const modelBuffer = await getModelOPFS(`${this.deviceType}_${name}_${this.dataType}`, url, false);
+                const modelBuffer = await getModelOPFS(`${this.iobinding}_${this.deviceType}_${name}_${this.dataType}`,
+                    url, false);
                 log(`${this.models[name]["title"]} loaded`);
 
                 log(`Creating session for ${this.models[name]["title"]}`);
@@ -271,15 +291,24 @@ export class Whisper {
         }
 
         // modify the self attention kv cache in place
-        cache_update(
-            decoder_input,
-            decoder_output,
-            0,
-            this.max_sequence_length,
-            this.num_init_tokens,
-            this.num_init_tokens,
-            this.dataType,
-        );
+        if (this.iobinding) {
+            for (let i = 0; i < 6; i++) {
+                decoder_input[`past_key_values.${i}.decoder.key`] =
+                    decoder_output[`padded_present_key_values.${i}.decoder.key`];
+                decoder_input[`past_key_values.${i}.decoder.value`] =
+                    decoder_output[`padded_present_key_values.${i}.decoder.value`];
+            }
+        } else {
+            cache_update(
+                decoder_input,
+                decoder_output,
+                0,
+                this.max_sequence_length,
+                this.num_init_tokens,
+                this.num_init_tokens,
+                this.dataType
+            );
+        }
 
         const position_ids = new Int32Array(decoder_input["position_ids"].cpuData.buffer);
         // run complete inference for every item in dataset
@@ -319,16 +348,27 @@ export class Whisper {
                 position_ids[0],
                 this.mask_4d,
             );
-            // modify the kv cache in place
-            cache_update(
-                decoder_input,
-                decoder_cached_output,
-                i,
-                this.max_sequence_length,
-                this.num_init_tokens,
-                position_ids[0],
-                this.dataType,
-            );
+
+          // modify the kv cache in place
+          if (this.iobinding) {
+              for (let i = 0; i < 6; i++) {
+                  decoder_input[`past_key_values.${i}.decoder.key`] =
+                      decoder_cached_output[`updated_present_key_values.${i}.decoder.key`];
+                  decoder_input[`past_key_values.${i}.decoder.value`] =
+                      decoder_cached_output[`updated_present_key_values.${i}.decoder.value`];
+              }
+          } else {
+              cache_update(
+                  decoder_input,
+                  decoder_cached_output,
+                  i,
+                  this.max_sequence_length,
+                  this.num_init_tokens,
+                  position_ids[0],
+                  this.dataType
+              );
+          }
+
         }
 
         // add token to sentence decode time
