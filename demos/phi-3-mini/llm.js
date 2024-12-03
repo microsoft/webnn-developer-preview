@@ -26,9 +26,6 @@ export class LLM {
     provider = "webnn";
     sess = undefined;
     feed = {};
-    prefill_fetches = {};
-    decode_fetches = {};
-    decode_tmp_fetches = {};
     output_tokens = [];
     eos = [32007, 32000]; // end tokens
     need_position_ids = true;
@@ -74,8 +71,6 @@ export class LLM {
         this.ml_context = await navigator.ml.createContext({ deviceType: "gpu" });
         const session_options = {
             executionProviders: [{ name: this.provider, deviceType: "gpu", context: this.ml_context }],
-            preferredOutputLocation: "ml-tensor",
-            // graphOptimizationLevel: 'basic',
             externalData: [
                 {
                     data: external_data_bytes,
@@ -84,19 +79,15 @@ export class LLM {
             ],
         };
 
+        const location_type = this.provider == "webnn" ? "ml-tensor" : "gpu-buffer";
         switch (this.provider) {
-            //     case 'webnn':
-            //         // Bind kv cache outputs to ml-tensor
-            //         for (let i = 0; i < 32; ++i) {
-            //             session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.key`] = 'ml-tensor';
-            //             session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.value`] = 'ml-tensor';
-            //         }
-            //         break;
+            case "webnn":
             case "webgpu":
+                // Bind kv cache outputs to ml-tensor or gpu-buffer
                 session_options.preferredOutputLocation = {};
-                for (let i = 0; i < this.num_layers; ++i) {
-                    session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.key`] = "gpu-buffer";
-                    session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.value`] = "gpu-buffer";
+                for (let i = 0; i < 32; ++i) {
+                    session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.key`] = location_type;
+                    session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.value`] = location_type;
                 }
                 break;
             case "wasm":
@@ -158,101 +149,28 @@ export class LLM {
     }
 
     async initialize_feed() {
-        // dispose of previous tensor
+        // dispose previous tensors
         for (const name in this.feed) {
             const t = this.feed[name];
-            if (t.location === "gpu-buffer") {
+            if (t.location === "gpu-buffer" || t.location === "ml-tensor") {
                 t.dispose();
-            }
-            if (t.location === "ml-tensor") {
-                t.mlTensor.destroy();
-            }
-        }
-
-        for (const name in this.decode_fetches) {
-            const t1 = this.prefill_fetches[name];
-            const t2 = this.decode_fetches[name];
-            const t3 = this.decode_tmp_fetches[name];
-            if (t1.location === "ml-tensor") {
-                t1.mlTensor.destroy();
-                t2.mlTensor.destroy();
-                t3.mlTensor.destroy();
             }
         }
 
         this.feed = {};
+        this.feed["sink_range"] = new ort.Tensor("int32", Int32Array.from([0, 1]), [2]);
         if (this.provider == "webnn") {
-            const sink_range_tensor = await this.ml_context.createTensor({
-                dataType: "int32",
-                shape: [2],
-                writable: true,
-            });
-            this.ml_context.writeTensor(sink_range_tensor, Int32Array.from([0, 1]));
-            this.feed["sink_range"] = ort.Tensor.fromMLTensor(sink_range_tensor, {
-                dataType: "int32",
-                dims: [2],
-            });
+            // init kv cache ml-tensor
             const kv_desc = { dataType: this.dtype, shape: this.kv_dims };
             const ort_kv_desc = { dataType: this.dtype, dims: this.kv_dims };
             const input_ml_tensor = await this.ml_context.createTensor(kv_desc);
             for (let i = 0; i < this.num_layers; ++i) {
-                // The same MLTensor cannot be used more than once as output.
-                const prefill_key_ml_tensor = await this.ml_context.createTensor(kv_desc);
-                const prefill_value_ml_tensor = await this.ml_context.createTensor(kv_desc);
-                const decode_key_ml_tensor = await this.ml_context.createTensor(kv_desc);
-                const decode_value_ml_tensor = await this.ml_context.createTensor(kv_desc);
-                const decode_tmp_key_ml_tensor = await this.ml_context.createTensor(kv_desc);
-                const decode_tmp_value_ml_tensor = await this.ml_context.createTensor(kv_desc);
-                // input feed
-                this.feed[`past_key_values.${i}.decoder.key`] = ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
-                this.feed[`past_key_values.${i}.decoder.value`] = ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
-                // output fetches
-                this.prefill_fetches[`new_present_key_values.${i}.decoder.key`] = ort.Tensor.fromMLTensor(
-                    prefill_key_ml_tensor,
-                    ort_kv_desc,
-                );
-                this.prefill_fetches[`new_present_key_values.${i}.decoder.value`] = ort.Tensor.fromMLTensor(
-                    prefill_value_ml_tensor,
-                    ort_kv_desc,
-                );
-                this.decode_fetches[`new_present_key_values.${i}.decoder.key`] = ort.Tensor.fromMLTensor(
-                    decode_key_ml_tensor,
-                    ort_kv_desc,
-                );
-                this.decode_fetches[`new_present_key_values.${i}.decoder.value`] = ort.Tensor.fromMLTensor(
-                    decode_value_ml_tensor,
-                    ort_kv_desc,
-                );
-                this.decode_tmp_fetches[`new_present_key_values.${i}.decoder.key`] = ort.Tensor.fromMLTensor(
-                    decode_tmp_key_ml_tensor,
-                    ort_kv_desc,
-                );
-                this.decode_tmp_fetches[`new_present_key_values.${i}.decoder.value`] = ort.Tensor.fromMLTensor(
-                    decode_tmp_value_ml_tensor,
-                    ort_kv_desc,
-                );
+                this.feed[`past_key_values.${i}.decoder.key`] =
+                    ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
+                this.feed[`past_key_values.${i}.decoder.value`] =
+                    ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
             }
-            const token_id_desc = {
-                dataType: "int32",
-                shape: [1, 1],
-                readable: true,
-            };
-            const ort_token_id_desc = {
-                dataType: "int32",
-                dims: [1, 1],
-            };
-            this.prefill_token_id_tensor = await this.ml_context.createTensor(token_id_desc);
-            this.prefill_fetches["token_id"] = ort.Tensor.fromMLTensor(this.prefill_token_id_tensor, ort_token_id_desc);
-
-            this.decode_token_id_tensor = await this.ml_context.createTensor(token_id_desc);
-            this.decode_fetches["token_id"] = ort.Tensor.fromMLTensor(this.decode_token_id_tensor, ort_token_id_desc);
-            this.decode_tmp_fetches["token_id"] = ort.Tensor.fromMLTensor(
-                this.decode_token_id_tensor,
-                ort_token_id_desc,
-            );
-        } else if (this.provider == "webgpu" || this.provider == "wasm") {
-            // key value cache is zero copy, just pass gpu buffer as referece
-            this.feed["sink_range"] = new ort.Tensor("int32", Int32Array.from([0, 1]), [2]);
+        } else {
             const kv_num_elements = product(this.kv_dims);
             const empty =
                 this.dtype === "float16" ? new Uint16Array(kv_num_elements) : new Float32Array(kv_num_elements);
@@ -260,8 +178,6 @@ export class LLM {
                 this.feed[`past_key_values.${i}.decoder.key`] = new ort.Tensor(this.dtype, empty, this.kv_dims);
                 this.feed[`past_key_values.${i}.decoder.value`] = new ort.Tensor(this.dtype, empty, this.kv_dims);
             }
-        } else {
-            throw new Error(`unsupported provider: ${this.provider}`);
         }
     }
 
@@ -270,10 +186,16 @@ export class LLM {
         for (const name in outputs) {
             if (name.includes("new_present_key_values")) {
                 let newName = name.replace(name.split(".")[0], "past_key_values");
-                // dispose previous gpu buffers
                 const t = this.feed[newName];
-                if (t.location === "gpu-buffer") {
-                    t.dispose();
+                // dispose previous tensors
+                if (t.location === "gpu-buffer" || t.location == "ml-tensor") {
+                    // ml-tensor in first feed has no dispose method
+                    if (t.disposer == undefined && t.location == "ml-tensor") {
+                        t.mlTensor.destroy();
+                    } else {
+                        t.dispose();
+                    }
+
                 }
 
                 this.feed[newName] = outputs[name];
@@ -336,17 +258,8 @@ export class LLM {
         this.stop = false;
 
         let last_token = 0;
-        let outputs;
-        if (this.provider == "webnn") {
-            await this.sess_1.run(this.feed, this.prefill_fetches);
-            let token_id = await this.ml_context.readTensor(this.prefill_fetches["token_id"].mlTensorData);
-            last_token = new Int32Array(token_id)[0];
-            outputs = this.prefill_fetches;
-        } else {
-            outputs = await this.sess_1.run(this.feed);
-            last_token = outputs["token_id"].cpuData[0];
-        }
-
+        let outputs = await this.sess_1.run(this.feed);
+        last_token = outputs["token_id"].cpuData[0];
         console.log("first token: ", last_token);
         this.start_len += input_ids_len;
         this.output_tokens.push(last_token);
@@ -366,15 +279,8 @@ export class LLM {
             this.feed["attention_mask"] = new ort.Tensor("int32", new Int32Array(attn_mask), [1, this.max_cache + 1]);
             this.feed["position_ids"] = new ort.Tensor("int32", Int32Array.from([this.start_len]), [1, 1]);
 
-            if (this.provider == "webnn") {
-                outputs = this.start_len % 2 == 0 ? this.decode_fetches : this.decode_tmp_fetches;
-                await this.sess_2.run(this.feed, outputs);
-                let token_id = await this.ml_context.readTensor(outputs["token_id"].mlTensorData);
-                last_token = new Int32Array(token_id)[0];
-            } else {
-                outputs = await this.sess_1.run(this.feed);
-                last_token = outputs["token_id"].cpuData[0];
-            }
+            outputs = await this.sess_2.run(this.feed);
+            last_token = outputs["token_id"].cpuData[0];
 
             console.log("next token: ", last_token);
             this.output_tokens.push(last_token);
