@@ -81,7 +81,7 @@ const SpeechStates = {
 let speechState = SpeechStates.UNINITIALIZED;
 
 let mask4d = true; // use 4D mask input for decoder models
-let iobinding = true;
+let ioBinding = true;
 let streamingNode = null;
 let sourceNode = null;
 let audioChunks = []; // member {isSubChunk: boolean, data: Float32Array}
@@ -131,32 +131,34 @@ function updateConfig() {
     let vars = query.split("&");
     for (let i = 0; i < vars.length; i++) {
         let pair = vars[i].split("=");
+        const key = pair[0].toLowerCase();
+        const value = pair[1].toLowerCase();
         if (pair[0] == "provider" && providers.includes(pair[1])) {
             provider = pair[1];
         }
-        if (pair[0].toLowerCase() == "devicetype" && deviceTypes.includes(pair[1])) {
+        if (key == "devicetype" && deviceTypes.includes(pair[1])) {
             deviceType = pair[1];
         }
-        if (pair[0].toLowerCase() == "datatype" && dataTypes.includes(pair[1])) {
+        if (key == "datatype" && dataTypes.includes(pair[1])) {
             dataType = pair[1];
         }
-        if (pair[0].toLowerCase() == "maxchunklength") {
+        if (key == "maxchunklength") {
             maxChunkLength = parseFloat(pair[1]);
         }
-        if (pair[0].toLowerCase() == "chunklength") {
+        if (key == "chunklength") {
             chunkLength = parseFloat(pair[1]);
         }
-        if (pair[0].toLowerCase() == "maxaudiolength") {
+        if (key == "maxaudiolength") {
             maxAudioLength = Math.min(parseInt(pair[1]), kMaxAudioLengthInSec);
         }
-        if (pair[0].toLowerCase() == "accumulatesubchunks") {
-            accumulateSubChunks = pair[1].toLowerCase() === "true";
+        if (key == "accumulatesubchunks") {
+            accumulateSubChunks = value === "true";
         }
         if (pair[0] == "mask_4d") {
-            mask4d = pair[1].toLowerCase() === "true";
+            mask4d = value === "true";
         }
-        if (pair[0] == 'iobinding') {
-            iobinding = pair[1].toLowerCase() === 'true';
+        if (pair[0] == 'ioBinding') {
+            ioBinding = value === 'true';
         }
     }
 }

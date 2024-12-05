@@ -40,13 +40,13 @@ if (
 
 // wrapper around onnxruntime and model
 export class Whisper {
-    constructor(url, provider, deviceType = "gpu", dataType, mask_4d = true, iobinding) {
+    constructor(url, provider, deviceType = "gpu", dataType, mask_4d = true, ioBinding) {
         this.url = url;
         this.provider = provider;
         this.deviceType = deviceType;
         this.dataType = dataType;
         this.mask_4d = mask_4d;
-        this.iobinding = iobinding && deviceType == 'gpu';
+        this.ioBinding = ioBinding && deviceType == 'gpu';
         ort.env.wasm.simd = true;
 
         this.models = {
@@ -102,8 +102,8 @@ export class Whisper {
                     deviceType: this.deviceType,
                 },
             ],
-            preferredOutputLocation: this.iobinding ? (() => {
-                const pairs = {};
+            preferredOutputLocation: this.ioBinding ? (() => {
+                let pairs = {};
                 pairs['last_hidden_state'] = "ml-tensor";
                 for (let i = 0; i < 6; i++) {
                     pairs[`padded_present_key_values.${i}.decoder.key`] = "ml-tensor";
@@ -129,7 +129,7 @@ export class Whisper {
                         if (this.mask_4d) {
                             url = url.replace(".onnx", "_4dmask.onnx");
                         }
-                        if (this.iobinding) {
+                        if (this.ioBinding) {
                             url = url.replace(".onnx", "_iobinding.onnx");
                         }
                     }
@@ -139,7 +139,7 @@ export class Whisper {
                     log(`Loading ${this.models[name]["title"]} · ${this.dataType} · ${this.models[name]["fp32size"]}`);
                 }
 
-                const modelBuffer = await getModelOPFS(`${this.iobinding}_${this.deviceType}_${name}_${this.dataType}`,
+                const modelBuffer = await getModelOPFS(`${this.ioBinding}_${this.deviceType}_${name}_${this.dataType}`,
                     url, false);
                 log(`${this.models[name]["title"]} loaded`);
 
@@ -291,7 +291,7 @@ export class Whisper {
         }
 
         // modify the self attention kv cache in place
-        if (this.iobinding) {
+        if (this.ioBinding) {
             for (let i = 0; i < 6; i++) {
                 decoder_input[`past_key_values.${i}.decoder.key`] =
                     decoder_output[`padded_present_key_values.${i}.decoder.key`];
@@ -350,8 +350,12 @@ export class Whisper {
             );
 
           // modify the kv cache in place
-          if (this.iobinding) {
+          if (this.ioBinding) {
               for (let i = 0; i < 6; i++) {
+                  // dispose previous tensors
+                  decoder_input[`past_key_values.${i}.decoder.key`].mlTensor.destroy();
+                  decoder_input[`past_key_values.${i}.decoder.value`].mlTensor.destroy();
+                  // update the kv cache
                   decoder_input[`past_key_values.${i}.decoder.key`] =
                       decoder_cached_output[`updated_present_key_values.${i}.decoder.key`];
                   decoder_input[`past_key_values.${i}.decoder.value`] =
@@ -369,6 +373,15 @@ export class Whisper {
               );
           }
 
+        }
+
+        if (this.ioBinding) {
+            for (let i = 0; i < 6; i++) {
+                decoder_output[`padded_present_key_values.${i}.decoder.key`].mlTensor.destroy();
+                decoder_output[`padded_present_key_values.${i}.decoder.value`].mlTensor.destroy();
+                decoder_input[`past_key_values.${i}.encoder.key`].mlTensor.destroy();
+                decoder_input[`past_key_values.${i}.encoder.value`].mlTensor.destroy();
+            }
         }
 
         // add token to sentence decode time
