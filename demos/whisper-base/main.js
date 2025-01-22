@@ -718,68 +718,61 @@ const ui = async () => {
 
     let webnnStatus = await getWebnnStatus();
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("wasm") > -1) {
-        status.innerHTML = "";
-        title.innerHTML = "WebAssembly";
-        try {
+    try {
+        if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("wasm") > -1) {
+            status.innerHTML = "";
+            title.innerHTML = "WebAssembly";
+
             await main();
-        } catch (error) {
-            logError(`Error · ${error.message}`);
-        }
-    } else if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
-        status.innerHTML = "";
-        title.innerHTML = "WebGPU";
-        try {
+        } else if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+            status.innerHTML = "";
+            title.innerHTML = "WebGPU";
             await main();
-        } catch (error) {
-            logError(`Error · ${error.message}`);
-        }
-    } else {
-        if (webnnStatus.webnn) {
-            status.setAttribute("class", "green");
-            info.innerHTML = `WebNN supported · <a href="./?devicetype=gpu">GPU</a> · <a href="./?devicetype=npu">NPU</a>`;
-            if (deviceType.toLowerCase() === "npu") {
-                try {
-                    await navigator.ml.createContext({ deviceType: "npu" });
-                    await main();
-                } catch (error) {
-                    status.setAttribute("class", "red");
-                    info.innerHTML = `
+        } else {
+            if (webnnStatus.webnn) {
+                status.setAttribute("class", "green");
+                info.innerHTML = `WebNN supported · <a href="./?devicetype=gpu">GPU</a> · <a href="./?devicetype=npu">NPU</a>`;
+                if (deviceType.toLowerCase() === "npu") {
+                    try {
+                        await navigator.ml.createContext({ deviceType: "npu" });
+                        await main();
+                    } catch (error) {
+                        status.setAttribute("class", "red");
+                        info.innerHTML = `
             ${error}<br>
             Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed.`;
-                    labelFileUpload.setAttribute("class", "file-upload-label disabled");
-                    fileUpload.disabled = true;
-                    record.disabled = true;
-                    speech.disabled = true;
-                    logError(`[Error] ${error}`);
-                    logError(
-                        `[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`,
-                    );
-                    log(`<a href="./?devicetype=gpu">Switch to WebNN GPU</a>`);
-                }
-            } else {
-                try {
+                        labelFileUpload.setAttribute("class", "file-upload-label disabled");
+                        fileUpload.disabled = true;
+                        record.disabled = true;
+                        speech.disabled = true;
+                        logError(`[Error] ${error}`);
+                        logError(
+                            `[Error] Your device probably doesn't have an AI processor (NPU) or the NPU driver is not successfully installed`,
+                        );
+                        log(`<a href="./?devicetype=gpu">Switch to WebNN GPU</a>`);
+                    }
+                } else {
                     await main();
                     labelFileUpload.setAttribute("class", "file-upload-label");
                     fileUpload.disabled = false;
                     record.disabled = false;
                     speech.disabled = false;
-                } catch (error) {
-                    logError(`Error · ${error.message}`);
+                }
+            } else {
+                if (webnnStatus.error) {
+                    status.setAttribute("class", "red");
+                    info.innerHTML = `WebNN not supported: ${webnnStatus.error} <a id="webnn_na" href="../../install.html" title="WebNN Installation Guide">Set up WebNN</a>`;
+                    logError(`[Error] ${webnnStatus.error}`);
+                    log(`<a href="../../install.html" title="WebNN Installation Guide">WebNN Installation Guide</a>`);
+                } else {
+                    status.setAttribute("class", "red");
+                    info.innerHTML = "WebNN not supported";
+                    logError("[Error] WebNN not supported");
                 }
             }
-        } else {
-            if (webnnStatus.error) {
-                status.setAttribute("class", "red");
-                info.innerHTML = `WebNN not supported: ${webnnStatus.error} <a id="webnn_na" href="../../install.html" title="WebNN Installation Guide">Set up WebNN</a>`;
-                logError(`[Error] ${webnnStatus.error}`);
-                log(`<a href="../../install.html" title="WebNN Installation Guide">WebNN Installation Guide</a>`);
-            } else {
-                status.setAttribute("class", "red");
-                info.innerHTML = "WebNN not supported";
-                logError("[Error] WebNN not supported");
-            }
         }
+    } catch (error) {
+        logError(`Error · ${error.message}`);
     }
 };
 
