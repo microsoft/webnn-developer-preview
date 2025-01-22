@@ -659,29 +659,26 @@ const main = async () => {
     });
 
     log(`ONNX Runtime Web Execution Provider loaded · ${provider.toUpperCase()}`);
-    try {
-        context = new AudioContext({ sampleRate: kSampleRate });
-        const whisper_url = location.href.includes("github.io")
-            ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
-            : "./models/";
-        whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d);
-        await whisper.create_whisper_processor();
-        await whisper.create_whisper_tokenizer();
-        await whisper.create_ort_sessions();
-        log("Ready to transcribe ...");
-        ready();
-        context = new AudioContext({
-            sampleRate: kSampleRate,
-            channelCount: 1,
-            echoCancellation: false,
-            autoGainControl: true,
-            noiseSuppression: true,
-        });
-        if (!context) {
-            throw new Error("no AudioContext, make sure domain has access to Microphone");
-        }
-    } catch (e) {
-        logError(`Error · ${e.message}`);
+
+    context = new AudioContext({ sampleRate: kSampleRate });
+    const whisper_url = location.href.includes("github.io")
+        ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
+        : "./models/";
+    whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d);
+    await whisper.create_whisper_processor();
+    await whisper.create_whisper_tokenizer();
+    await whisper.create_ort_sessions();
+    log("Ready to transcribe ...");
+    ready();
+    context = new AudioContext({
+        sampleRate: kSampleRate,
+        channelCount: 1,
+        echoCancellation: false,
+        autoGainControl: true,
+        noiseSuppression: true,
+    });
+    if (!context) {
+        throw new Error("no AudioContext, make sure domain has access to Microphone");
     }
 };
 
@@ -724,11 +721,19 @@ const ui = async () => {
     if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("wasm") > -1) {
         status.innerHTML = "";
         title.innerHTML = "WebAssembly";
-        await main();
+        try {
+            await main();
+        } catch (error) {
+            logError(`Error · ${error.message}`);
+        }
     } else if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
         status.innerHTML = "";
         title.innerHTML = "WebGPU";
-        await main();
+        try {
+            await main();
+        } catch (error) {
+            logError(`Error · ${error.message}`);
+        }
     } else {
         if (webnnStatus.webnn) {
             status.setAttribute("class", "green");
@@ -753,11 +758,15 @@ const ui = async () => {
                     log(`<a href="./?devicetype=gpu">Switch to WebNN GPU</a>`);
                 }
             } else {
-                await main();
-                labelFileUpload.setAttribute("class", "file-upload-label");
-                fileUpload.disabled = false;
-                record.disabled = false;
-                speech.disabled = false;
+                try {
+                    await main();
+                    labelFileUpload.setAttribute("class", "file-upload-label");
+                    fileUpload.disabled = false;
+                    record.disabled = false;
+                    speech.disabled = false;
+                } catch (error) {
+                    logError(`Error · ${error.message}`);
+                }
             }
         } else {
             if (webnnStatus.error) {
