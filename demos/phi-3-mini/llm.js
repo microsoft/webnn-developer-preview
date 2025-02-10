@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { $ } from "../../assets/js/common_utils.js";
+import { $, getQueryValue } from "../../assets/js/common_utils.js";
 import {
     getModelOPFS,
     log,
@@ -32,6 +32,7 @@ export class LLM {
     stop = false;
     kv_dims = [];
     dtype = "float16";
+    device_type = "gpu";
     max_seq = 128;
     max_cache = 256;
     attn_mask_len = 384;
@@ -67,10 +68,14 @@ export class LLM {
         let model_size = model_bytes.byteLength;
         model_size += external_data_bytes.byteLength;
 
+        if (getQueryValue("devicetype")) {
+            this.device_type = getQueryValue("devicetype").toLowerCase();
+        }
+
         log(`Phi-3 Mini model size: ${Math.round(model_size / 1024 / 1024)} MB`);
-        this.ml_context = await navigator.ml.createContext({ deviceType: "gpu" });
+        this.ml_context = await navigator.ml.createContext({ deviceType: this.device_type });
         const session_options = {
-            executionProviders: [{ name: this.provider, deviceType: "gpu", context: this.ml_context }],
+            executionProviders: [{ name: this.provider, deviceType: this.device_type, context: this.ml_context }],
             externalData: [
                 {
                     data: external_data_bytes,
