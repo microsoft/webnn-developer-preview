@@ -181,7 +181,6 @@ const loadScriptWithMessage = async version => {
                 version = await getLatestOrtWebDevVersion();
             }
             await loadScript("onnxruntime-web", `${ORT_CDN_URL}${version}/dist/ort.all.min.js`);
-            
             return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
         }
     } catch (error) {
