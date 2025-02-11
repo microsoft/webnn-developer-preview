@@ -688,6 +688,10 @@ footer ul li a:hover {
         justify-content: space-between;
     }
 
+    .title #title {
+        display: none;
+    }
+
     #banner h1 {
         font-size: max(28px, min(5vw, 16px));
         margin-bottom: 10px;

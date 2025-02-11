@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { $, getQueryValue } from "../../assets/js/common_utils.js";
+import { $ } from "../../assets/js/common_utils.js";
 import {
     getModelOPFS,
     log,
@@ -51,7 +51,6 @@ export class LLM {
         const verbose = options.verbose;
         this.kv_dims = [1, 32, this.max_cache, 96];
         this.num_layers = 32;
-        log(`WebNN EP config: ${model} · ${this.dtype} · ${this.provider}`);
 
         const path = location.href.includes("github.io")
             ? "https://huggingface.co/webnn/Phi3-mini-4k-instruct-static/resolve/main/"
@@ -68,10 +67,6 @@ export class LLM {
         let model_size = model_bytes.byteLength;
         model_size += external_data_bytes.byteLength;
 
-        if (getQueryValue("devicetype")) {
-            this.device_type = getQueryValue("devicetype").toLowerCase();
-        }
-
         log(`Phi-3 Mini model size: ${Math.round(model_size / 1024 / 1024)} MB`);
         this.ml_context = await navigator.ml.createContext({ deviceType: this.device_type });
         const session_options = {
@@ -83,6 +78,8 @@ export class LLM {
                 },
             ],
         };
+
+        log(`WebNN EP config: ${model} · ${this.dtype} · ${session_options.executionProviders[0].name} · ${session_options.executionProviders[0].deviceType}`);
 
         const location_type = this.provider == "webnn" ? "ml-tensor" : "gpu-buffer";
         switch (this.provider) {

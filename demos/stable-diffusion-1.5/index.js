@@ -21,6 +21,8 @@ import {
 } from "../../assets/js/common_utils.js";
 
 // Configuration...
+let device = "gpu";
+let badge;
 const pixelWidth = 512;
 const pixelHeight = 512;
 const latentWidth = pixelWidth / 8;
@@ -1183,6 +1185,7 @@ const checkWebNN = async () => {
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
+        updateDeviceTypeLinks();
         loadButton.disabled = false;
     } else {
         loadButton.disabled = true;
@@ -1202,13 +1205,40 @@ const checkWebNN = async () => {
     }
 };
 
+const updateDeviceTypeLinks = () => {
+    let info = $("#info");
+    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    info.innerHTML = `${info.innerHTML} ${links}`;
+};
+
 const ui = async () => {
+    device = $("#device");
+    badge = $("#badge");
     await setupORT("stable-diffusion-1.5", "dev");
     showCompatibleChromiumVersion("stable-diffusion-1.5");
     if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
         title.innerHTML = "WebGPU";
     }
     await checkWebNN();
+    if (
+        getQueryVariable("devicetype", "gpu")?.toLowerCase().indexOf("cpu") > -1 ||
+        getQueryValue("provider")?.toLowerCase().indexOf("wasm") > -1
+    ) {
+        device.innerHTML = "CPU";
+        badge.setAttribute("class", "cpu");
+        document.body.setAttribute("class", "cpu");
+    } else if (
+        getQueryVariable("devicetype", "gpu")?.toLowerCase().indexOf("gpu") > -1 ||
+        getQueryValue("provider")?.toLowerCase().indexOf("webgpu") > -1
+    ) {
+        device.innerHTML = "GPU";
+        badge.setAttribute("class", "");
+        document.body.setAttribute("class", "gpu");
+    } else if (getQueryVariable("devicetype", "gpu")?.toLowerCase().indexOf("npu") > -1) {
+        device.innerHTML = "NPU";
+        badge.setAttribute("class", "npu");
+        document.body.setAttribute("class", "npu");
+    }
     initializeOnnxRuntime();
     displayEmptyCanvasPlaceholder();
     if (Utils.getSafetyChecker()) {

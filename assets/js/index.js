@@ -40,4 +40,16 @@ async function webnnChecker() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", webnnChecker, false);
+function updateDeviceTypeLinks() {
+    const npuLinks = document.querySelectorAll(".npu_link");
+    npuLinks.forEach(link => {
+        link.setAttribute("class", "npu_link");
+    });
+}
+
+async function ui() {
+    updateDeviceTypeLinks();
+    await webnnChecker();
+}
+
+document.addEventListener("DOMContentLoaded", ui, false);

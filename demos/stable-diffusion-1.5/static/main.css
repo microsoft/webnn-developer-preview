@@ -11,6 +11,16 @@
     margin: 0 6px 0 10px;
 }
 
+#webnnstatus a {
+    color: var(--main);
+    text-decoration: none;
+}
+
+#webnnstatus a:hover {
+    color: var(--green);
+    text-decoration: underline;
+}
+
 #webnnstatus a#webnn_na {
     color: var(--pink);
     background-color: rgba(255, 255, 255, 0.8);
@@ -119,6 +129,7 @@ h1.title span {
 .title_error {
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
 }
 
 #back {
@@ -529,7 +540,7 @@ h1.title span {
     margin-top: 10px;
 }
 
-#webnnstatus #circle {
+#webnnstatus a:hover #webnnstatus #circle {
     width: 8px;
     height: 8px;
     border-radius: 10px;

@@ -470,6 +470,13 @@
      background-color: var(--bg-8);
  }
 
+ #ortversion {
+     white-space: nowrap;
+     overflow: hidden;
+     display: inline-block;
+     text-overflow: ellipsis;
+ }
+
  .data {
      display: flex;
      flex-direction: column;

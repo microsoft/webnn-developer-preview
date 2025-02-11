@@ -53,6 +53,9 @@ const MODELS = {
 
 const config = getConfig();
 
+let device = "gpu";
+let badge;
+
 let canvas;
 let placeholder;
 let actionBar;
@@ -574,6 +577,7 @@ const checkWebNN = async () => {
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
+        updateDeviceTypeLinks();
         await main();
     } else {
         if (webnnStatus.error) {
@@ -597,7 +601,15 @@ const updateProgressBar = progress => {
     progressBar.style.width = `${progress}%`;
 };
 
+const updateDeviceTypeLinks = () => {
+    let backendLinks = $("#backend-links");
+    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    backendLinks.innerHTML = `${links}`;
+};
+
 const ui = async () => {
+    device = $("#device");
+    badge = $("#badge");
     placeholder = $("#placeholder div");
     canvas = $("#img_canvas");
     filein = $("#file-in");
@@ -613,6 +625,23 @@ const ui = async () => {
     canvas.setAttribute("class", "none");
     await setupORT("segment-anything", "dev");
     showCompatibleChromiumVersion("segment-anything");
+
+    if (config.devicetype.toLowerCase().indexOf("cpu") > -1 || config.provider.toLowerCase().indexOf("wasm") > -1) {
+        device.innerHTML = "CPU";
+        badge.setAttribute("class", "cpu");
+        document.body.setAttribute("class", "cpu");
+    } else if (
+        config.devicetype.toLowerCase().indexOf("gpu") > -1 ||
+        config.provider.toLowerCase().indexOf("webgpu") > -1
+    ) {
+        device.innerHTML = "GPU";
+        badge.setAttribute("class", "");
+        document.body.setAttribute("class", "gpu");
+    } else if (config.devicetype.toLowerCase().indexOf("npu") > -1) {
+        device.innerHTML = "NPU";
+        badge.setAttribute("class", "npu");
+        document.body.setAttribute("class", "npu");
+    }
 
     // ort.env.wasm.wasmPaths = 'dist/';
     ort.env.wasm.numThreads = config.threads;

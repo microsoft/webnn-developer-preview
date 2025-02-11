@@ -5,6 +5,16 @@
      margin: 0 6px 0 10px;
  }
 
+ #webnnstatus a {
+     color: var(--main);
+     text-decoration: none;
+ }
+
+ #webnnstatus a:hover {
+     color: var(--green);
+     text-decoration: underline;
+ }
+
  #webnnstatus a#webnn_na {
      color: var(--pink);
      background-color: rgba(255, 255, 255, 0.8);
@@ -291,7 +301,7 @@
  }
 
  .log-output {
-     height: 20vh;
+     height: 19vh;
      padding: 10px 10px;
      background-color: var(--main-alpha-2);
      border: 1px solid var(--border);
@@ -307,12 +317,23 @@
      background-color: var(--bg-btn);
  }
 
- .grid-1 {
+ .grid-2-41 {
      display: grid;
-     grid-template-columns: repeat(1, 1fr);
+     grid-template-columns: 4fr 1fr;
      grid-template-rows: 1fr;
-     grid-column-gap: 10px;
+     grid-column-gap: 0.8rem;
      grid-row-gap: 0px;
+     align-items: start;
+     justify-items: center;
+     margin: 1rem 0;
+ }
+
+ .grid-2-41 h1 {
+     justify-self: left;
+ }
+
+ .grid-2-41.v1 {
+     margin: 0;
      align-items: center;
  }
 
@@ -328,6 +349,10 @@
  .footerinfo {
      margin-bottom: 1rem;
      font-size: 0.9rem;
+ }
+
+ #backend-links {
+     display: inline;
  }
 
  #release {
@@ -697,7 +722,7 @@
      height: 8px;
      border-radius: 10px;
      display: inline-block;
-     margin-bottom: 0px;
+     margin-bottom: 1px;
  }
 
  #webnnstatus.green {

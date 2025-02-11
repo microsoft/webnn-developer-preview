@@ -401,7 +401,7 @@ const ui = async () => {
         if (webnnStatus.webnn) {
             status.setAttribute("class", "green");
             info.innerHTML = `WebNN supported`;
-            // info.innerHTML = `WebNN supported · <a href="./?devicetype=gpu">GPU</a> · <a href="./?devicetype=npu">NPU</a>`;
+            info.innerHTML = `WebNN supported · <a href="./?devicetype=gpu">GPU</a> · <a href="./?devicetype=npu">NPU</a>`;
             if (deviceType.toLowerCase() === "npu") {
                 try {
                     await navigator.ml.createContext({ deviceType: "npu" });

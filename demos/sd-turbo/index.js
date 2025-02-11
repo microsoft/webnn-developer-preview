@@ -72,6 +72,8 @@ function randn_latents(shape, noise_sigma) {
     return data;
 }
 
+let device = "gpu";
+let badge;
 let memoryReleaseSwitch;
 let textEncoderFetchProgress = 0;
 let unetFetchProgress = 0;
@@ -721,6 +723,7 @@ const checkWebNN = async () => {
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
+        updateDeviceTypeLinks();
         load.disabled = false;
     } else {
         if (webnnStatus.error) {
@@ -828,8 +831,16 @@ const updateLoadWave = value => {
     }
 };
 
+const updateDeviceTypeLinks = () => {
+    let backendLinks = $("#backend-links");
+    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    backendLinks.innerHTML = `${links}`;
+};
+
 const ui = async () => {
     memoryReleaseSwitch = $("#memory_release");
+    device = $("#device");
+    badge = $("#badge");
     const prompt = $("#user-input");
     const title = $("#title");
     const dev = $("#dev");
@@ -940,6 +951,23 @@ const ui = async () => {
                 ];
             }
             break;
+    }
+
+    if (config.devicetype.toLowerCase().indexOf("cpu") > -1 || config.provider.toLowerCase().indexOf("wasm") > -1) {
+        device.innerHTML = "CPU";
+        badge.setAttribute("class", "cpu");
+        document.body.setAttribute("class", "cpu");
+    } else if (
+        config.devicetype.toLowerCase().indexOf("gpu") > -1 ||
+        config.provider.toLowerCase().indexOf("webgpu") > -1
+    ) {
+        device.innerHTML = "GPU";
+        badge.setAttribute("class", "");
+        document.body.setAttribute("class", "gpu");
+    } else if (config.devicetype.toLowerCase().indexOf("npu") > -1) {
+        device.innerHTML = "NPU";
+        badge.setAttribute("class", "npu");
+        document.body.setAttribute("class", "npu");
     }
 
     prompt.value =
