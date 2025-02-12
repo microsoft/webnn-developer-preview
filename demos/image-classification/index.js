@@ -178,12 +178,12 @@ const main = async () => {
 const checkWebNN = async () => {
     let webnnStatus = await getWebnnStatus();
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (getQueryValue("provider")?.toLowerCase() === "webgpu") {
         circle.setAttribute("class", "none");
         info.innerHTML = "";
     }
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webnn") > -1) {
+    if (getQueryValue("provider")?.toLowerCase() === "webnn") {
         circle.setAttribute("class", "");
         if (webnnStatus.webnn) {
             status.setAttribute("class", "green");
@@ -229,24 +229,17 @@ const checkWebNN = async () => {
 };
 
 const initModelSelector = () => {
-    if (getQueryValue("provider") && getQueryValue("devicetype")) {
+    provider = getQueryValue("provider").toLowerCase();
+    deviceType = getQueryValue("devicetype").toLowerCase();
+    if (provider && deviceType) {
         backendLabels.forEach(label => {
             label.setAttribute("class", "btn");
         });
-        if (
-            getQueryValue("provider").toLowerCase() === "webgpu" &&
-            getQueryValue("devicetype").toLowerCase() === "gpu"
-        ) {
+        if (provider === "webgpu" && deviceType === "gpu") {
             label_webgpu.setAttribute("class", "btn active");
-        } else if (
-            getQueryValue("provider").toLowerCase() === "webnn" &&
-            getQueryValue("devicetype").toLowerCase() === "gpu"
-        ) {
+        } else if (provider === "webnn" && deviceType === "gpu") {
             label_webnn_gpu.setAttribute("class", "btn active");
-        } else if (
-            getQueryValue("provider").toLowerCase() === "webnn" &&
-            getQueryValue("devicetype").toLowerCase() === "npu"
-        ) {
+        } else if (provider === "webnn" && deviceType === "npu") {
             label_webnn_npu.setAttribute("class", "btn active");
         }
     }
@@ -350,13 +343,13 @@ const controls = async () => {
 };
 
 const badgeUpdate = () => {
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (getQueryValue("provider")?.toLowerCase() === "webgpu") {
         title.innerHTML = "WebGPU";
         provider = "webgpu";
         deviceType = "gpu";
         device.innerHTML = "GPU";
         badge.setAttribute("class", "gpu");
-    } else if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("wasm") > -1) {
+    } else if (getQueryValue("provider")?.toLowerCase() === "wasm") {
         title.innerHTML = "Wasm";
         provider = "wasm";
         deviceType = "cpu";
@@ -368,11 +361,11 @@ const badgeUpdate = () => {
         deviceType = "gpu";
         device.innerHTML = "GPU";
         badge.setAttribute("class", "gpu");
-        if (getQueryValue("devicetype") && getQueryValue("devicetype").toLowerCase() === "cpu") {
+        if (getQueryValue("devicetype")?.toLowerCase() === "cpu") {
             deviceType = "cpu";
             device.innerHTML = "CPU";
             badge.setAttribute("class", "cpu");
-        } else if (getQueryValue("devicetype") && getQueryValue("devicetype").toLowerCase() === "npu") {
+        } else if (getQueryValue("devicetype")?.toLowerCase() === "npu") {
             deviceType = "npu";
             device.innerHTML = "NPU";
             badge.setAttribute("class", "npu");

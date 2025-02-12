@@ -21,6 +21,8 @@ import {
 } from "../../assets/js/common_utils.js";
 
 // Configuration...
+let device = "gpu";
+let badge;
 const pixelWidth = 512;
 const pixelHeight = 512;
 const latentWidth = pixelWidth / 8;
@@ -1183,6 +1185,7 @@ const checkWebNN = async () => {
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
+        updateDeviceTypeLinks();
         loadButton.disabled = false;
     } else {
         loadButton.disabled = true;
@@ -1197,18 +1200,41 @@ const checkWebNN = async () => {
         }
     }
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (getQueryValue("provider")?.toLowerCase() === "webgpu") {
         status.innerHTML = "";
     }
 };
 
+const updateDeviceTypeLinks = () => {
+    let info = $("#info");
+    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    info.innerHTML = `${info.innerHTML} ${links}`;
+};
+
 const ui = async () => {
+    device = $("#device");
+    badge = $("#badge");
+    const provider = getQueryValue("provider")?.toLowerCase();
+    const deviceType = getQueryVariable("devicetype", "gpu")?.toLowerCase();
     await setupORT("stable-diffusion-1.5", "dev");
     showCompatibleChromiumVersion("stable-diffusion-1.5");
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (provider === "webgpu") {
         title.innerHTML = "WebGPU";
     }
     await checkWebNN();
+    if (deviceType === "cpu" || provider === "wasm") {
+        device.innerHTML = "CPU";
+        badge.setAttribute("class", "cpu");
+        document.body.setAttribute("class", "cpu");
+    } else if (deviceType === "gpu" || provider === "webgpu") {
+        device.innerHTML = "GPU";
+        badge.setAttribute("class", "");
+        document.body.setAttribute("class", "gpu");
+    } else if (deviceType === "npu") {
+        device.innerHTML = "NPU";
+        badge.setAttribute("class", "npu");
+        document.body.setAttribute("class", "npu");
+    }
     initializeOnnxRuntime();
     displayEmptyCanvasPlaceholder();
     if (Utils.getSafetyChecker()) {

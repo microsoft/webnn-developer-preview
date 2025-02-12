@@ -27,9 +27,9 @@ function getConfig() {
             ? "https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main"
             : "models",
         mode: "none",
-        safetychecker: true,
+        safetyChecker: true,
         provider: "webnn",
-        devicetype: "gpu",
+        deviceType: "gpu",
         threads: "1",
         images: "4",
         ort: "test",
@@ -39,6 +39,10 @@ function getConfig() {
         let pair = vars[i].split("=");
         if (pair[0] in config) {
             config[pair[0]] = decodeURIComponent(pair[1]);
+        } else if (pair[0].toLowerCase() === 'devicetype') {
+            config.deviceType = decodeURIComponent(pair[1]);
+        } else if (pair[0].toLowerCase() === 'safetychecker') {
+            config.safetyChecker = (decodeURIComponent(pair[1]) === 'true');
         } else if (pair[0].length > 0) {
             throw new Error("unknown argument: " + pair[0]);
         }
@@ -72,6 +76,8 @@ function randn_latents(shape, noise_sigma) {
     return data;
 }
 
+let device = "gpu";
+let badge;
 let memoryReleaseSwitch;
 let textEncoderFetchProgress = 0;
 let unetFetchProgress = 0;
@@ -217,7 +223,7 @@ const updateProgress = () => {
  */
 async function load_models(models) {
     log("[Load] ONNX Runtime Execution Provider: " + config.provider);
-    log("[Load] ONNX Runtime EP device type: " + config.devicetype);
+    log("[Load] ONNX Runtime EP device type: " + config.deviceType);
     updateLoadWave(0.0);
     load.disabled = true;
 
@@ -721,6 +727,7 @@ const checkWebNN = async () => {
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
+        updateDeviceTypeLinks();
         load.disabled = false;
     } else {
         if (webnnStatus.error) {
@@ -734,7 +741,7 @@ const checkWebNN = async () => {
         }
     }
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase() === "webgpu") {
         status.innerHTML = "";
     }
 };
@@ -828,8 +835,16 @@ const updateLoadWave = value => {
     }
 };
 
+const updateDeviceTypeLinks = () => {
+    let backendLinks = $("#backend-links");
+    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    backendLinks.innerHTML = `${links}`;
+};
+
 const ui = async () => {
     memoryReleaseSwitch = $("#memory_release");
+    device = $("#device");
+    badge = $("#badge");
     const prompt = $("#user-input");
     const title = $("#title");
     const dev = $("#dev");
@@ -855,7 +870,7 @@ const ui = async () => {
     await setupORT("sd-turbo", "dev");
     showCompatibleChromiumVersion("sd-turbo");
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase() === "webgpu") {
         title.innerHTML = "WebGPU";
     }
     await checkWebNN();
@@ -935,11 +950,29 @@ const ui = async () => {
                 opt.executionProviders = [
                     {
                         name: "webnn",
-                        deviceType: config.devicetype,
+                        deviceType: config.deviceType,
                     },
                 ];
             }
             break;
+    }
+
+    const deviceType = config.deviceType.toLowerCase();
+    const provider = config.provider.toLowerCase();
+
+    if (deviceType ===  "cpu" || provider === "wasm") {
+        device.innerHTML = "CPU";
+        badge.setAttribute("class", "cpu");
+        document.body.setAttribute("class", "cpu");
+    } else if (
+        deviceType === "gpu" || provider === "webgpu") {
+        device.innerHTML = "GPU";
+        badge.setAttribute("class", "");
+        document.body.setAttribute("class", "gpu");
+    } else if (deviceType === "npu") {
+        device.innerHTML = "NPU";
+        badge.setAttribute("class", "npu");
+        document.body.setAttribute("class", "npu");
     }
 
     prompt.value =

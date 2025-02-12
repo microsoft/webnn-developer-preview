@@ -1,19 +1,19 @@
 <html>
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset='utf-8'>
     <title>WebNN Developer Preview - Segment Anything</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./static/favicon/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="./static/favicon/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="./static/favicon/favicon-16x16.png" />
-    <link rel="stylesheet" href="../../assets/css/style.css" />
-    <link rel="stylesheet" href="./static/main.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="./static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./static/favicon/favicon-16x16.png">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="./static/main.css">
     <script src="./index.js" type="module"></script>
 </head>
 
 <body>
-    <div class="grid-1 p1 v1">
+    <div class="grid-2-41 v1">
         <h1 class="title">
             <div id="back">
                 <a href="../../">
@@ -67,9 +67,26 @@
             </svg>
             <span id="title">WebNN</span> Segment Anything
         </h1>
+        <div id="badge" class="">
+            <div class="badge-text">
+                <span>Powered by</span>
+                <div id="device">GPU</div>
+            </div>
+            <div class="tiles">
+                <div class="tile t0"></div>
+                <div class="tile t1"></div>
+                <div class="tile t2"></div>
+                <div class="tile t1"></div>
+                <div class="tile t2"></div>
+                <div class="tile t3"></div>
+                <div class="tile t2"></div>
+                <div class="tile t3"></div>
+                <div class="tile t4"></div>
+            </div>
+        </div>
     </div>
     <div class="v9">
-        <div style="display: none">
+        <div style="display: none;">
             <img id="original-image" src="EgyptianCat.png" />
         </div>
 
@@ -102,7 +119,7 @@
                             </svg>
                         </label>
                         <input class="file-upload_input" title="Upload Image" type="file" id="file-in" name="file-in"
-                            accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" disabled />
+                            accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" disabled>
                     </div>
                     <div class="form-group">
                         <button id="cut-button" type="button" class="btn btn-primary" title="Cut" disabled>
@@ -125,8 +142,8 @@
         <div id="log" class="log-output"></div>
 
         <div class="footerinfo">
-            <div id="webnnstatus">
-                <span id="circle"></span> <span id="info">WebNN</span> <span id="backends"></span>
+            <div id="webnnstatus"><span id="circle"></span> <span id="info">WebNN</span>
+                <div id="backend-links"></div>
             </div>
             <div id="versions">
                 <div id="chromiumversion"></div>
@@ -134,6 +151,7 @@
             </div>
         </div>
     </div>
+
 </body>
 
 </html>

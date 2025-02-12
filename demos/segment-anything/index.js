@@ -53,6 +53,9 @@ const MODELS = {
 
 const config = getConfig();
 
+let device = "gpu";
+let badge;
+
 let canvas;
 let placeholder;
 let actionBar;
@@ -91,7 +94,7 @@ function getConfig() {
         mode: "none",
         model: "sam_b",
         provider: "webnn",
-        devicetype: "gpu",
+        deviceType: "gpu",
         threads: "1",
         ort: "test",
     };
@@ -100,6 +103,8 @@ function getConfig() {
         let pair = vars[i].split("=");
         if (pair[0] in config) {
             config[pair[0]] = decodeURIComponent(pair[1]);
+        } else if (pair[0].toLowerCase() === 'devicetype') {
+            config.deviceType = decodeURIComponent(pair[1]);
         } else if (pair[0].length > 0) {
             throw new Error("unknown argument: " + pair[0]);
         }
@@ -449,7 +454,7 @@ async function readResponse(name, response) {
  */
 async function load_models(models) {
     log("[Load] ONNX Runtime Execution Provider: " + config.provider);
-    log("[Load] ONNX Runtime EP device type: " + config.devicetype);
+    log("[Load] ONNX Runtime EP device type: " + config.deviceType);
 
     for (const [id, model] of Object.entries(models)) {
         let start;
@@ -476,7 +481,7 @@ async function load_models(models) {
                 opt.executionProviders = [
                     {
                         name: "webnn",
-                        deviceType: config.devicetype,
+                        deviceType: config.deviceType,
                     },
                 ];
                 opt.freeDimensionOverrides = {
@@ -574,6 +579,7 @@ const checkWebNN = async () => {
     if (webnnStatus.webnn) {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
+        updateDeviceTypeLinks();
         await main();
     } else {
         if (webnnStatus.error) {
@@ -587,7 +593,7 @@ const checkWebNN = async () => {
         }
     }
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webnn") == -1) {
+    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase() === "webnn") {
         circle.setAttribute("class", "none");
         info.innerHTML = "";
     }
@@ -597,7 +603,15 @@ const updateProgressBar = progress => {
     progressBar.style.width = `${progress}%`;
 };
 
+const updateDeviceTypeLinks = () => {
+    let backendLinks = $("#backend-links");
+    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    backendLinks.innerHTML = `${links}`;
+};
+
 const ui = async () => {
+    device = $("#device");
+    badge = $("#badge");
     placeholder = $("#placeholder div");
     canvas = $("#img_canvas");
     filein = $("#file-in");
@@ -613,6 +627,24 @@ const ui = async () => {
     canvas.setAttribute("class", "none");
     await setupORT("segment-anything", "dev");
     showCompatibleChromiumVersion("segment-anything");
+
+    const deviceType = config.deviceType.toLowerCase();
+    const provider = config.provider.toLowerCase();
+
+    if (deviceType ===  "cpu" || provider === "wasm") {
+        device.innerHTML = "CPU";
+        badge.setAttribute("class", "cpu");
+        document.body.setAttribute("class", "cpu");
+    } else if (
+        deviceType === "gpu" || provider === "webgpu") {
+        device.innerHTML = "GPU";
+        badge.setAttribute("class", "");
+        document.body.setAttribute("class", "gpu");
+    } else if (deviceType === "npu") {
+        device.innerHTML = "NPU";
+        badge.setAttribute("class", "npu");
+        document.body.setAttribute("class", "npu");
+    }
 
     // ort.env.wasm.wasmPaths = 'dist/';
     ort.env.wasm.numThreads = config.threads;
