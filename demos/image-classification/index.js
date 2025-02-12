@@ -231,7 +231,7 @@ const checkWebNN = async () => {
 const initModelSelector = () => {
     provider = getQueryValue("provider").toLowerCase();
     deviceType = getQueryValue("devicetype").toLowerCase();
-    if (provider && getQueryValue("devicetype")) {
+    if (provider && deviceType) {
         backendLabels.forEach(label => {
             label.setAttribute("class", "btn");
         });
