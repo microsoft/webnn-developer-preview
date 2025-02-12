@@ -94,7 +94,7 @@ function getConfig() {
         mode: "none",
         model: "sam_b",
         provider: "webnn",
-        devicetype: "gpu",
+        deviceType: "gpu",
         threads: "1",
         ort: "test",
     };
@@ -103,6 +103,8 @@ function getConfig() {
         let pair = vars[i].split("=");
         if (pair[0] in config) {
             config[pair[0]] = decodeURIComponent(pair[1]);
+        } else if (pair[0].toLowerCase() === 'devicetype') {
+            config.deviceType = decodeURIComponent(pair[1]);
         } else if (pair[0].length > 0) {
             throw new Error("unknown argument: " + pair[0]);
         }
@@ -452,7 +454,7 @@ async function readResponse(name, response) {
  */
 async function load_models(models) {
     log("[Load] ONNX Runtime Execution Provider: " + config.provider);
-    log("[Load] ONNX Runtime EP device type: " + config.devicetype);
+    log("[Load] ONNX Runtime EP device type: " + config.deviceType);
 
     for (const [id, model] of Object.entries(models)) {
         let start;
@@ -479,7 +481,7 @@ async function load_models(models) {
                 opt.executionProviders = [
                     {
                         name: "webnn",
-                        deviceType: config.devicetype,
+                        deviceType: config.deviceType,
                     },
                 ];
                 opt.freeDimensionOverrides = {
@@ -626,18 +628,21 @@ const ui = async () => {
     await setupORT("segment-anything", "dev");
     showCompatibleChromiumVersion("segment-anything");
 
-    if (config.devicetype.toLowerCase().indexOf("cpu") > -1 || config.provider.toLowerCase().indexOf("wasm") > -1) {
+    const deviceType = config.deviceType.toLowerCase();
+    const provider = config.provider.toLowerCase();
+
+    if (deviceType.indexOf("cpu") > -1 || provider.indexOf("wasm") > -1) {
         device.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
     } else if (
-        config.devicetype.toLowerCase().indexOf("gpu") > -1 ||
-        config.provider.toLowerCase().indexOf("webgpu") > -1
+        deviceType.indexOf("gpu") > -1 ||
+        provider.indexOf("webgpu") > -1
     ) {
         device.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
-    } else if (config.devicetype.toLowerCase().indexOf("npu") > -1) {
+    } else if (deviceType.indexOf("npu") > -1) {
         device.innerHTML = "NPU";
         badge.setAttribute("class", "npu");
         document.body.setAttribute("class", "npu");
