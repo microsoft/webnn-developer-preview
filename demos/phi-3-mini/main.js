@@ -373,15 +373,19 @@ const ui = async () => {
         deviceType = getQueryValue("devicetype").toLowerCase();
     }
 
-    if (deviceType.indexOf("cpu") > -1 || provider.toLowerCase().indexOf("wasm") > -1) {
+    if(getQueryValue("provider")) {
+        provider = getQueryValue("provider")?.toLowerCase();
+    }
+
+    if (deviceType === "cpu" || provider === "wasm") {
         device.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
-    } else if (deviceType.indexOf("gpu") > -1 || provider.toLowerCase().indexOf("webgpu") > -1) {
+    } else if (deviceType === "gpu" || provider === "webgpu") {
         device.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
-    } else if (deviceType.indexOf("npu") > -1) {
+    } else if (deviceType === "npu") {
         device.innerHTML = "NPU";
         badge.setAttribute("class", "npu");
         document.body.setAttribute("class", "npu");
@@ -389,11 +393,11 @@ const ui = async () => {
 
     let webnnStatus = await getWebnnStatus();
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("wasm") > -1) {
+    if (provider === "wasm") {
         status.innerHTML = "";
         title.innerHTML = "WebAssembly";
         await main();
-    } else if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    } else if (provider === "webgpu") {
         status.innerHTML = "";
         title.innerHTML = "WebGPU";
         await main();

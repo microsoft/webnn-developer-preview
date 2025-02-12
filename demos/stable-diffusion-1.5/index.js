@@ -1200,7 +1200,7 @@ const checkWebNN = async () => {
         }
     }
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (getQueryValue("provider")?.toLowerCase() === "webgpu") {
         status.innerHTML = "";
     }
 };
@@ -1214,27 +1214,23 @@ const updateDeviceTypeLinks = () => {
 const ui = async () => {
     device = $("#device");
     badge = $("#badge");
+    const provider = getQueryValue("provider")?.toLowerCase();
+    const deviceType = getQueryVariable("devicetype", "gpu")?.toLowerCase();
     await setupORT("stable-diffusion-1.5", "dev");
     showCompatibleChromiumVersion("stable-diffusion-1.5");
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webgpu") > -1) {
+    if (provider === "webgpu") {
         title.innerHTML = "WebGPU";
     }
     await checkWebNN();
-    if (
-        getQueryVariable("devicetype", "gpu")?.toLowerCase().indexOf("cpu") > -1 ||
-        getQueryValue("provider")?.toLowerCase().indexOf("wasm") > -1
-    ) {
+    if (deviceType === "cpu" || provider === "wasm") {
         device.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
-    } else if (
-        getQueryVariable("devicetype", "gpu")?.toLowerCase().indexOf("gpu") > -1 ||
-        getQueryValue("provider")?.toLowerCase().indexOf("webgpu") > -1
-    ) {
+    } else if (deviceType === "gpu" || provider === "webgpu") {
         device.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
-    } else if (getQueryVariable("devicetype", "gpu")?.toLowerCase().indexOf("npu") > -1) {
+    } else if (deviceType === "npu") {
         device.innerHTML = "NPU";
         badge.setAttribute("class", "npu");
         document.body.setAttribute("class", "npu");

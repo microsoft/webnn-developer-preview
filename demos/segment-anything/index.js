@@ -593,7 +593,7 @@ const checkWebNN = async () => {
         }
     }
 
-    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase().indexOf("webnn") == -1) {
+    if (getQueryValue("provider") && getQueryValue("provider").toLowerCase() === "webnn") {
         circle.setAttribute("class", "none");
         info.innerHTML = "";
     }
@@ -631,18 +631,16 @@ const ui = async () => {
     const deviceType = config.deviceType.toLowerCase();
     const provider = config.provider.toLowerCase();
 
-    if (deviceType.indexOf("cpu") > -1 || provider.indexOf("wasm") > -1) {
+    if (deviceType ===  "cpu" || provider === "wasm") {
         device.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
     } else if (
-        deviceType.indexOf("gpu") > -1 ||
-        provider.indexOf("webgpu") > -1
-    ) {
+        deviceType === "gpu" || provider === "webgpu") {
         device.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
-    } else if (deviceType.indexOf("npu") > -1) {
+    } else if (deviceType === "npu") {
         device.innerHTML = "NPU";
         badge.setAttribute("class", "npu");
         document.body.setAttribute("class", "npu");
