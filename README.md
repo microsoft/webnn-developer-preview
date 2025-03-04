@@ -85,7 +85,7 @@ npm run fetch-models
 
 WebNN is a living specification and still subject to breaking changes, which may impact the samples depending on your browser version:
 
-- 2025-03-03 Enable Float16Array by default - spec change NA, [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/6275531), [ORT change](https://github.com/microsoft/onnxruntime/pull/23827)
+-   2025-03-03 Enable Float16Array by default - spec change NA, [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/6275531), [ORT change](https://github.com/microsoft/onnxruntime/pull/23827)
 -   2024-11-12 Remove grace-period support for MLTensorUsage - [spec change](https://github.com/webmachinelearning/webnn/pull/754), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/6015318)
 -   2024-10-29 Convert MLOperand methods into readonly attributes - [spec change](https://github.com/webmachinelearning/webnn/pull/774), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5975719)
 -   2024-09-30 Replace MLContext.compute() with MLContext.dispatch() - [spec change](https://github.com/webmachinelearning/webnn/pull/754), [Chromium change](https://chromium-review.googlesource.com/c/chromium/src/+/5874589), [ORT change](https://github.com/microsoft/onnxruntime/pull/21301/), [sample change](https://github.com/webmachinelearning/webnn-samples/issues/275)
