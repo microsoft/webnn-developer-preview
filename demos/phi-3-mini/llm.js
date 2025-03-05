@@ -79,7 +79,9 @@ export class LLM {
             ],
         };
 
-        log(`WebNN EP config: ${model} · ${this.dtype} · ${session_options.executionProviders[0].name} · ${session_options.executionProviders[0].deviceType}`);
+        log(
+            `WebNN EP config: ${model} · ${this.dtype} · ${session_options.executionProviders[0].name} · ${session_options.executionProviders[0].deviceType}`,
+        );
 
         const location_type = this.provider == "webnn" ? "ml-tensor" : "gpu-buffer";
         switch (this.provider) {
@@ -89,7 +91,8 @@ export class LLM {
                 session_options.preferredOutputLocation = {};
                 for (let i = 0; i < 32; ++i) {
                     session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.key`] = location_type;
-                    session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.value`] = location_type;
+                    session_options.preferredOutputLocation[`new_present_key_values.${i}.decoder.value`] =
+                        location_type;
                 }
                 break;
             case "wasm":
@@ -167,10 +170,8 @@ export class LLM {
             const ort_kv_desc = { dataType: this.dtype, dims: this.kv_dims };
             const input_ml_tensor = await this.ml_context.createTensor(kv_desc);
             for (let i = 0; i < this.num_layers; ++i) {
-                this.feed[`past_key_values.${i}.decoder.key`] =
-                    ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
-                this.feed[`past_key_values.${i}.decoder.value`] =
-                    ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
+                this.feed[`past_key_values.${i}.decoder.key`] = ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
+                this.feed[`past_key_values.${i}.decoder.value`] = ort.Tensor.fromMLTensor(input_ml_tensor, ort_kv_desc);
             }
         } else {
             const kv_num_elements = product(this.kv_dims);
@@ -197,7 +198,6 @@ export class LLM {
                     } else {
                         t.dispose();
                     }
-
                 }
 
                 this.feed[newName] = outputs[name];

@@ -32,7 +32,7 @@
   "devDependencies": {
     "@eslint/js": "^9.13.0",
     "eslint": "^9.13.0",
-    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.3",
     "globals": "^15.11.0",
     "http-server": "^14.1.1",
     "https-proxy-agent": "^7.0.5",
