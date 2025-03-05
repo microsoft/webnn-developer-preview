@@ -373,7 +373,7 @@ const ui = async () => {
         deviceType = getQueryValue("devicetype").toLowerCase();
     }
 
-    if(getQueryValue("provider")) {
+    if (getQueryValue("provider")) {
         provider = getQueryValue("provider")?.toLowerCase();
     }
 

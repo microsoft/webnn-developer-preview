@@ -39,10 +39,10 @@ function getConfig() {
         let pair = vars[i].split("=");
         if (pair[0] in config) {
             config[pair[0]] = decodeURIComponent(pair[1]);
-        } else if (pair[0].toLowerCase() === 'devicetype') {
+        } else if (pair[0].toLowerCase() === "devicetype") {
             config.deviceType = decodeURIComponent(pair[1]);
-        } else if (pair[0].toLowerCase() === 'safetychecker') {
-            config.safetyChecker = (decodeURIComponent(pair[1]) === 'true');
+        } else if (pair[0].toLowerCase() === "safetychecker") {
+            config.safetyChecker = decodeURIComponent(pair[1]) === "true";
         } else if (pair[0].length > 0) {
             throw new Error("unknown argument: " + pair[0]);
         }
@@ -960,12 +960,11 @@ const ui = async () => {
     const deviceType = config.deviceType.toLowerCase();
     const provider = config.provider.toLowerCase();
 
-    if (deviceType ===  "cpu" || provider === "wasm") {
+    if (deviceType === "cpu" || provider === "wasm") {
         device.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
-    } else if (
-        deviceType === "gpu" || provider === "webgpu") {
+    } else if (deviceType === "gpu" || provider === "webgpu") {
         device.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
