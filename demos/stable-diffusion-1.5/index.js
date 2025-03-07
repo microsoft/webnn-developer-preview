@@ -8,6 +8,7 @@
 import * as Utils from "./utils.js";
 import {
     $,
+    isFloat16ArrayAvailable,
     convertToUint16Array,
     log,
     logError,
@@ -986,6 +987,10 @@ async function executeStableDiffusion() {
 
     const halfLatentElementCount = latentsTensor.size / 2; // Given [2, 4, 64, 64], we want only the first batch.
     let latents = await latentsTensor.getData();
+    if (isFloat16ArrayAvailable) {
+        // If Float16Array is available, convert latents back to Uint16Array for post-processing.
+        latents = new Uint16Array(latents.buffer, latents.byteOffset, latents.length);
+    }
     let halfLatents = latents.subarray(0, halfLatentElementCount); // First batch only.
     prescaleLatentSpace(/*inout*/ halfLatents, defaultSigmas[0]);
 
@@ -1081,8 +1086,12 @@ async function executeStableDiffusionAndDisplayOutput() {
         let rgbPlanarPixels = await executeStableDiffusion();
         const executionTime = performance.now() - executionStartTime;
         performanceData.sessionrun.total = executionTime.toFixed(2);
-
-        displayPlanarRGB(await rgbPlanarPixels.getData());
+        let planarPixelData = await rgbPlanarPixels.getData();
+        if (isFloat16ArrayAvailable) {
+            // If Float16Array is available, convert Float16Array to Float32Array directly.
+            planarPixelData = Float32Array.from(planarPixelData, v => v);
+        }
+        displayPlanarRGB(planarPixelData);
 
         if (Utils.getSafetyChecker()) {
             // safety_checker

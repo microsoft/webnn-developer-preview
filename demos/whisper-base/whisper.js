@@ -4,7 +4,7 @@ import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xeno
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
 import { attention_mask_update, cache_update } from "./post_processing.js";
-import { $, convertToUint16Array, convertToFloat32Array, toHalf } from "../../assets/js/common_utils.js";
+import { $, convertToUint16Array, convertToFloat32Array } from "../../assets/js/common_utils.js";
 import {
     log,
     getModelOPFS,
@@ -206,9 +206,9 @@ export class Whisper {
         // let tokens = [50258, 50259, 50359, 50364]; // keep timestep token
         let attention_mask;
         if (this.mask_4d) {
-            const min_val = toHalf(-65500);
+            const min_val = -65500;
             const mask_data = [0, min_val, min_val, min_val, 0, 0, min_val, min_val, 0, 0, 0, min_val, 0, 0, 0, 0];
-            attention_mask = new ort.Tensor("float16", new Uint16Array(mask_data), [1, 1, 4, 4]);
+            attention_mask = new ort.Tensor("float16", convertToUint16Array(mask_data), [1, 1, 4, 4]);
         } else {
             attention_mask = new ort.Tensor("int32", new Int32Array(4).fill([1, 1, 1, 1]), [1, 4]);
         }
@@ -247,7 +247,7 @@ export class Whisper {
 
         // pad attention mask to max_seq_length
         const mask_data = attention_mask_update(
-            this.mask_4d ? new Uint16Array(4).fill(0) : new BigInt64Array(4).fill(1n),
+            this.mask_4d ? convertToUint16Array([0, 0, 0, 0]) : new BigInt64Array(4).fill(1n),
             0,
             this.max_sequence_length,
             this.num_init_tokens,
