@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { isFloat16ArrayAvailable, convertToUint16Array } from "../../assets/js/common_utils.js";
+import { isFloat16ArrayAvailable, convertToFloat16OrUint16Array } from "../../assets/js/common_utils.js";
 
 export function cache_update(
     decoder_input,
@@ -87,10 +87,10 @@ export function attention_mask_update(
             attention_mask = updated_mask;
         } else {
             // padding positions with -65500. to indicate no attention
-            let padded_mask = convertToUint16Array(
+            let padded_mask = convertToFloat16OrUint16Array(
                 Array.from({ length: max_sequence_length - num_init_tokens - 1 }, () => -65500),
             );
-            let updated_mask = convertToUint16Array(new Array(attention_mask.length + padded_mask.length + 1));
+            let updated_mask = convertToFloat16OrUint16Array(new Array(attention_mask.length + padded_mask.length + 1));
             updated_mask.set(attention_mask, 0);
             updated_mask.set(padded_mask, attention_mask.length);
             updated_mask[updated_mask.length - 1] = 0;

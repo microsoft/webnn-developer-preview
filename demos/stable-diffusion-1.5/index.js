@@ -9,7 +9,7 @@ import * as Utils from "./utils.js";
 import {
     $,
     isFloat16ArrayAvailable,
-    convertToUint16Array,
+    convertToFloat16OrUint16Array,
     log,
     logError,
     getMode,
@@ -127,7 +127,7 @@ function get_tensor_from_image(imageData, format) {
     }
 
     const tensorShape = format === "NCHW" ? [1, channels, height, width] : [1, height, width, channels];
-    let tensor = new ort.Tensor("float16", convertToUint16Array(rearrangedData), tensorShape);
+    let tensor = new ort.Tensor("float16", convertToFloat16OrUint16Array(rearrangedData), tensorShape);
 
     return tensor;
 }

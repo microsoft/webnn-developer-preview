@@ -4,7 +4,7 @@ import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xeno
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
 import { attention_mask_update, cache_update } from "./post_processing.js";
-import { $, convertToUint16Array, convertToFloat32Array } from "../../assets/js/common_utils.js";
+import { $, convertToFloat16OrUint16Array, convertToFloat32Array } from "../../assets/js/common_utils.js";
 import {
     log,
     getModelOPFS,
@@ -190,7 +190,7 @@ export class Whisper {
             dims: input_features.dims,
         };
         if (this.dataType == "float16") {
-            encoder_inputs.data = convertToUint16Array(encoder_inputs.data);
+            encoder_inputs.data = convertToFloat16OrUint16Array(encoder_inputs.data);
         }
         // log(`Pre-processing time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
@@ -208,7 +208,7 @@ export class Whisper {
         if (this.mask_4d) {
             const min_val = -65500;
             const mask_data = [0, min_val, min_val, min_val, 0, 0, min_val, min_val, 0, 0, 0, min_val, 0, 0, 0, 0];
-            attention_mask = new ort.Tensor("float16", convertToUint16Array(mask_data), [1, 1, 4, 4]);
+            attention_mask = new ort.Tensor("float16", convertToFloat16OrUint16Array(mask_data), [1, 1, 4, 4]);
         } else {
             attention_mask = new ort.Tensor("int32", new Int32Array(4).fill([1, 1, 1, 1]), [1, 4]);
         }
@@ -247,7 +247,7 @@ export class Whisper {
 
         // pad attention mask to max_seq_length
         const mask_data = attention_mask_update(
-            this.mask_4d ? convertToUint16Array([0, 0, 0, 0]) : new BigInt64Array(4).fill(1n),
+            this.mask_4d ? convertToFloat16OrUint16Array([0, 0, 0, 0]) : new BigInt64Array(4).fill(1n),
             0,
             this.max_sequence_length,
             this.num_init_tokens,

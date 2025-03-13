@@ -385,8 +385,8 @@ export function convertToFloat32Array(fp16_array) {
     return fp32_array;
 }
 
-// convert Float32Array to Uint16Array
-export function convertToUint16Array(fp32_array) {
+// convert Float32Array to Uint16Array or Float16Array
+export function convertToFloat16OrUint16Array(fp32_array) {
     if (isFloat16ArrayAvailable) {
         // Float16Array is available - use it
         return Float16Array.from(fp32_array, v => v);
