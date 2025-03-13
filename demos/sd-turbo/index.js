@@ -8,7 +8,7 @@
 import {
     $,
     $$,
-    convertToUint16Array,
+    convertToFloat16OrUint16Array,
     convertToFloat32Array,
     log,
     logError,
@@ -498,7 +498,7 @@ function get_tensor_from_image(imageData, format) {
     }
 
     const tensorShape = format === "NCHW" ? [1, channels, height, width] : [1, height, width, channels];
-    let tensor = new ort.Tensor("float16", convertToUint16Array(rearrangedData), tensorShape);
+    let tensor = new ort.Tensor("float16", convertToFloat16OrUint16Array(rearrangedData), tensorShape);
 
     return tensor;
 }
@@ -603,7 +603,7 @@ async function generate_image() {
             let feed = {
                 sample: new ort.Tensor(
                     "float16",
-                    convertToUint16Array(latent_model_input.data),
+                    convertToFloat16OrUint16Array(latent_model_input.data),
                     latent_model_input.dims,
                 ),
                 timestep: new ort.Tensor("float16", new Uint16Array([toHalf(999)]), [1]),

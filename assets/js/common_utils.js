@@ -1,5 +1,6 @@
 export const $ = s => document.querySelector(s);
 export const $$ = s => [...document.querySelectorAll(s)];
+export const isFloat16ArrayAvailable = typeof Float16Array !== "undefined" && Float16Array.from;
 
 const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
     "stable-diffusion-1.5": "129.0.6617.0",
@@ -372,6 +373,11 @@ function float16ToNumber(input) {
 
 // convert Uint16Array to Float32Array
 export function convertToFloat32Array(fp16_array) {
+    // It is real Float16Array
+    if (isFloat16ArrayAvailable && fp16_array instanceof Float16Array) {
+        return Float32Array.from(fp16_array, v => v);
+    }
+    // It is Uint16Array that represents Float16Array
     const fp32_array = new Float32Array(fp16_array.length);
     for (let i = 0; i < fp32_array.length; i++) {
         fp32_array[i] = float16ToNumber(fp16_array[i]);
@@ -379,8 +385,12 @@ export function convertToFloat32Array(fp16_array) {
     return fp32_array;
 }
 
-// convert Float32Array to Uint16Array
-export function convertToUint16Array(fp32_array) {
+// convert Float32Array to Uint16Array or Float16Array
+export function convertToFloat16OrUint16Array(fp32_array) {
+    if (isFloat16ArrayAvailable) {
+        // Float16Array is available - use it
+        return Float16Array.from(fp32_array, v => v);
+    }
     const fp16_array = new Uint16Array(fp32_array.length);
     for (let i = 0; i < fp16_array.length; i++) {
         fp16_array[i] = toHalf(fp32_array[i]);

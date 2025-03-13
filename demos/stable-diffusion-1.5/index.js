@@ -8,7 +8,8 @@
 import * as Utils from "./utils.js";
 import {
     $,
-    convertToUint16Array,
+    isFloat16ArrayAvailable,
+    convertToFloat16OrUint16Array,
     log,
     logError,
     getMode,
@@ -126,7 +127,7 @@ function get_tensor_from_image(imageData, format) {
     }
 
     const tensorShape = format === "NCHW" ? [1, channels, height, width] : [1, height, width, channels];
-    let tensor = new ort.Tensor("float16", convertToUint16Array(rearrangedData), tensorShape);
+    let tensor = new ort.Tensor("float16", convertToFloat16OrUint16Array(rearrangedData), tensorShape);
 
     return tensor;
 }
@@ -986,6 +987,10 @@ async function executeStableDiffusion() {
 
     const halfLatentElementCount = latentsTensor.size / 2; // Given [2, 4, 64, 64], we want only the first batch.
     let latents = await latentsTensor.getData();
+    if (isFloat16ArrayAvailable) {
+        // If Float16Array is available, convert latents back to Uint16Array for post-processing.
+        latents = new Uint16Array(latents.buffer, latents.byteOffset, latents.length);
+    }
     let halfLatents = latents.subarray(0, halfLatentElementCount); // First batch only.
     prescaleLatentSpace(/*inout*/ halfLatents, defaultSigmas[0]);
 
@@ -1081,8 +1086,12 @@ async function executeStableDiffusionAndDisplayOutput() {
         let rgbPlanarPixels = await executeStableDiffusion();
         const executionTime = performance.now() - executionStartTime;
         performanceData.sessionrun.total = executionTime.toFixed(2);
-
-        displayPlanarRGB(await rgbPlanarPixels.getData());
+        let planarPixelData = await rgbPlanarPixels.getData();
+        if (isFloat16ArrayAvailable) {
+            // If Float16Array is available, convert Float16Array to Float32Array directly.
+            planarPixelData = Float32Array.from(planarPixelData, v => v);
+        }
+        displayPlanarRGB(planarPixelData);
 
         if (Utils.getSafetyChecker()) {
             // safety_checker

@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { toHalf } from "../../assets/js/common_utils.js";
+import { isFloat16ArrayAvailable, convertToFloat16OrUint16Array } from "../../assets/js/common_utils.js";
 
 export function cache_update(
     decoder_input,
@@ -12,7 +12,8 @@ export function cache_update(
     position_ids = 0,
     data_type = "float32",
 ) {
-    const cache_precision = data_type == "float32" ? Float32Array : Uint16Array;
+    const cache_precision =
+        data_type == "float32" ? Float32Array : isFloat16ArrayAvailable ? Float16Array : Uint16Array;
     // at the output of the first inference model, we perform right padding on kv cache
     if (inf_iter === 0) {
         // perform padding for each attention head
@@ -86,8 +87,10 @@ export function attention_mask_update(
             attention_mask = updated_mask;
         } else {
             // padding positions with -65500. to indicate no attention
-            let padded_mask = new Uint16Array(max_sequence_length - num_init_tokens - 1).fill(toHalf(-65500));
-            let updated_mask = new Uint16Array(attention_mask.length + padded_mask.length + 1);
+            let padded_mask = convertToFloat16OrUint16Array(
+                Array.from({ length: max_sequence_length - num_init_tokens - 1 }, () => -65500),
+            );
+            let updated_mask = convertToFloat16OrUint16Array(new Array(attention_mask.length + padded_mask.length + 1));
             updated_mask.set(attention_mask, 0);
             updated_mask.set(padded_mask, attention_mask.length);
             updated_mask[updated_mask.length - 1] = 0;
