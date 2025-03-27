@@ -121,29 +121,31 @@ export const getTime = () => {
     return `${hour}:${min}:${sec}`;
 };
 
+const DEV_ORT_VERSION = "1.22.0-dev.20250325-afaf4a5e63";
+
 const KNOWN_COMPATIBLE_ORT_VERSION = {
     "stable-diffusion-1.5": {
-        dev: "1.22.0-dev.20250325-afaf4a5e63",
+        dev: DEV_ORT_VERSION,
         stable: "",
         test: "",
     },
     "sd-turbo": {
-        dev: "1.22.0-dev.20250325-afaf4a5e63",
+        dev: DEV_ORT_VERSION,
         stable: "",
         test: "",
     },
     "segment-anything": {
-        dev: "1.22.0-dev.20250325-afaf4a5e63",
+        dev: DEV_ORT_VERSION,
         stable: "",
         test: "",
     },
     "whisper-base": {
-        dev: "1.22.0-dev.20250325-afaf4a5e63",
+        dev: DEV_ORT_VERSION,
         stable: "",
         test: "",
     },
     "phi-3-mini": {
-        dev: "1.22.0-dev.20250325-afaf4a5e63",
+        dev: DEV_ORT_VERSION,
         stable: "",
         test: "",
     },
