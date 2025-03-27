@@ -4,7 +4,12 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 
 export default [
     {
-        ignores: ["assets/dist_transformers/", "assets/dist/", "demos/whisper-base/static/js/*"],
+        ignores: [
+            "assets/dist_transformers/",
+            "assets/assets/dist_transformers/",
+            "assets/dist/",
+            "demos/whisper-base/static/js/*",
+        ],
     },
     {
         languageOptions: {
