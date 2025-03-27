@@ -123,27 +123,27 @@ export const getTime = () => {
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
     "stable-diffusion-1.5": {
-        dev: "1.21.0-dev.20241122-a2ba3cb547",
+        dev: "1.22.0-dev.20250325-afaf4a5e63",
         stable: "",
         test: "",
     },
     "sd-turbo": {
-        dev: "1.21.0-dev.20241122-a2ba3cb547",
+        dev: "1.22.0-dev.20250325-afaf4a5e63",
         stable: "",
         test: "",
     },
     "segment-anything": {
-        dev: "1.21.0-dev.20241122-a2ba3cb547",
+        dev: "1.22.0-dev.20250325-afaf4a5e63",
         stable: "",
         test: "",
     },
     "whisper-base": {
-        dev: "1.21.0-dev.20241122-a2ba3cb547",
+        dev: "1.22.0-dev.20250325-afaf4a5e63",
         stable: "",
         test: "",
     },
     "phi-3-mini": {
-        dev: "1.21.0-dev.20241122-a2ba3cb547",
+        dev: "1.22.0-dev.20250325-afaf4a5e63",
         stable: "",
         test: "",
     },
