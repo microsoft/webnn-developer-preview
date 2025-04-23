@@ -8,7 +8,7 @@ const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
     "segment-anything": "129.0.6617.0",
     "whisper-base": "129.0.6617.0",
     "image-classification": "129.0.6617.0",
-    "phi-3-mini": "132.0.6831.0",
+    "text-generation": "132.0.6831.0",
 };
 
 export const showCompatibleChromiumVersion = key => {
@@ -75,6 +75,10 @@ export const updateQueryStringParameter = (uri, key, value) => {
     }
 };
 
+export const convertToSnakeCase = str => {
+    return str.toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+};
+
 export const log = i => {
     console.log(i);
     if (getMode()) {
@@ -123,7 +127,7 @@ export const getTime = () => {
 
 const DEV_ORT_VERSION = "1.22.0-dev.20250325-afaf4a5e63";
 const STABLE_ORT_VERSION = "";
-const TEST_ORT_VERSION = "";
+const TEST_ORT_VERSION = "test";
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
     "stable-diffusion-1.5": {
@@ -146,7 +150,7 @@ const KNOWN_COMPATIBLE_ORT_VERSION = {
         stable: STABLE_ORT_VERSION,
         test: TEST_ORT_VERSION,
     },
-    "phi-3-mini": {
+    "text-generation": {
         dev: DEV_ORT_VERSION,
         stable: STABLE_ORT_VERSION,
         test: TEST_ORT_VERSION,

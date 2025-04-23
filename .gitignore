@@ -470,4 +470,5 @@ typings/
 
 *.pem
 *.onnx
+.model
 *.onnx.data
