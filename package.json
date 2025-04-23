@@ -7,7 +7,7 @@
     "prepare": "husky install",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "dev": "http-server -S -C cert.pem -o"
+    "dev": "http-server"
   },
   "husky": {
     "hooks": {
