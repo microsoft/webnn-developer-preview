@@ -3,12 +3,12 @@ export const $$ = s => [...document.querySelectorAll(s)];
 export const isFloat16ArrayAvailable = typeof Float16Array !== "undefined" && Float16Array.from;
 
 const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
-    "stable-diffusion-1.5": "129.0.6617.0",
-    "sd-turbo": "129.0.6617.0",
-    "segment-anything": "129.0.6617.0",
-    "whisper-base": "129.0.6617.0",
-    "image-classification": "129.0.6617.0",
-    "text-generation": "132.0.6831.0",
+    "stable-diffusion-1.5": "136.0.7051.0",
+    "sd-turbo": "136.0.7051.0",
+    "segment-anything": "136.0.7051.0",
+    "whisper-base": "136.0.7051.0",
+    "image-classification": "136.0.7051.0",
+    "text-generation": "136.0.7051.0",
 };
 
 export const showCompatibleChromiumVersion = key => {
