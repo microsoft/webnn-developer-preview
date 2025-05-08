@@ -90,7 +90,7 @@ let provider = "webnn";
 let deviceType = "gpu";
 let device;
 let badge;
-let ctrl = false;
+let ctrlKey = false;
 let ready = false;
 let cleanCache = false;
 
@@ -160,7 +160,7 @@ async function submitRequest(e) {
     if (ready === false) {
         return;
     }
-    if (userInput.innerText.length < 1 && sendButton.disabled === false && ctrl === false) {
+    if (userInput.innerText.length < 1 && sendButton.disabled === false && ctrlKey === false) {
         logUser("Please type a message");
         return;
     }
@@ -247,12 +247,12 @@ async function submitRequest(e) {
 //
 $("#user-input").addEventListener("keydown", async function (e) {
     if (e.ctrlKey && e.key === "Enter") {
-        ctrl = true;
+        ctrlKey = true;
         cleanCache = true;
         submitRequest(e);
     } else if (e.key === "Enter") {
         e.preventDefault();
-        ctrl = false;
+        ctrlKey = false;
         submitRequest(e);
     }
 });
