@@ -15,22 +15,24 @@ import {
 } from "./utils.js";
 
 function product(shape) {
-    if (!Array.isArray(shape) || shape.length === 0) {
-        return 0;
+    if (!Array.isArray(shape)) {
+        return 0; // Keep the non-array case returning 0
     }
+    // A shape of [] should be 1 as a scalar
+    // No need for special empty array check since reduce handles it
     return shape.reduce((acc, val) => acc * val, 1);
 }
 
 // class to handle a large language model on top of onnxruntime-web
 export class LLM {
     provider = "webnn";
-    sess1 = undefined;
-    sess2 = undefined;
+    session1 = undefined;
+    session2 = undefined;
     feed = {};
     outputTokens = [];
     stop = false;
     kvDims = [];
-    dtype = "float16";
+    dataType = "float16";
     deviceType = "gpu";
     maxLength = 2048;
     mlContext = undefined;
@@ -41,12 +43,12 @@ export class LLM {
 
     async load(model, options, flag = true) {
         this.provider = options.provider;
-        this.deviceType = options.devicetype;
+        this.deviceType = options.deviceType;
         const verbose = options.verbose;
         this.eos = model.eos_token_id; // end of sentence token ids
         this.numLayers = model.num_layers;
         this.kvDims = [1, model.kv_num_heads, this.maxLength, model.head_size];
-        log(`WebNN EP config: ${model.name} · ${this.dtype} · ${this.provider} · ${this.deviceType}`);
+        log(`WebNN EP config: ${model.name} · ${this.dataType} · ${this.provider} · ${this.deviceType}`);
 
         const path = options.local ? model.local_path : model.remote_path;
         const modelFile = model.file_name;
@@ -106,8 +108,7 @@ export class LLM {
         log("Create session for prefill process");
         console.log("Create session 1 with option: ");
         console.log({ ...sessionOptions });
-        console.log(this.sess1);
-        this.sess1 = await ort.InferenceSession.create(modelBytes, sessionOptions);
+        this.session1 = await ort.InferenceSession.create(modelBytes, sessionOptions);
         updateOnnxCompileProgress(10);
         updateLoadProgress(onnxFetchProgress + onnxDataFetchProgress + onnxCompileProgress + onnxDataCompileProgress);
         updateProgressBar(loadProgress.toFixed(2));
@@ -125,7 +126,7 @@ export class LLM {
             log("Create session for decode process");
             console.log("Create session 2 with option: ");
             console.log({ ...sessionOptions });
-            this.sess2 = await ort.InferenceSession.create(modelBytes, sessionOptions);
+            this.session2 = await ort.InferenceSession.create(modelBytes, sessionOptions);
             log("Decode process session created");
         }
 
@@ -135,7 +136,7 @@ export class LLM {
         progressBarLabel.innerHTML = `Session for decode created · ${loadProgress.toFixed(2)}%`;
 
         updateProgressBar(100.0);
-        progressBarLabel.innerHTML = `100%`;
+        progressBarLabel.innerHTML = "100%";
 
         if (!flag) {
             this.initializeFeed();
@@ -154,8 +155,8 @@ export class LLM {
         this.feed = {};
         if (this.provider == "webnn") {
             // init kv cache ml-tensor
-            const kvDesc = { dataType: this.dtype, shape: this.kvDims };
-            const ortKvDesc = { dataType: this.dtype, dims: this.kvDims };
+            const kvDesc = { dataType: this.dataType, shape: this.kvDims };
+            const ortKvDesc = { dataType: this.dataType, dims: this.kvDims };
             const inputMlTensor = await this.mlContext.createTensor(kvDesc);
             for (let i = 0; i < this.numLayers; ++i) {
                 this.feed[`past_key_values.${i}.key`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDesc);
@@ -163,10 +164,11 @@ export class LLM {
             }
         } else {
             const kvNumElements = product(this.kvDims);
-            const empty = this.dtype === "float16" ? new Float16Array(kvNumElements) : new Float32Array(kvNumElements);
+            const empty =
+                this.dataType === "float16" ? new Float16Array(kvNumElements) : new Float32Array(kvNumElements);
             for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dtype, empty, this.kvDims);
-                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dtype, empty, this.kvDims);
+                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dataType, empty, this.kvDims);
+                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dataType, empty, this.kvDims);
             }
         }
     }
@@ -207,12 +209,12 @@ export class LLM {
         }
     }
 
-    // tell generate to stop()
+    // tell generate() to stop.
     abort() {
         this.stop = true;
     }
 
-    // poor mens argmax
+    // Poor man's argmax.
     argmax(t, seqLen = 1) {
         let arr = t.cpuData;
         if (t.type == "float16" && !isFloat16ArrayAvailable) {
@@ -253,7 +255,7 @@ export class LLM {
         this.stop = false;
 
         let lastToken = 0;
-        let outputs = await this.sess1.run(this.feed);
+        let outputs = await this.session1.run(this.feed);
         lastToken = this.argmax(outputs["logits"], inputIdsLen);
         let startLen = inputIdsLen;
         this.outputTokens.push(lastToken);
@@ -276,9 +278,9 @@ export class LLM {
             ]);
             this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(startLen)]), [1, 1]);
             if (this.provider == "webnn") {
-                outputs = await this.sess2.run(this.feed);
+                outputs = await this.session2.run(this.feed);
             } else {
-                outputs = await this.sess1.run(this.feed);
+                outputs = await this.session1.run(this.feed);
             }
             lastToken = this.argmax(outputs["logits"]);
             this.outputTokens.push(lastToken);
@@ -302,10 +304,10 @@ export class LLM {
             }
 
             this.feed = {};
-            await this.sess1.release();
-            await this.sess2.release();
-            this.sess1 = undefined;
-            this.sess2 = undefined;
+            await this.session1.release();
+            await this.session2.release();
+            this.session1 = undefined;
+            this.session2 = undefined;
         } catch (e) {
             console.log("Error releasing session: ", e);
         }

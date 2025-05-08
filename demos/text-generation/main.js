@@ -262,7 +262,7 @@ function getConfig() {
     var config = {
         model: "phi3mini",
         provider: "webnn",
-        devicetype: "gpu",
+        deviceType: "gpu",
         profiler: 0,
         verbose: 0,
         threads: 1,
@@ -416,7 +416,7 @@ async function Query(continuation, query, cb) {
 }
 
 const main = async () => {
-    await setupORT("text-generation", "test");
+    await setupORT("text-generation", "dev");
     showCompatibleChromiumVersion("text-generation");
 
     ort.env.wasm.numThreads = 4;
@@ -438,7 +438,7 @@ const main = async () => {
         tokenizer = await AutoTokenizer.from_pretrained(modelId);
         await llm.load(config.model, {
             provider: config.provider,
-            devicetype: config.devicetype,
+            deviceType: config.deviceType,
             profiler: config.profiler,
             verbose: config.verbose,
             local: config.local,
@@ -490,6 +490,7 @@ const ui = async () => {
 
     if (getQueryValue("devicetype")) {
         deviceType = getQueryValue("devicetype").toLowerCase();
+        config.deviceType = deviceType;
     }
 
     if (getQueryValue("provider")) {
