@@ -90,9 +90,9 @@ let provider = "webnn";
 let deviceType = "gpu";
 let device;
 let badge;
-let ctrl = false,
-    ready = false,
-    cleanCache = false;
+let ctrl = false;
+let ready = false;
+let cleanCache = false;
 
 const clipboardIcon = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clipboard' viewBox='0 0 16 16'>
 <path d='M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z'/>
@@ -102,7 +102,7 @@ const clipboardIcon = `<svg xmlns='http://www.w3.org/2000/svg' width='16' height
 marked.use({ mangle: false, headerIds: false });
 
 //
-// auto scroll the content area until a user scrolls up
+// Auto scroll the content area until a user scrolls up
 //
 let isAutoScrollOn = true;
 let lastKnownScrollPosition = 0;
@@ -137,7 +137,7 @@ document.addEventListener("scroll", () => {
 });
 
 //
-// make response available for copying to clipboard
+// Make response available for copying to clipboard
 //
 function copyTextToClipboard(responseDiv) {
     const copyButton = document.createElement("button");
@@ -154,7 +154,7 @@ function copyTextToClipboard(responseDiv) {
 }
 
 //
-// user hits send, enter or ctl enter
+// User hits send, Enter or Ctrl + Enter
 //
 async function submitRequest(e) {
     if (ready === false) {
@@ -171,7 +171,7 @@ async function submitRequest(e) {
         return;
     }
 
-    // enter will continue the conversation, ctl enter will clear the chat history and start a new conversation
+    // Enter will continue the conversation, Ctrl + Enter will clear the chat history and start a new conversation
     const continuation = !(e.ctrlKey && e.key === "Enter");
 
     if (continuation) {
@@ -194,7 +194,7 @@ async function submitRequest(e) {
         context = "";
     }
 
-    // append to chat history
+    // Append to chat history
     let messageElement = document.createElement("div");
     messageElement.className = "message-element";
     let userMessageDiv = document.createElement("div");
@@ -203,7 +203,7 @@ async function submitRequest(e) {
     messageElement.appendChild(userMessageDiv);
     chatHistory.appendChild(messageElement);
 
-    // container for llm response
+    // Container for llm response
     let responseDiv = document.createElement("div");
     responseDiv.className = "response-message";
     let responseOuter = document.createElement("div");
@@ -214,11 +214,11 @@ async function submitRequest(e) {
     responseOuter.appendChild(responseDiv);
     chatHistory.appendChild(responseOuter);
 
-    // toggle button to stop text generation
+    // Toggle button to stop text generation
     sendButton.disabled = true;
     buttons.setAttribute("class", "button-group key inferencing");
 
-    // change autoScroller to keep track of our new responseDiv
+    // Change autoScroller to keep track of our new responseDiv
     autoScroller.observe(responseDiv);
 
     Query(continuation, input, word => {
@@ -243,7 +243,7 @@ async function submitRequest(e) {
 }
 
 //
-// event listener for Ctrl+Enter or Enter
+// Event listener for Ctrl + Enter or Enter
 //
 $("#user-input").addEventListener("keydown", async function (e) {
     if (e.ctrlKey && e.key === "Enter") {
@@ -272,7 +272,7 @@ function getConfig() {
         local: 0,
     };
     let vars = query.split("&");
-    let errMsg = "";
+    let errorMessage = "";
     for (var i = 0; i < vars.length; i++) {
         let pair = vars[i].split("=");
         if (pair[0] in config) {
@@ -288,14 +288,14 @@ function getConfig() {
     if (MODELS[config.model] !== undefined) {
         config.model = MODELS[config.model];
     } else {
-        errMsg = `Unsupported model name: ${config.model}`;
-        logError(errMsg);
-        throw new Error(errMsg);
+        errorMessage = `Unsupported model name: ${config.model}`;
+        logError(errorMessage);
+        throw new Error(errorMessage);
     }
     if (config.max_length < 0 || config.max_length > config.model.context_length) {
-        errMsg = `max_length should not execeed ${config.model.context_length}`;
-        logError(errMsg);
-        throw new Error(errMsg);
+        errorMessage = `max_length should not execeed ${config.model.context_length}`;
+        logError(errorMessage);
+        throw new Error(errorMessage);
     }
     return config;
 }
@@ -304,7 +304,7 @@ const config = getConfig();
 
 location.hostname.includes("github.io") ? (config.local = 0) : (config.local = 1);
 
-// setup for transformers.js tokenizer
+// Setup for transformers.js tokenizer
 env.localModelPath = "models";
 env.allowRemoteModels = config.local == 0;
 env.allowLocalModels = config.local == 1;
@@ -319,8 +319,8 @@ if (config.model.system_content) {
 }
 
 function tokenToText(tokenizer, tokens) {
-    const txt = tokenizer.decode(tokens, { skip_special_tokens: config.show_special != 1 });
-    return txt;
+    const text = tokenizer.decode(tokens, { skip_special_tokens: config.show_special != 1 });
+    return text;
 }
 
 async function Query(continuation, query, cb) {
@@ -336,13 +336,13 @@ async function Query(continuation, query, cb) {
 
     // Clean up
     if (llm.outputTokens.length == 0 || !continuation || cleanCache || inputIds.length > llm.maxLength) {
-        // Init kv cache
+        // Initialize kv cache
         await llm.initializeFeed();
         cleanCache = true;
         if (inputIds.length > llm.maxLength) {
             console.log(`Context length exceeds max new tokens, clean up...`);
         }
-        // Clean up messages if there is cache
+        // Clean up messages if there is a cache
         if (messages.length > 2) {
             if (messages[0]["role"] == "system") {
                 messages = messages.slice(0, 1);
@@ -358,7 +358,7 @@ async function Query(continuation, query, cb) {
         }
     }
     console.log("messages: ", messages);
-    // convert inputIds to BigInt
+    // Convert inputIds to BigInt
     inputIds = inputIds.map(num => BigInt(num));
     logUser(`Prompt length: ${inputIds.length}`);
 
@@ -366,7 +366,7 @@ async function Query(continuation, query, cb) {
     const startTimer = performance.now();
     const outputTokens = await llm.generate(inputIds, outputTokens => {
         if (outputTokens.length == 1) {
-            // time to first token
+            // Time to first token
             timeToFirstToken = (performance.now() - startTimer) / 1000;
         }
         cb(tokenToText(tokenizer, outputTokens));
@@ -381,10 +381,10 @@ async function Query(continuation, query, cb) {
 
     const took = (performance.now() - startTimer) / 1000;
     const timeToNewTokens = took - timeToFirstToken;
-    const seqlen = outputTokens.length;
-    log(`${seqlen} tokens in ${took.toFixed(2)} sec<br/>
+    const sequenceLength = outputTokens.length;
+    log(`${sequenceLength} tokens in ${took.toFixed(2)} sec<br/>
     Time to first token: ${timeToFirstToken.toFixed(2)} sec<br/>
-    New tokens per second: ${((seqlen - 1) / timeToNewTokens).toFixed(2)} tokens/sec`);
+    New tokens per second: ${((sequenceLength - 1) / timeToNewTokens).toFixed(2)} tokens/sec`);
 
     const timeToFirstTokenPerformanceUnit = document.createElement("div");
     timeToFirstTokenPerformanceUnit.className = "tokens-per-second-performance-unit";
@@ -400,7 +400,7 @@ async function Query(continuation, query, cb) {
 
     const tokensPerSecondPerformance = document.createElement("div");
     tokensPerSecondPerformance.className = "tokens-per-second-performance-data";
-    tokensPerSecondPerformance.innerHTML = `${((seqlen - 1) / timeToNewTokens).toFixed(2)}`;
+    tokensPerSecondPerformance.innerHTML = `${((sequenceLength - 1) / timeToNewTokens).toFixed(2)}`;
     const tokensPerSecondPerformanceUnit = document.createElement("div");
     tokensPerSecondPerformanceUnit.className = "tokens-per-second-performance-unit";
     tokensPerSecondPerformanceUnit.innerHTML = `tokens/s`;
@@ -422,7 +422,7 @@ const main = async () => {
     ort.env.wasm.numThreads = 4;
     ort.env.wasm.simd = true;
     ort.env.wasm.proxy = false;
-    ort.env.logLevel = "warning"; //'error';
+    ort.env.logLevel = "warning";
 
     log(`ONNX Runtime Web Execution Provider loaded · ${provider.toLowerCase()}`);
 

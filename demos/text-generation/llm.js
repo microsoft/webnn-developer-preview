@@ -23,7 +23,7 @@ function product(shape) {
     return shape.reduce((acc, val) => acc * val, 1);
 }
 
-// class to handle a large language model on top of onnxruntime-web
+// Class to handle a large language model on top of onnxruntime-web
 export class LLM {
     provider = "webnn";
     session1 = undefined;
@@ -45,7 +45,7 @@ export class LLM {
         this.provider = options.provider;
         this.deviceType = options.deviceType;
         const verbose = options.verbose;
-        this.eos = model.eos_token_id; // end of sentence token ids
+        this.eos = model.eos_token_id; // End of sentence token ids
         this.numLayers = model.num_layers;
         this.kvDims = [1, model.kv_num_heads, this.maxLength, model.head_size];
         log(`WebNN EP config: ${model.name} · ${this.dataType} · ${this.provider} · ${this.deviceType}`);
@@ -116,7 +116,7 @@ export class LLM {
 
         log("Prefill session created");
         if (this.provider == "webnn") {
-            // decode process
+            // Decode process
             sessionOptions.freeDimensionOverrides = {
                 batch_size: 1,
                 sequence_length: 1,
@@ -144,7 +144,7 @@ export class LLM {
     }
 
     async initializeFeed() {
-        // dispose previous tensors
+        // Dispose previous tensors
         for (const name in this.feed) {
             const t = this.feed[name];
             if (t.location === "gpu-buffer" || t.location === "ml-tensor") {
@@ -154,13 +154,13 @@ export class LLM {
 
         this.feed = {};
         if (this.provider == "webnn") {
-            // init kv cache ml-tensor
-            const kvDesc = { dataType: this.dataType, shape: this.kvDims };
-            const ortKvDesc = { dataType: this.dataType, dims: this.kvDims };
-            const inputMlTensor = await this.mlContext.createTensor(kvDesc);
+            // Initialize kv cache ml-tensor
+            const kvDescriptor = { dataType: this.dataType, shape: this.kvDims };
+            const ortKvDescriptor = { dataType: this.dataType, dims: this.kvDims };
+            const inputMlTensor = await this.mlContext.createTensor(kvDescriptor);
             for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDesc);
-                this.feed[`past_key_values.${i}.value`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDesc);
+                this.feed[`past_key_values.${i}.key`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDescriptor);
+                this.feed[`past_key_values.${i}.value`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDescriptor);
             }
         } else {
             const kvNumElements = product(this.kvDims);
@@ -173,7 +173,7 @@ export class LLM {
         }
     }
 
-    // update key value cache
+    // Update key value cache
     updateKvCache(outputs) {
         for (const name in outputs) {
             if (name.includes("present.")) {
@@ -194,7 +194,7 @@ export class LLM {
         }
     }
 
-    // padding input array with 0
+    // Padding input array with 0
     paddingInput(originInput, maxLength, reverse = false) {
         let input = originInput.slice();
         if (input.length >= maxLength) return input.slice(0, maxLength);
@@ -209,36 +209,36 @@ export class LLM {
         }
     }
 
-    // tell generate() to stop.
+    // Tell generate() to stop
     abort() {
         this.stop = true;
     }
 
-    // Poor man's argmax.
-    argmax(t, seqLen = 1) {
+    // Poor man's argmax
+    argmax(t, sequenceLength = 1) {
         let arr = t.cpuData;
         if (t.type == "float16" && !isFloat16ArrayAvailable) {
             throw new Error("Float16Array is not available on this browser, try to use newer version");
         }
 
-        let start = t.dims[2] * (seqLen - 1);
+        let start = t.dims[2] * (sequenceLength - 1);
         let max = arr[start];
-        let maxidx = 0;
+        let maxIndex = 0;
 
         for (let i = 0; i < t.dims[2]; i++) {
             const val = arr[i + start];
             if (!isFinite(val)) {
-                throw new Error("found infinitive in logits");
+                throw new Error("Found infinity in logits");
             }
             if (val > max) {
                 max = arr[i + start];
-                maxidx = i;
+                maxIndex = i;
             }
         }
-        return maxidx;
+        return maxIndex;
     }
 
-    // prefill prompt and generate tokens, greedy search only
+    // Prefill prompt and generate tokens, greedy search only
     async generate(inputIds, callback) {
         this.outputTokens = [];
         const inputIdsLen = inputIds.length;
