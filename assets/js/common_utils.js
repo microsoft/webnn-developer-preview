@@ -150,6 +150,11 @@ const KNOWN_COMPATIBLE_ORT_VERSION = {
         stable: STABLE_ORT_VERSION,
         test: TEST_ORT_VERSION,
     },
+    "phi-3-mini": {
+        dev: DEV_ORT_VERSION,
+        stable: STABLE_ORT_VERSION,
+        test: TEST_ORT_VERSION,
+    },
     "text-generation": {
         dev: DEV_ORT_VERSION,
         stable: STABLE_ORT_VERSION,
