@@ -34,7 +34,7 @@ export class LLM {
     dtype = "float16";
     device_type = "gpu";
     max_seq = 128;
-    max_cache = 256;
+    max_cache = 512;
     attn_mask_len = 384;
     start_len = 0;
     ml_context = undefined;
