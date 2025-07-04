@@ -125,6 +125,9 @@ const blacklistTags = [
 
 function updateConfig() {
     const query = window.location.search.substring("1");
+    if (!query) {
+        return;
+    }
     const providers = ["webnn", "webgpu", "wasm"];
     const deviceTypes = ["cpu", "gpu", "npu"];
     const dataTypes = ["float32", "float16"];
