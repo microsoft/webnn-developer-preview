@@ -103,13 +103,13 @@ const main = async () => {
         },
     };
 
-    if (modelId === "resnet-50") {
-        options.session_options.freeDimensionOverrides = {
-            batch_size: 1,
-            num_channels: 3,
-            height: 224,
-            width: 224,
-        };
+    const dimensionOverrides = {
+        "resnet-50": { batch_size: 1, num_channels: 3, height: 224, width: 224 },
+        "mobilenet-v2": { batch_size: 1 },
+    };
+
+    if (dimensionOverrides[modelId]) {
+        options.session_options.freeDimensionOverrides = dimensionOverrides[modelId];
     }
 
     modelIdSpan.innerHTML = dataType;
