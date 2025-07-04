@@ -29,7 +29,7 @@ if (
     location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
     location.href.toLowerCase().indexOf("vercel.app") > -1
 ) {
-    let path = "microsoft/whisper-base-webnn/resolve/main";
+    let path = "webnn/whisper-base-webnn/resolve/main";
     tokenizerPath = `${path}/tokenizer`;
     processerPath = `${path}/processer`;
 } else {
@@ -46,7 +46,7 @@ export class Whisper {
         this.deviceType = deviceType;
         this.dataType = dataType;
         this.mask_4d = mask_4d;
-        this.ioBinding = ioBinding && deviceType == 'gpu';
+        this.ioBinding = ioBinding && deviceType == "gpu";
         ort.env.wasm.simd = true;
 
         this.models = {
@@ -102,19 +102,21 @@ export class Whisper {
                     deviceType: this.deviceType,
                 },
             ],
-            preferredOutputLocation: this.ioBinding ? (() => {
-                let pairs = {};
-                pairs['last_hidden_state'] = "ml-tensor";
-                for (let i = 0; i < 6; i++) {
-                    pairs[`padded_present_key_values.${i}.decoder.key`] = "ml-tensor";
-                    pairs[`padded_present_key_values.${i}.decoder.value`] = "ml-tensor";
-                    pairs[`present_key_values.${i}.encoder.key`] = "ml-tensor";
-                    pairs[`present_key_values.${i}.encoder.value`] = "ml-tensor";
-                    pairs[`updated_present_key_values.${i}.decoder.key`] = "ml-tensor";
-                    pairs[`updated_present_key_values.${i}.decoder.value`] = "ml-tensor";
-                }
-                return pairs;
-            })() : undefined,
+            preferredOutputLocation: this.ioBinding
+                ? (() => {
+                      let pairs = {};
+                      pairs["last_hidden_state"] = "ml-tensor";
+                      for (let i = 0; i < 6; i++) {
+                          pairs[`padded_present_key_values.${i}.decoder.key`] = "ml-tensor";
+                          pairs[`padded_present_key_values.${i}.decoder.value`] = "ml-tensor";
+                          pairs[`present_key_values.${i}.encoder.key`] = "ml-tensor";
+                          pairs[`present_key_values.${i}.encoder.value`] = "ml-tensor";
+                          pairs[`updated_present_key_values.${i}.decoder.key`] = "ml-tensor";
+                          pairs[`updated_present_key_values.${i}.decoder.value`] = "ml-tensor";
+                      }
+                      return pairs;
+                  })()
+                : undefined,
             logSeverityLevel: 0,
         };
 
@@ -139,8 +141,11 @@ export class Whisper {
                     log(`Loading ${this.models[name]["title"]} · ${this.dataType} · ${this.models[name]["fp32size"]}`);
                 }
 
-                const modelBuffer = await getModelOPFS(`${this.ioBinding}_${this.deviceType}_${name}_${this.dataType}`,
-                    url, false);
+                const modelBuffer = await getModelOPFS(
+                    `${this.ioBinding}_${this.deviceType}_${name}_${this.dataType}`,
+                    url,
+                    false,
+                );
                 log(`${this.models[name]["title"]} loaded`);
 
                 log(`Creating session for ${this.models[name]["title"]}`);
@@ -306,7 +311,7 @@ export class Whisper {
                 this.max_sequence_length,
                 this.num_init_tokens,
                 this.num_init_tokens,
-                this.dataType
+                this.dataType,
             );
         }
 
@@ -349,30 +354,29 @@ export class Whisper {
                 this.mask_4d,
             );
 
-          // modify the kv cache in place
-          if (this.ioBinding) {
-              for (let i = 0; i < 6; i++) {
-                  // dispose previous tensors
-                  decoder_input[`past_key_values.${i}.decoder.key`].mlTensor.destroy();
-                  decoder_input[`past_key_values.${i}.decoder.value`].mlTensor.destroy();
-                  // update the kv cache
-                  decoder_input[`past_key_values.${i}.decoder.key`] =
-                      decoder_cached_output[`updated_present_key_values.${i}.decoder.key`];
-                  decoder_input[`past_key_values.${i}.decoder.value`] =
-                      decoder_cached_output[`updated_present_key_values.${i}.decoder.value`];
-              }
-          } else {
-              cache_update(
-                  decoder_input,
-                  decoder_cached_output,
-                  i,
-                  this.max_sequence_length,
-                  this.num_init_tokens,
-                  position_ids[0],
-                  this.dataType
-              );
-          }
-
+            // modify the kv cache in place
+            if (this.ioBinding) {
+                for (let i = 0; i < 6; i++) {
+                    // dispose previous tensors
+                    decoder_input[`past_key_values.${i}.decoder.key`].mlTensor.destroy();
+                    decoder_input[`past_key_values.${i}.decoder.value`].mlTensor.destroy();
+                    // update the kv cache
+                    decoder_input[`past_key_values.${i}.decoder.key`] =
+                        decoder_cached_output[`updated_present_key_values.${i}.decoder.key`];
+                    decoder_input[`past_key_values.${i}.decoder.value`] =
+                        decoder_cached_output[`updated_present_key_values.${i}.decoder.value`];
+                }
+            } else {
+                cache_update(
+                    decoder_input,
+                    decoder_cached_output,
+                    i,
+                    this.max_sequence_length,
+                    this.num_init_tokens,
+                    position_ids[0],
+                    this.dataType,
+                );
+            }
         }
 
         if (this.ioBinding) {

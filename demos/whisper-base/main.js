@@ -157,8 +157,8 @@ function updateConfig() {
         if (pair[0] == "mask_4d") {
             mask4d = value === "true";
         }
-        if (pair[0] == 'ioBinding') {
-            ioBinding = value === 'true';
+        if (pair[0] == "ioBinding") {
+            ioBinding = value === "true";
         }
     }
 }
@@ -661,9 +661,9 @@ const main = async () => {
 
     context = new AudioContext({ sampleRate: kSampleRate });
     const whisper_url = location.href.includes("github.io")
-        ? "https://huggingface.co/microsoft/whisper-base-webnn/resolve/main/"
+        ? "https://huggingface.co/webnn/whisper-base-webnn/resolve/main/"
         : "./models/";
-    whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d, iobinding);
+    whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d, ioBinding);
     await whisper.create_whisper_processor();
     await whisper.create_whisper_tokenizer();
     await whisper.create_ort_sessions();
