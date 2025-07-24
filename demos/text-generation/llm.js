@@ -165,7 +165,7 @@ export class LLM {
                 this.feed[`past_key_values.${i}.value`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDescriptor);
             }
         } else {
-            // Initialize kv cache as empty tensors for webgpu or wasm EP
+            // Initialize kv cache as empty tensors for WebGPU or WASM EP
             const emptyDims = [1, this.kvNumHeads, 0, this.headSize];
             const empty = this.dataType === "float16" ? new Float16Array() : new Float32Array();
             for (let i = 0; i < this.numLayers; ++i) {
@@ -246,7 +246,7 @@ export class LLM {
         let attnMask = Array.from({ length: inputIdsLen }, () => BigInt(1));
         const positionIds = Array.from({ length: inputIdsLen }, (_, i) => BigInt(i++));
         // Both input_ids and position_ids have shapes of [batch_size, sequence_length].
-        // the sequence_length is the length of inputIds, which is dynamic.
+        // The sequence_length is the length of inputIds, which is dynamic.
         // Since WebNN does not support dynamic shapes, fix the sequence_length to maxLength and
         // pad the rest elements with 0 value.
         // TODO: This may cause an overflow error if maxLength is excessively large,
