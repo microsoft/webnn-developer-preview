@@ -47,6 +47,8 @@ export class LLM {
         const verbose = options.verbose;
         this.eos = model.eos_token_id; // End of sentence token ids
         this.numLayers = model.num_layers;
+        this.kvNumHeads = model.kv_num_heads;
+        this.headSize = model.head_size;
         this.kvDims = [1, model.kv_num_heads, this.maxLength, model.head_size];
         log(`WebNN EP config: ${model.name} · ${this.dataType} · ${this.provider} · ${this.deviceType}`);
 
@@ -163,12 +165,12 @@ export class LLM {
                 this.feed[`past_key_values.${i}.value`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDescriptor);
             }
         } else {
-            const kvNumElements = product(this.kvDims);
-            const empty =
-                this.dataType === "float16" ? new Float16Array(kvNumElements) : new Float32Array(kvNumElements);
+            // Initialize kv cache as empty tensors for WebGPU or WASM EP
+            const emptyDims = [1, this.kvNumHeads, 0, this.headSize];
+            const emptyTensor = this.dataType === "float16" ? new Float16Array() : new Float32Array();
             for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dataType, empty, this.kvDims);
-                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dataType, empty, this.kvDims);
+                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dataType, emptyTensor, emptyDims);
+                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dataType, emptyTensor, emptyDims);
             }
         }
     }
@@ -201,11 +203,9 @@ export class LLM {
         const paddingLength = maxLength - input.length;
         const padding = Array.from({ length: paddingLength }, () => 0n);
         if (reverse) {
-            padding.push(...input);
-            return padding;
+            return padding.concat(input);
         } else {
-            input.push(...padding);
-            return input;
+            return input.concat(padding);
         }
     }
 
@@ -245,13 +245,32 @@ export class LLM {
 
         let attnMask = Array.from({ length: inputIdsLen }, () => BigInt(1));
         const positionIds = Array.from({ length: inputIdsLen }, (_, i) => BigInt(i++));
-        // Padding input_ids, attention_mask, position_ids to have length of this.maxLength
-        const inputIdsBuffer = this.paddingInput(inputIds, this.maxLength);
+        // Both input_ids and position_ids have shapes of [batch_size, sequence_length].
+        // The sequence_length is the length of inputIds, which is dynamic.
+        // Since WebNN does not support dynamic shapes, fix the sequence_length to maxLength and
+        // pad the rest elements with 0 value.
+        // TODO: This may cause an overflow error if maxLength is excessively large,
+        // as it could exceed the allowable array size or memory limits.
+        // e.g. QWen2.0 supports max_length: 32768, in a matmul of the GQA decomposed op,
+        // its input shapes will be [1, 14, 32768, 64] x [1, 14, 64, 32768] = [1, 14, 32768, 32768]
+        // which exceeds the 2GB tensor size limitation.
+        const doPadding = this.provider === "webnn";
+        const inputIdsBuffer = doPadding ? this.paddingInput(inputIds, this.maxLength) : inputIds;
+        const positionIdsBuffer = doPadding ? this.paddingInput(positionIds, this.maxLength) : positionIds;
+
         const attnMaskBuffer = this.paddingInput(attnMask, this.maxLength);
-        const positionIdsBuffer = this.paddingInput(positionIds, this.maxLength);
-        this.feed["input_ids"] = new ort.Tensor("int64", BigInt64Array.from(inputIdsBuffer), [1, this.maxLength]);
-        this.feed["attention_mask"] = new ort.Tensor("int64", BigInt64Array.from(attnMaskBuffer), [1, this.maxLength]);
-        this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from(positionIdsBuffer), [1, this.maxLength]);
+        this.feed["input_ids"] = new ort.Tensor("int64", BigInt64Array.from(inputIdsBuffer), [
+            1,
+            inputIdsBuffer.length,
+        ]);
+        this.feed["attention_mask"] = new ort.Tensor("int64", BigInt64Array.from(attnMaskBuffer), [
+            1,
+            attnMaskBuffer.length,
+        ]);
+        this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from(positionIdsBuffer), [
+            1,
+            positionIdsBuffer.length,
+        ]);
         this.stop = false;
 
         let lastToken = 0;

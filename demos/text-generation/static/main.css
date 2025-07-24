@@ -214,19 +214,19 @@
      color: var(--main);
  }
 
- .models button#phi3mini:hover svg path {
+ .models button#phi4mini:hover svg path {
      fill: #f35325;
  }
 
- .models button#phi3mini:hover svg circle {
+ .models button#phi4mini:hover svg circle {
      stroke: #f35325;
  }
 
- .models #phi3mini.active svg path {
+ .models #phi4mini.active svg path {
      fill: #f35325;
  }
 
- .models #phi3mini.active svg circle {
+ .models #phi4mini.active svg circle {
      stroke: #f35325;
  }
 

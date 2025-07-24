@@ -34,20 +34,19 @@ const MODELS = {
         head_size: 64,
         system_content: "You are a friendly chatbot who always responds in the style of a pirate", // "You are MiniThinky, a helpful AI assistant. You always think before giving the answer. Use <|thinking|> before thinking and <|answer|> before giving the answer."
     },
-    phi3mini: {
-        name: "Phi-3 Mini 4k Instruct",
-        desc: "Microsoft Phi-3-mini-4k-instruct-onnx",
-        id: "microsoft/directml-int4-awq-block-128",
-        remote_id: "microsoft/Phi-3-mini-4k-instruct",
+    phi4mini: {
+        name: "Phi-4 Mini Instruct",
+        desc: "Microsoft Phi-4 Mini Instruct",
+        id: "microsoft/Phi-4-mini-instruct-onnx",
+        remote_id: "microsoft/Phi-4-mini-instruct",
         file_name: "model.onnx",
-        local_path: "models/microsoft/directml-int4-awq-block-128/",
-        remote_path:
-            "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-onnx/resolve/main/directml/directml-int4-awq-block-128/",
-        eos_token_id: [32000, 32001, 32007],
-        max_length: 4096,
+        local_path: "models/microsoft/Phi-4-mini-instruct-onnx/",
+        remote_path: "https://huggingface.co/webnn/Phi-4-mini-instruct-onnx/resolve/main/onnx/",
+        eos_token_id: [200020, 199999],
+        max_length: 131072,
         num_layers: 32,
-        kv_num_heads: 32,
-        head_size: 96,
+        kv_num_heads: 8,
+        head_size: 128,
         system_content: "You are a helpful AI assistant.",
     },
     qwen2: {
@@ -260,7 +259,7 @@ $("#user-input").addEventListener("keydown", async function (e) {
 function getConfig() {
     const query = window.location.search.substring(1);
     var config = {
-        model: "phi3mini",
+        model: "phi4mini",
         provider: "webnn",
         deviceType: "gpu",
         profiler: 0,
