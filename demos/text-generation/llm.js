@@ -167,10 +167,10 @@ export class LLM {
         } else {
             // Initialize kv cache as empty tensors for WebGPU or WASM EP
             const emptyDims = [1, this.kvNumHeads, 0, this.headSize];
-            const empty = this.dataType === "float16" ? new Float16Array() : new Float32Array();
+            const emptyTensor = this.dataType === "float16" ? new Float16Array() : new Float32Array();
             for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dataType, empty, emptyDims);
-                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dataType, empty, emptyDims);
+                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dataType, emptyTensor, emptyDims);
+                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dataType, emptyTensor, emptyDims);
             }
         }
     }
