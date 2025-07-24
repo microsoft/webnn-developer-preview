@@ -39,8 +39,8 @@ function getConfig() {
 
     for (const key in config) {
         const lowerKey = key.toLowerCase();
-        if (queryParams.has(key) || queryParams.has(lowerKey)) {
-            const value = queryParams.get(key) || queryParams.get(lowerKey);
+        const value = queryParams.get(key) ?? queryParams.get(lowerKey);
+        if (value !== null) {
             if (typeof config[key] === "boolean") {
                 config[key] = value === "true";
             } else if (typeof config[key] === "number") {
