@@ -21,8 +21,8 @@ import {
  * get configuration from url
  */
 function getConfig() {
-    const query = window.location.search.substring(1);
-    var config = {
+    const queryParams = new URLSearchParams(window.location.search);
+    const config = {
         model: location.href.includes("github.io")
             ? "https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main"
             : "models",
@@ -30,25 +30,27 @@ function getConfig() {
         safetyChecker: true,
         provider: "webnn",
         deviceType: "gpu",
-        threads: "1",
-        images: "4",
+        threads: 1,
+        images: 4,
         ort: "test",
+        logOutput: false,
+        verbose: false,
     };
-    let vars = query.split("&");
-    for (var i = 0; i < vars.length; i++) {
-        let pair = vars[i].split("=");
-        if (pair[0] in config) {
-            config[pair[0]] = decodeURIComponent(pair[1]);
-        } else if (pair[0].toLowerCase() === "devicetype") {
-            config.deviceType = decodeURIComponent(pair[1]);
-        } else if (pair[0].toLowerCase() === "safetychecker") {
-            config.safetyChecker = decodeURIComponent(pair[1]) === "true";
-        } else if (pair[0].length > 0) {
-            throw new Error("unknown argument: " + pair[0]);
+
+    for (const key in config) {
+        const lowerKey = key.toLowerCase();
+        if (queryParams.has(key) || queryParams.has(lowerKey)) {
+            const value = queryParams.get(key) || queryParams.get(lowerKey);
+            if (typeof config[key] === "boolean") {
+                config[key] = value === "true";
+            } else if (typeof config[key] === "number") {
+                config[key] = isNaN(parseInt(value)) ? config[key] : parseInt(value);
+            } else {
+                config[key] = decodeURIComponent(value);
+            }
         }
     }
-    config.threads = parseInt(config.threads);
-    config.images = parseInt(config.images);
+
     return config;
 }
 
@@ -388,7 +390,7 @@ const opt = {
             use_ort_model_bytes_for_initializers: "1",
         },
     },
-    logSeverityLevel: 0,
+    logSeverityLevel: config.verbose ? 0 : 3, // 0: verbose, 1: info, 2: warning, 3: error
 };
 
 /*
@@ -579,6 +581,11 @@ async function generate_image() {
         const { last_hidden_state } = await models.text_encoder.sess.run({
             input_ids: new ort.Tensor("int32", input_ids, [1, input_ids.length]),
         });
+        if (config.logOutput) {
+            console.log(`[Model Output] Text Encoder - last_hidden_state:`);
+            console.log(last_hidden_state.data);
+        }
+
         let sessionRunTimeTextEncode = (performance.now() - start).toFixed(2);
         textEncoderRun1.innerHTML = sessionRunTimeTextEncode;
         textEncoderRun2.innerHTML = sessionRunTimeTextEncode;
@@ -586,9 +593,9 @@ async function generate_image() {
         textEncoderRun4.innerHTML = sessionRunTimeTextEncode;
 
         if (getMode()) {
-            log(`[Session Run] Text encode execution time: ${sessionRunTimeTextEncode}ms`);
+            log(`[Session Run] Text Encoder execution time: ${sessionRunTimeTextEncode}ms`);
         } else {
-            log(`[Session Run] Text encode completed`);
+            log(`[Session Run] Text Encoder completed`);
         }
 
         for (let j = 0; j < config.images; j++) {
@@ -610,6 +617,10 @@ async function generate_image() {
                 encoder_hidden_states: last_hidden_state,
             };
             let { out_sample } = await models.unet.sess.run(feed);
+            if (config.logOutput) {
+                console.log(`[Model Output][Image ${j + 1}] UNet - out_sample: `);
+                console.log(last_hidden_state.data);
+            }
             let unetRunTime = (performance.now() - start).toFixed(2);
             $(`#unetRun${j + 1}`).innerHTML = unetRunTime;
 
@@ -630,13 +641,17 @@ async function generate_image() {
             const { sample } = await models.vae_decoder.sess.run({
                 latent_sample: new_latents,
             });
+            if (config.logOutput) {
+                console.log(`[Model Output][Image ${j + 1}] Vae Decoder - sample:`);
+                console.log(sample.data);
+            }
             let vaeRunTime = (performance.now() - start).toFixed(2);
             $(`#vaeRun${j + 1}`).innerHTML = vaeRunTime;
 
             if (getMode()) {
-                log(`[Session Run][Image ${j + 1}] VAE decode execution time: ${vaeRunTime}ms`);
+                log(`[Session Run][Image ${j + 1}] VAE Decoder execution time: ${vaeRunTime}ms`);
             } else {
-                log(`[Session Run][Image ${j + 1}] VAE decode completed`);
+                log(`[Session Run][Image ${j + 1}] VAE Decoder completed`);
             }
 
             draw_image(sample, j);
@@ -664,7 +679,11 @@ async function generate_image() {
                 };
                 start = performance.now();
                 const { has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
-                // const { out_images, has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
+                if (config.logOutput) {
+                    console.log(`[Model Output][Image ${j + 1}] Safety Checker - has_nsfw_concepts:`);
+                    console.log(has_nsfw_concepts.data);
+                }
+
                 let scRunTime = (performance.now() - start).toFixed(2);
                 $(`#scRun${j + 1}`).innerHTML = scRunTime;
 
