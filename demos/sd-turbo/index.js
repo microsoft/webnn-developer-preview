@@ -642,7 +642,7 @@ async function generate_image() {
                 latent_sample: new_latents,
             });
             if (config.logOutput) {
-                console.log(`[Model Output][Image ${j + 1}] Vae Decoder - sample:`);
+                console.log(`[Model Output][Image ${j + 1}] VAE Decoder - sample:`);
                 console.log(sample.data);
             }
             let vaeRunTime = (performance.now() - start).toFixed(2);
