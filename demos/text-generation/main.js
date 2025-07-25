@@ -452,7 +452,7 @@ const main = async () => {
 
 const ui = async () => {
     if (!getQueryValue("provider") && !getQueryValue("devicetype")) {
-        location.href = `./?provider=${provider}&devicetype=${deviceType}&model=phi3mini`;
+        location.href = `./?provider=${provider}&devicetype=${deviceType}&model=phi4mini`;
         return;
     }
 
