@@ -14,15 +14,6 @@ import {
     onnxDataCompileProgress,
 } from "./utils.js";
 
-function product(shape) {
-    if (!Array.isArray(shape)) {
-        return 0; // Keep the non-array case returning 0
-    }
-    // A shape of [] should be 1 as a scalar
-    // No need for special empty array check since reduce handles it
-    return shape.reduce((acc, val) => acc * val, 1);
-}
-
 // Class to handle a large language model on top of onnxruntime-web
 export class LLM {
     provider = "webnn";
