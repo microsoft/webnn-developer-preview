@@ -239,17 +239,6 @@ header svg {
     height: 50px;
 }
 
-#directml-logo {
-    height: 40px;
-    width: 110px;
-    display: grid;
-    align-items: center;
-    font-size: 27px;
-    font-family: "Segoe UI", SegoeUI, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: rgba(116, 116, 116, 1);
-    font-weight: 600;
-}
-
 #ort-logo {
     width: 124px;
     height: 40px;
