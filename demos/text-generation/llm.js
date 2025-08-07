@@ -56,7 +56,9 @@ export class LLM {
         modelSize += externalDataBytes.byteLength;
 
         log(`model size: ${Math.round(modelSize / 1024 / 1024)} MB`);
-        this.mlContext = await navigator.ml.createContext({ deviceType: this.deviceType });
+        if (this.provider == "webnn") {
+            this.mlContext = await navigator.ml.createContext({ deviceType: this.deviceType });
+        }
         const sessionOptions = {
             executionProviders: [{ name: this.provider, deviceType: this.deviceType, context: this.mlContext }],
             externalData: [
@@ -315,9 +317,11 @@ export class LLM {
 
             this.feed = {};
             await this.session1.release();
-            await this.session2.release();
             this.session1 = undefined;
-            this.session2 = undefined;
+            if (this.session2) {
+                await this.session2.release();
+                this.session2 = undefined;
+            }
         } catch (e) {
             console.log("Error releasing session: ", e);
         }
