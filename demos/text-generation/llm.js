@@ -1,5 +1,12 @@
 /* eslint-disable no-undef */
-import { $, isFloat16ArrayAvailable, convertToSnakeCase } from "../../assets/js/common_utils.js";
+import {
+    $,
+    convertToSnakeCase,
+    createMlTensor,
+    createGpuTensor,
+    downloadMlTensor,
+    downloadGpuTensor,
+} from "../../assets/js/common_utils.js";
 import {
     getModelOPFS,
     log,
@@ -20,13 +27,15 @@ export class LLM {
     session1 = undefined;
     session2 = undefined;
     feed = {};
+    fetches = {};
     outputTokens = [];
     stop = false;
     kvDims = [];
-    dataType = "float16";
     deviceType = "gpu";
     maxLength = 2048;
     mlContext = undefined;
+    startLen = 0;
+    decodeLogitsBuffer = undefined;
 
     constructor(maxLength) {
         this.maxLength = maxLength;
@@ -41,7 +50,9 @@ export class LLM {
         this.kvNumHeads = model.kv_num_heads;
         this.headSize = model.head_size;
         this.kvDims = [1, model.kv_num_heads, this.maxLength, model.head_size];
-        log(`WebNN EP config: ${model.name} · ${this.dataType} · ${this.provider} · ${this.deviceType}`);
+        this.vocabSize = model.vocab_size;
+        this.decodeLogitsBuffer = new Float16Array(this.vocabSize * 2);
+        log(`WebNN EP config: ${model.name} · ${this.provider} · ${this.deviceType}`);
 
         const path = options.local ? model.local_path : model.remote_path;
         const modelFile = model.file_name;
@@ -68,22 +79,6 @@ export class LLM {
                 },
             ],
         };
-
-        const locationType = this.provider == "webnn" ? "ml-tensor" : "gpu-buffer";
-        switch (this.provider) {
-            case "webnn":
-            case "webgpu":
-                // Bind kv cache outputs to ml-tensor or gpu-buffer
-                sessionOptions.preferredOutputLocation = {};
-                for (let i = 0; i < this.numLayers; ++i) {
-                    sessionOptions.preferredOutputLocation[`present.${i}.key`] = locationType;
-                    sessionOptions.preferredOutputLocation[`present.${i}.value`] = locationType;
-                }
-                break;
-            case "wasm":
-                sessionOptions.preferredOutputLocation = "cpu";
-                break;
-        }
 
         if (verbose) {
             sessionOptions.logSeverityLevel = 0;
@@ -125,6 +120,10 @@ export class LLM {
             log("Decode process session created");
         }
 
+        if (this.provider == "webgpu") {
+            this.gpuDevice = ort.env.webgpu.device;
+        }
+
         updateOnnxDataCompileProgress(10);
         updateLoadProgress(onnxFetchProgress + onnxDataFetchProgress + onnxCompileProgress + onnxDataCompileProgress);
         updateProgressBar(loadProgress.toFixed(2));
@@ -134,36 +133,101 @@ export class LLM {
         progressBarLabel.innerHTML = "100%";
 
         if (!flag) {
-            this.initializeFeed();
+            this.initialize();
         }
     }
 
-    async initializeFeed() {
-        // Dispose previous tensors
-        for (const name in this.feed) {
-            const t = this.feed[name];
-            if (t.location === "gpu-buffer" || t.location === "ml-tensor") {
-                t.dispose();
+    disposeTensors(tensors) {
+        if (tensors && typeof tensors === "object") {
+            for (const name in tensors) {
+                const t = tensors[name];
+                if (t.disposer == undefined) {
+                    if (t.location == "ml-tensor") {
+                        t.mlTensor.destroy();
+                    }
+                    if (t.location == "gpu-buffer") {
+                        t.gpuBuffer.destroy();
+                    }
+                } else {
+                    t.dispose();
+                }
             }
         }
+    }
+
+    // Initialize key value caches
+    async initialize() {
+        // Dispose previous tensors
+        this.disposeTensors(this.feed);
+        this.disposeTensors(this.fetches);
 
         this.feed = {};
         if (this.provider == "webnn") {
-            // Initialize kv cache ml-tensor
-            const kvDescriptor = { dataType: this.dataType, shape: this.kvDims };
-            const ortKvDescriptor = { dataType: this.dataType, dims: this.kvDims };
-            const inputMlTensor = await this.mlContext.createTensor(kvDescriptor);
+            // Pre-allocate kv cache ml-tensor
             for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDescriptor);
-                this.feed[`past_key_values.${i}.value`] = ort.Tensor.fromMLTensor(inputMlTensor, ortKvDescriptor);
+                this.feed[`past_key_values.${i}.key`] = await createMlTensor(
+                    this.mlContext,
+                    "float16",
+                    this.kvDims,
+                    false,
+                    false,
+                );
+                this.feed[`past_key_values.${i}.value`] = await createMlTensor(
+                    this.mlContext,
+                    "float16",
+                    this.kvDims,
+                    false,
+                    false,
+                );
+
+                this.fetches[`present.${i}.key`] = await createMlTensor(
+                    this.mlContext,
+                    "float16",
+                    this.kvDims,
+                    false,
+                    false,
+                );
+                this.fetches[`present.${i}.value`] = await createMlTensor(
+                    this.mlContext,
+                    "float16",
+                    this.kvDims,
+                    false,
+                    false,
+                );
+            }
+        } else if (this.provider == "webgpu") {
+            // Pre-allocate kv cache gpu-buffer
+            const numElements = this.kvDims.reduce((a, b) => a * b, 1);
+            const bufferSize = numElements * 2;
+            for (let i = 0; i < this.numLayers; ++i) {
+                this.feed[`past_key_values.${i}.key`] = createGpuTensor(
+                    this.gpuDevice,
+                    "float16",
+                    this.kvDims,
+                    bufferSize,
+                );
+                this.feed[`past_key_values.${i}.value`] = createGpuTensor(
+                    this.gpuDevice,
+                    "float16",
+                    this.kvDims,
+                    bufferSize,
+                );
+
+                this.fetches[`present.${i}.key`] = createGpuTensor(this.gpuDevice, "float16", this.kvDims, bufferSize);
+                this.fetches[`present.${i}.value`] = createGpuTensor(
+                    this.gpuDevice,
+                    "float16",
+                    this.kvDims,
+                    bufferSize,
+                );
             }
         } else {
-            // Initialize kv cache as empty tensors for WebGPU or WASM EP
-            const emptyDims = [1, this.kvNumHeads, 0, this.headSize];
-            const emptyTensor = this.dataType === "float16" ? new Float16Array() : new Float32Array();
+            // Initialize kv cache as empty tensors for WASM EP
+            const numElements = this.kvDims.reduce((a, b) => a * b, 1);
+            const emptyTensor = new Float16Array(numElements);
             for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = new ort.Tensor(this.dataType, emptyTensor, emptyDims);
-                this.feed[`past_key_values.${i}.value`] = new ort.Tensor(this.dataType, emptyTensor, emptyDims);
+                this.feed[`past_key_values.${i}.key`] = new ort.Tensor("float16", emptyTensor, this.kvDims);
+                this.feed[`past_key_values.${i}.value`] = new ort.Tensor("float16", emptyTensor, this.kvDims);
             }
         }
     }
@@ -174,17 +238,12 @@ export class LLM {
             if (name.includes("present.")) {
                 let newName = name.replace(name.split(".")[0], "past_key_values");
                 const t = this.feed[newName];
-                // dispose previous tensors
-                if (t.location === "gpu-buffer" || t.location == "ml-tensor") {
-                    // ml-tensor in first feed has no dispose method
-                    if (t.disposer == undefined && t.location == "ml-tensor") {
-                        t.mlTensor.destroy();
-                    } else {
-                        t.dispose();
-                    }
+                if (this.fetches[name]) {
+                    this.feed[newName] = this.fetches[name];
+                    this.fetches[name] = t;
+                } else {
+                    this.feed[newName] = outputs[name];
                 }
-
-                this.feed[newName] = outputs[name];
             }
         }
     }
@@ -208,17 +267,12 @@ export class LLM {
     }
 
     // Poor man's argmax
-    argmax(t, sequenceLength = 1) {
-        let arr = t.cpuData;
-        if (t.type == "float16" && !isFloat16ArrayAvailable) {
-            throw new Error("Float16Array is not available on this browser, try to use newer version");
-        }
-
-        let start = t.dims[2] * (sequenceLength - 1);
+    argmax(arr, sequenceLength = 1, vocabSize) {
+        let start = vocabSize * (sequenceLength - 1);
         let max = arr[start];
         let maxIndex = 0;
 
-        for (let i = 0; i < t.dims[2]; i++) {
+        for (let i = 0; i < vocabSize; i++) {
             const val = arr[i + start];
             if (!isFinite(val)) {
                 throw new Error("Found infinity in logits");
@@ -235,9 +289,11 @@ export class LLM {
     async generate(inputIds, callback) {
         this.outputTokens = [];
         const inputIdsLen = inputIds.length;
-
-        let attnMask = Array.from({ length: inputIdsLen }, () => BigInt(1));
-        const positionIds = Array.from({ length: inputIdsLen }, (_, i) => BigInt(i++));
+        const attnMaskLen = this.provider == "webnn" ? inputIdsLen : this.startLen + inputIdsLen;
+        let attnMask = Array.from({ length: attnMaskLen }, () => BigInt(1));
+        let positionIds = Array.from({ length: inputIdsLen }, (_, i) =>
+            BigInt(this.provider == "webnn" ? i++ : this.startLen + i++),
+        );
         // Both input_ids and position_ids have shapes of [batch_size, sequence_length].
         // The sequence_length is the length of inputIds, which is dynamic.
         // Since WebNN does not support dynamic shapes, fix the sequence_length to maxLength and
@@ -247,60 +303,121 @@ export class LLM {
         // e.g. QWen2.0 supports max_length: 32768, in a matmul of the GQA decomposed op,
         // its input shapes will be [1, 14, 32768, 64] x [1, 14, 64, 32768] = [1, 14, 32768, 32768]
         // which exceeds the 2GB tensor size limitation.
-        const doPadding = this.provider === "webnn";
-        const inputIdsBuffer = doPadding ? this.paddingInput(inputIds, this.maxLength) : inputIds;
-        const positionIdsBuffer = doPadding ? this.paddingInput(positionIds, this.maxLength) : positionIds;
+        if (this.provider == "webnn") {
+            inputIds = this.paddingInput(inputIds, this.maxLength);
+            positionIds = this.paddingInput(positionIds, this.maxLength);
+            attnMask = this.paddingInput(attnMask, this.maxLength);
+        }
 
-        const attnMaskBuffer = this.paddingInput(attnMask, this.maxLength);
-        this.feed["input_ids"] = new ort.Tensor("int64", BigInt64Array.from(inputIdsBuffer), [
-            1,
-            inputIdsBuffer.length,
-        ]);
-        this.feed["attention_mask"] = new ort.Tensor("int64", BigInt64Array.from(attnMaskBuffer), [
-            1,
-            attnMaskBuffer.length,
-        ]);
-        this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from(positionIdsBuffer), [
-            1,
-            positionIdsBuffer.length,
-        ]);
+        this.feed["input_ids"] = new ort.Tensor("int64", BigInt64Array.from(inputIds), [1, inputIds.length]);
+        this.feed["attention_mask"] = new ort.Tensor("int64", BigInt64Array.from(attnMask), [1, attnMask.length]);
+        this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from(positionIds), [1, positionIds.length]);
         this.stop = false;
 
+        // shape of logits in prefill
+        const prefillLogitsShape = [1, this.provider == "webnn" ? this.maxLength : inputIdsLen, this.vocabSize];
+        const numElementsOfPrefillLogits = prefillLogitsShape.reduce((a, b) => a * b, 1);
         let lastToken = 0;
-        let outputs = await this.session1.run(this.feed);
-        lastToken = this.argmax(outputs["logits"], inputIdsLen);
-        let startLen = inputIdsLen;
+        if (this.provider == "webnn") {
+            this.fetches["logits"] = await createMlTensor(this.mlContext, "float16", prefillLogitsShape, false, true);
+        } else if (this.provider == "webgpu") {
+            const bufferSize = numElementsOfPrefillLogits * 2; // 2 bytes for float16
+            this.fetches["logits"] = createGpuTensor(this.gpuDevice, "float16", prefillLogitsShape, bufferSize);
+        }
+        let outputs = await this.session1.run(this.feed, this.fetches);
+        this.prefillLogitsBuffer = new Float16Array(numElementsOfPrefillLogits);
+        if (this.provider == "webnn") {
+            await downloadMlTensor(this.mlContext, this.fetches["logits"].mlTensor, this.prefillLogitsBuffer);
+        } else if (this.provider == "webgpu") {
+            await downloadGpuTensor(
+                this.gpuDevice,
+                this.fetches["logits"].gpuBuffer,
+                this.vocabSize * inputIdsLen * 2,
+                this.prefillLogitsBuffer,
+            );
+        } else {
+            this.prefillLogitsBuffer = outputs["logits"].cpuData;
+        }
+
+        lastToken = this.argmax(this.prefillLogitsBuffer, inputIdsLen, this.vocabSize);
+
+        // Clean up the logits tensor after prefill
+        if (this.provider == "webnn") {
+            this.fetches["logits"].mlTensor.destroy();
+        } else if (this.provider == "webgpu") {
+            this.fetches["logits"].gpuBuffer.destroy();
+        }
+        this.fetches["logits"] = undefined;
+
+        this.startLen = this.provider == "webnn" ? inputIdsLen : this.startLen + inputIdsLen;
         this.outputTokens.push(lastToken);
         if (callback) {
             callback(this.outputTokens);
         }
 
         this.updateKvCache(outputs);
-        while (
-            this.eos.indexOf(lastToken) == -1 &&
-            !this.stop &&
-            this.outputTokens.length <= this.maxLength - inputIdsLen
-        ) {
+        while (this.eos.indexOf(lastToken) == -1 && !this.stop && this.startLen < this.maxLength) {
             this.feed["input_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(lastToken)]), [1, 1]);
-            attnMask.push(BigInt(1));
-            const attnMaskBuffer = this.paddingInput(attnMask, this.maxLength);
-            this.feed["attention_mask"] = new ort.Tensor("int64", new BigInt64Array(attnMaskBuffer), [
-                1,
-                this.maxLength,
-            ]);
-            this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(startLen)]), [1, 1]);
+
             if (this.provider == "webnn") {
-                outputs = await this.session2.run(this.feed);
+                attnMask[this.startLen] = 1n;
             } else {
-                outputs = await this.session1.run(this.feed);
+                attnMask.push(1n);
             }
-            lastToken = this.argmax(outputs["logits"]);
+            this.feed["attention_mask"] = new ort.Tensor("int64", BigInt64Array.from(attnMask), [1, attnMask.length]);
+            this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(this.startLen)]), [1, 1]);
+
+            if (this.provider == "webnn") {
+                // Pre-allocate logits ml-tensor once
+                if (!this.fetches["logits"]) {
+                    this.fetches["logits"] = await createMlTensor(
+                        this.mlContext,
+                        "float16",
+                        [1, 1, this.vocabSize], // shape of logits in decode
+                        false,
+                        true,
+                    );
+                }
+                outputs = await this.session2.run(this.feed, this.fetches);
+                await downloadMlTensor(this.mlContext, this.fetches["logits"].mlTensor, this.decodeLogitsBuffer);
+            } else if (this.provider == "webgpu") {
+                const bufferSize = this.vocabSize * 2; // 2 bytes for float16
+                if (!this.fetches["logits"]) {
+                    // Pre-allocate logits gpu-buffer once
+                    this.fetches["logits"] = createGpuTensor(
+                        this.gpuDevice,
+                        "float16",
+                        [1, 1, this.vocabSize],
+                        bufferSize,
+                    );
+                }
+                outputs = await this.session1.run(this.feed, this.fetches);
+                await downloadGpuTensor(
+                    this.gpuDevice,
+                    this.fetches["logits"].gpuBuffer,
+                    this.vocabSize * 2,
+                    this.decodeLogitsBuffer,
+                );
+            } else {
+                outputs = await this.session1.run(this.feed, this.fetches);
+                this.decodeLogitsBuffer = outputs["logits"].cpuData;
+            }
+
+            lastToken = this.argmax(this.decodeLogitsBuffer, 1, this.vocabSize);
+
             this.outputTokens.push(lastToken);
             if (callback) {
                 callback(this.outputTokens);
             }
             this.updateKvCache(outputs);
-            startLen += 1;
+            this.startLen++;
+        }
+
+        // Clean up the logits tensor after decode
+        if (this.provider == "webnn") {
+            this.fetches["logits"].mlTensor.destroy();
+        } else if (this.provider == "webgpu") {
+            this.fetches["logits"].gpuBuffer.destroy();
         }
 
         return this.outputTokens;
@@ -308,14 +425,11 @@ export class LLM {
 
     async dispose() {
         try {
-            for (const name in this.feed) {
-                const t = this.feed[name];
-                if (t.location === "gpu-buffer" || t.location === "ml-tensor") {
-                    t.dispose();
-                }
-            }
+            this.disposeTensors(this.feed);
+            this.disposeTensors(this.fetches);
 
             this.feed = {};
+            this.fetches = {};
             await this.session1.release();
             this.session1 = undefined;
             if (this.session2) {
@@ -333,5 +447,6 @@ export class LLM {
         this.outputTokens = [];
         this.kvDims = [];
         this.mlContext = undefined;
+        this.startLen = 0;
     }
 }

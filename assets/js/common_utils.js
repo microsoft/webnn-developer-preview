@@ -188,7 +188,7 @@ const getLatestOrtWebDevVersion = async () => {
 const loadScriptWithMessage = async version => {
     try {
         if (version === "test") {
-            await loadScript("onnxruntime-web", "../../assets/dist/ort.all.min.js");
+            await loadScript("onnxruntime-web", "../../assets/dist/ort.webgpu.min.js");
             return "ONNX Runtime Web: Test version";
         } else {
             if (version === "latest") {
@@ -409,4 +409,68 @@ export function convertToFloat16OrUint16Array(fp32_array) {
         fp16_array[i] = toHalf(fp32_array[i]);
     }
     return fp16_array;
+}
+
+// Create a new ORT ML Tensor from the given parameters.
+export async function createMlTensor(mlContext, dataType, dims, writable, readable) {
+    const mlTensor = await mlContext.createTensor({ dataType, shape: dims, writable, readable });
+    // eslint-disable-next-line no-undef
+    return ort.Tensor.fromMLTensor(mlTensor, { dataType, dims });
+}
+
+// Normalize the buffer size so that it fits the 128-bits (16 bytes) alignment.
+const calcNormalizedBufferSize = size => Math.ceil(Number(size) / 16) * 16;
+
+// Create a new ORT GPU Tensor from the given parameters.
+export function createGpuTensor(device, dataType, dims, bufferSize) {
+    const gpuBuffer = device.createBuffer({
+        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+        size: calcNormalizedBufferSize(bufferSize),
+    });
+    // eslint-disable-next-line no-undef
+    return ort.Tensor.fromGpuBuffer(gpuBuffer, { dataType, dims });
+}
+
+// Download an ML tensor into a pre-allocated target buffer.
+export async function downloadMlTensor(mlContext, mlTensor, targetBuffer) {
+    await mlContext.readTensor(mlTensor, targetBuffer);
+}
+
+// Dynamically handle arrayBuffer based on the type of targetBuffer
+function setBufferData(targetBuffer, arrayBuffer, originalSize) {
+    // Determine the constructor of the target buffer (e.g., Float32Array, Int32Array, etc.)
+    const TargetType = targetBuffer.constructor;
+
+    // Create a new TypedArray of the same type as targetBuffer from the arrayBuffer
+    const sourceBuffer = new TargetType(arrayBuffer, 0, originalSize / TargetType.BYTES_PER_ELEMENT);
+
+    // Copy the data into the targetBuffer
+    targetBuffer.set(sourceBuffer);
+}
+
+// Download a gpu tensor into a pre-allocated target buffer.
+export async function downloadGpuTensor(device, gpuBuffer, originalSize, targetBuffer) {
+    const bufferSize = calcNormalizedBufferSize(originalSize);
+    const gpuReadBuffer = device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    try {
+        const commandEncoder = device.createCommandEncoder();
+
+        commandEncoder.copyBufferToBuffer(
+            gpuBuffer /* source buffer */,
+            0 /* source offset */,
+            gpuReadBuffer /* destination buffer */,
+            0 /* destination offset */,
+            bufferSize /* size */,
+        );
+        device.queue.submit([commandEncoder.finish()]);
+        await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+
+        const arrayBuffer = gpuReadBuffer.getMappedRange();
+        setBufferData(targetBuffer, arrayBuffer, originalSize);
+    } finally {
+        gpuReadBuffer.destroy();
+    }
 }

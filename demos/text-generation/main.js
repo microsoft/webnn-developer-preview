@@ -32,6 +32,7 @@ const MODELS = {
         num_layers: 22,
         kv_num_heads: 4,
         head_size: 64,
+        vocab_size: 32000,
         system_content: "You are a friendly chatbot who always responds in the style of a pirate", // "You are MiniThinky, a helpful AI assistant. You always think before giving the answer. Use <|thinking|> before thinking and <|answer|> before giving the answer."
     },
     phi4mini: {
@@ -40,13 +41,14 @@ const MODELS = {
         id: "microsoft/Phi-4-mini-instruct-onnx",
         remote_id: "microsoft/Phi-4-mini-instruct",
         file_name: "model.onnx",
-        local_path: "models/microsoft/Phi-4-mini-instruct-onnx/",
-        remote_path: "https://huggingface.co/webnn/Phi-4-mini-instruct-onnx/resolve/main/onnx/",
+        local_path: "models/microsoft/Phi-4-mini-instruct-onnx-webnn/",
+        remote_path: "https://huggingface.co/webnn/Phi-4-mini-instruct-onnx-webnn/resolve/main/onnx/",
         eos_token_id: [200020, 199999],
         max_length: 131072,
         num_layers: 32,
         kv_num_heads: 8,
         head_size: 128,
+        vocab_size: 200064,
         system_content: "You are a helpful AI assistant.",
     },
     qwen2: {
@@ -61,6 +63,7 @@ const MODELS = {
         num_layers: 24,
         kv_num_heads: 2,
         head_size: 64,
+        vocab_size: 151936,
         system_content: "You are a helpful assistant.",
     },
     deepseekr1: {
@@ -77,6 +80,7 @@ const MODELS = {
         num_layers: 28,
         kv_num_heads: 2,
         head_size: 128,
+        vocab_size: 151936,
         system_content: "",
     },
 };
@@ -327,6 +331,11 @@ async function Query(continuation, query, cb) {
     logUser(`Prompt: ${query}`);
     let userChatTemplate = { role: "user", content: query };
     messages.push(userChatTemplate);
+
+    if (config.provider == "webgpu") {
+        messages = [userChatTemplate];
+    }
+
     let inputIds = tokenizer.apply_chat_template(messages, {
         add_generation_prompt: true,
         tokenize: true,
@@ -334,9 +343,16 @@ async function Query(continuation, query, cb) {
     });
 
     // Clean up
-    if (llm.outputTokens.length == 0 || !continuation || cleanCache || inputIds.length > llm.maxLength) {
+    if (
+        llm.outputTokens.length == 0 ||
+        !continuation ||
+        cleanCache ||
+        inputIds.length >= llm.maxLength ||
+        llm.startLen >= llm.maxLength
+    ) {
         // Initialize kv cache
-        await llm.initializeFeed();
+        await llm.initialize();
+        llm.startLen = 0;
         cleanCache = true;
         if (inputIds.length > llm.maxLength) {
             console.log(`Context length exceeds max new tokens, clean up...`);
