@@ -108,7 +108,7 @@ export class Whisper {
                 {
                     name: this.provider,
                     deviceType: this.deviceType,
-                    context: this.ioBinding ? this.mlContext : undefined,
+                    context: this.mlContext,
                 },
             ],
             logSeverityLevel: 0,
@@ -196,56 +196,45 @@ export class Whisper {
     }
 
     // Helper method to create input MLTensor from data
-    async createInputMLTensor(data, dims, dataType = "float32") {
+    async createInputMLTensor(data, shape, dataType = "float32") {
         if (!this.ioBinding || !this.mlContext) {
-            return new ort.Tensor(dataType, data, dims);
+            return new ort.Tensor(dataType, data, shape);
         }
 
-        try {
-            // Create MLTensor with write access
-            const mlTensor = await this.mlContext.createTensor({
-                dataType: dataType,
-                shape: dims,
-                writable: true,
-            });
+        // Create MLTensor with write access
+        const mlTensor = await this.mlContext.createTensor({
+            dataType,
+            shape,
+            writable: true,
+        });
 
-            // Write data to MLTensor
-            this.mlContext.writeTensor(mlTensor, data);
+        // Write data to MLTensor
+        this.mlContext.writeTensor(mlTensor, data);
 
-            // Create ORT tensor from MLTensor
-            return ort.Tensor.fromMLTensor(mlTensor, {
-                dataType: dataType,
-                dims: dims,
-            });
-        } catch (e) {
-            log(`Failed to create input MLTensor, falling back to CPU tensor: ${e.message}`);
-            return new ort.Tensor(dataType, data, dims);
-        }
+        // Create ORT tensor from MLTensor
+        return ort.Tensor.fromMLTensor(mlTensor, {
+            dataType,
+            dims: shape,
+        });
     }
 
     // Helper method to create pre-allocated MLTensor
-    async createOutputMLTensor(dims, dataType = "float32", isReadable = false) {
+    async createOutputMLTensor(shape, dataType = "float32", readable = false) {
         if (!this.ioBinding || !this.mlContext) {
             return null;
         }
+        // Create pre-allocated MLTensor
+        const mlTensor = await this.mlContext.createTensor({
+            dataType,
+            shape,
+            readable,
+        });
 
-        try {
-            // Create pre-allocated MLTensor
-            const mlTensor = await this.mlContext.createTensor({
-                dataType: dataType,
-                shape: dims,
-                readable: isReadable,
-            });
-
-            // Create ORT tensor from MLTensor
-            return ort.Tensor.fromMLTensor(mlTensor, {
-                dataType: dataType,
-                dims: dims,
-            });
-        } catch (e) {
-            log(`Failed to create pre-allocated MLTensor output: ${e.message}`);
-            return null;
-        }
+        // Create ORT tensor from MLTensor
+        return ort.Tensor.fromMLTensor(mlTensor, {
+            dataType,
+            dims: shape,
+        });
     }
 
     // Helper method to read real data from MLTensor
@@ -254,43 +243,58 @@ export class Whisper {
             return tensor;
         }
 
-        try {
-            const data = await this.mlContext.readTensor(tensor.mlTensor);
-            let typedData;
+        const data = await this.mlContext.readTensor(tensor.mlTensor);
+        let typedData;
 
-            switch (tensor.type) {
-                case "float32":
-                    typedData = new Float32Array(data);
-                    break;
-                case "float16":
-                    typedData = new Float16Array(data);
-                    break;
-                case "int32":
-                    typedData = new Int32Array(data);
-                    break;
-                case "int64":
-                    typedData = new BigInt64Array(data);
-                    break;
-                case "uint32":
-                    typedData = new Uint32Array(data);
-                    break;
-                case "uint64":
-                    typedData = new BigUint64Array(data);
-                    break;
-                case "int8":
-                    typedData = new Int8Array(data);
-                    break;
-                case "uint8":
-                    typedData = new Uint8Array(data);
-                    break;
-                default:
-                    log(`Unknown tensor type ${tensor.type}, will never reach here`);
-                    break;
+        switch (tensor.type) {
+            case "float32":
+                typedData = new Float32Array(data);
+                break;
+            case "float16":
+                typedData = new Float16Array(data);
+                break;
+            case "int32":
+                typedData = new Int32Array(data);
+                break;
+            case "int64":
+                typedData = new BigInt64Array(data);
+                break;
+            case "uint32":
+                typedData = new Uint32Array(data);
+                break;
+            case "uint64":
+                typedData = new BigUint64Array(data);
+                break;
+            case "int8":
+                typedData = new Int8Array(data);
+                break;
+            case "uint8":
+                typedData = new Uint8Array(data);
+                break;
+            default:
+                throw new Error(`Unknown tensor type ${tensor.type}.`);
+        }
+        return typedData;
+    }
+
+    // Helper method to clean up MLTensors
+    disposeTensors(tensors) {
+        if (tensors && typeof tensors === "object") {
+            for (const name in tensors) {
+                const t = tensors[name];
+                if (t && typeof t === "object") {
+                    if (t.disposer == undefined) {
+                        if (t.location == "ml-tensor" && t.mlTensor) {
+                            t.mlTensor.destroy();
+                        }
+                        if (t.location == "gpu-buffer" && t.gpuBuffer) {
+                            t.gpuBuffer.destroy();
+                        }
+                    } else {
+                        t.dispose();
+                    }
+                }
             }
-            return typedData;
-        } catch (e) {
-            log(`Failed to read MLTensor output: ${e.message}`);
-            return tensor;
         }
     }
 
@@ -349,30 +353,30 @@ export class Whisper {
         // console.log(`Non-KV cache decoder input preparation time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
         // run the first inference which generates SA and CA KV cache
-        // Create fetches object with pre-allocated outputs for IO binding
+        // Create inputs object with pre-allocated outputs for IO binding
         let logits, decoder_outputs;
         if (this.ioBinding) {
             // pre-allocated MLTensor outputs for IO binding
-            const first_logits = await this.createOutputMLTensor([1, 4, 51865], "float16", true);
+            const first_logits = await this.createOutputMLTensor([1, 4, 51865], this.dataType, true);
 
             // Create pre-allocated encoder key/value tensors for indices 0-5
             const encoder_kv_tensors = {};
             for (let i = 0; i < 6; i++) {
                 encoder_kv_tensors[`present_key_values.${i}.encoder.key`] = await this.createOutputMLTensor(
                     [1, 8, 1500, 64],
-                    "float16",
+                    this.dataType,
                 );
                 encoder_kv_tensors[`present_key_values.${i}.encoder.value`] = await this.createOutputMLTensor(
                     [1, 8, 1500, 64],
-                    "float16",
+                    this.dataType,
                 );
                 encoder_kv_tensors[`padded_present_key_values.${i}.decoder.key`] = await this.createOutputMLTensor(
                     [1, 8, 127, 64],
-                    "float16",
+                    this.dataType,
                 );
                 encoder_kv_tensors[`padded_present_key_values.${i}.decoder.value`] = await this.createOutputMLTensor(
                     [1, 8, 127, 64],
-                    "float16",
+                    this.dataType,
                 );
             }
 
@@ -455,13 +459,13 @@ export class Whisper {
         // Create output MLTensor for cached decoder before the loop
         let kv_decoder_outputs;
         if (this.ioBinding) {
-            let kv_logits = await this.createOutputMLTensor([1, 1, 51865], "float16", true);
+            let kv_logits = await this.createOutputMLTensor([1, 1, 51865], this.dataType, true);
             const updated_decoder_kv_tensors = {};
             for (let j = 0; j < 6; j++) {
                 updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.key`] =
-                    await this.createOutputMLTensor([1, 8, 127, 64], "float16");
+                    await this.createOutputMLTensor([1, 8, 127, 64], this.dataType);
                 updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.value`] =
-                    await this.createOutputMLTensor([1, 8, 127, 64], "float16");
+                    await this.createOutputMLTensor([1, 8, 127, 64], this.dataType);
             }
             kv_decoder_outputs = {
                 logits: kv_logits,
@@ -548,31 +552,11 @@ export class Whisper {
         // Clean up resources
         if (this.ioBinding) {
             try {
-                // Helper function to clean up MLTensors
-                const disposeTensors = tensors => {
-                    if (tensors && typeof tensors === "object") {
-                        for (const name in tensors) {
-                            const t = tensors[name];
-                            if (t.disposer == undefined) {
-                                if (t.location == "ml-tensor") {
-                                    t.mlTensor.destroy();
-                                }
-                                if (t.location == "gpu-buffer") {
-                                    t.gpuBuffer.destroy();
-                                }
-                            } else {
-                                t.dispose();
-                            }
-                        }
-                    }
-                };
-
-                // Clean up all decoder input/output objects
-                disposeTensors(encoder_outputs);
-                disposeTensors(decoder_inputs);
-                disposeTensors(decoder_outputs);
-                disposeTensors(kv_decoder_inputs);
-                disposeTensors(kv_decoder_outputs);
+                this.disposeTensors(encoder_outputs);
+                this.disposeTensors(decoder_inputs);
+                this.disposeTensors(decoder_outputs);
+                this.disposeTensors(kv_decoder_inputs);
+                this.disposeTensors(kv_decoder_outputs);
             } catch (e) {
                 log(`Warning: Error during MLTensor cleanup: ${e.message}`);
             }
