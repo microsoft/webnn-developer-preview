@@ -4,7 +4,12 @@ import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xeno
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
 import { attention_mask_update, cache_update } from "./post_processing.js";
-import { $, convertToFloat16OrUint16Array, convertToFloat32Array } from "../../assets/js/common_utils.js";
+import {
+    $,
+    isFloat16ArrayAvailable,
+    convertToFloat16OrUint16Array,
+    convertToFloat32Array,
+} from "../../assets/js/common_utils.js";
 import {
     log,
     getModelOPFS,
@@ -73,6 +78,8 @@ export class Whisper {
                 title: "Whisper Base Decoder (Cached)",
             },
         };
+        this.kv_encoder_shape = [1, 8, 1500, 64];
+        this.kv_decoder_shape = [1, 8, 127, 64];
 
         this.max_sequence_length = 128;
         // No. of tokens to be used for decoder 1st inference
@@ -195,29 +202,6 @@ export class Whisper {
         }
     }
 
-    // Helper method to create input MLTensor from data
-    async createInputMLTensor(data, shape, dataType = "float32") {
-        if (!this.ioBinding || !this.mlContext) {
-            return new ort.Tensor(dataType, data, shape);
-        }
-
-        // Create MLTensor with write access
-        const mlTensor = await this.mlContext.createTensor({
-            dataType,
-            shape,
-            writable: true,
-        });
-
-        // Write data to MLTensor
-        this.mlContext.writeTensor(mlTensor, data);
-
-        // Create ORT tensor from MLTensor
-        return ort.Tensor.fromMLTensor(mlTensor, {
-            dataType,
-            dims: shape,
-        });
-    }
-
     // Helper method to create pre-allocated MLTensor
     async createOutputMLTensor(shape, dataType = "float32", readable = false) {
         if (!this.ioBinding || !this.mlContext) {
@@ -237,44 +221,15 @@ export class Whisper {
         });
     }
 
-    // Helper method to read real data from MLTensor
+    // Helper method to read the logits tensor from MLTensor
     async readOutputFromMLTensor(tensor) {
-        if (!tensor || !tensor.mlTensor) {
-            return tensor;
-        }
-
         const data = await this.mlContext.readTensor(tensor.mlTensor);
-        let typedData;
 
-        switch (tensor.type) {
-            case "float32":
-                typedData = new Float32Array(data);
-                break;
-            case "float16":
-                typedData = new Float16Array(data);
-                break;
-            case "int32":
-                typedData = new Int32Array(data);
-                break;
-            case "int64":
-                typedData = new BigInt64Array(data);
-                break;
-            case "uint32":
-                typedData = new Uint32Array(data);
-                break;
-            case "uint64":
-                typedData = new BigUint64Array(data);
-                break;
-            case "int8":
-                typedData = new Int8Array(data);
-                break;
-            case "uint8":
-                typedData = new Uint8Array(data);
-                break;
-            default:
-                throw new Error(`Unknown tensor type ${tensor.type}.`);
-        }
-        return typedData;
+        return this.dataType == "float32"
+            ? new Float32Array(data)
+            : isFloat16ArrayAvailable
+              ? new Float16Array(data)
+              : new Uint16Array(data);
     }
 
     // Helper method to clean up MLTensors
@@ -363,19 +318,19 @@ export class Whisper {
             const encoder_kv_tensors = {};
             for (let i = 0; i < 6; i++) {
                 encoder_kv_tensors[`present_key_values.${i}.encoder.key`] = await this.createOutputMLTensor(
-                    [1, 8, 1500, 64],
+                    this.kv_encoder_shape,
                     this.dataType,
                 );
                 encoder_kv_tensors[`present_key_values.${i}.encoder.value`] = await this.createOutputMLTensor(
-                    [1, 8, 1500, 64],
+                    this.kv_encoder_shape,
                     this.dataType,
                 );
                 encoder_kv_tensors[`padded_present_key_values.${i}.decoder.key`] = await this.createOutputMLTensor(
-                    [1, 8, 127, 64],
+                    this.kv_decoder_shape,
                     this.dataType,
                 );
                 encoder_kv_tensors[`padded_present_key_values.${i}.decoder.value`] = await this.createOutputMLTensor(
-                    [1, 8, 127, 64],
+                    this.kv_decoder_shape,
                     this.dataType,
                 );
             }
@@ -463,9 +418,9 @@ export class Whisper {
             const updated_decoder_kv_tensors = {};
             for (let j = 0; j < 6; j++) {
                 updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.key`] =
-                    await this.createOutputMLTensor([1, 8, 127, 64], this.dataType);
+                    await this.createOutputMLTensor(this.kv_decoder_shape, this.dataType);
                 updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.value`] =
-                    await this.createOutputMLTensor([1, 8, 127, 64], this.dataType);
+                    await this.createOutputMLTensor(this.kv_decoder_shape, this.dataType);
             }
             kv_decoder_outputs = {
                 logits: kv_logits,
