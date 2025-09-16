@@ -80,6 +80,11 @@ export class Whisper {
         };
         this.kv_encoder_shape = [1, 8, 1500, 64];
         this.kv_decoder_shape = [1, 8, 127, 64];
+        this.first_logits_shape = [1, 4, 51865];
+        this.kv_logits_shape = [1, 1, 51865];
+
+        // Pre-allocated TypedArrays for IO binding reuse
+        this.kv_logits_buffer = null;
 
         this.max_sequence_length = 128;
         // No. of tokens to be used for decoder 1st inference
@@ -221,17 +226,6 @@ export class Whisper {
         });
     }
 
-    // Helper method to read the logits tensor from MLTensor
-    async readOutputFromMLTensor(tensor) {
-        const data = await this.mlContext.readTensor(tensor.mlTensor);
-
-        return this.dataType == "float32"
-            ? new Float32Array(data)
-            : isFloat16ArrayAvailable
-              ? new Float16Array(data)
-              : new Uint16Array(data);
-    }
-
     // Helper method to clean up MLTensors
     disposeTensors(tensors) {
         if (tensors && typeof tensors === "object") {
@@ -312,7 +306,7 @@ export class Whisper {
         let logits, decoder_outputs;
         if (this.ioBinding) {
             // pre-allocated MLTensor outputs for IO binding
-            const first_logits = await this.createOutputMLTensor([1, 4, 51865], this.dataType, true);
+            const first_logits = await this.createOutputMLTensor(this.first_logits_shape, this.dataType, true);
 
             // Create pre-allocated encoder key/value tensors for indices 0-5
             const encoder_kv_tensors = {};
@@ -341,7 +335,13 @@ export class Whisper {
             };
 
             await this.models["decoder"]["sess"].run(decoder_inputs, decoder_outputs);
-            logits = await this.readOutputFromMLTensor(decoder_outputs.logits);
+            const data = await this.mlContext.readTensor(decoder_outputs.logits.mlTensor);
+            logits =
+                this.dataType == "float32"
+                    ? new Float32Array(data)
+                    : isFloat16ArrayAvailable
+                      ? new Float16Array(data)
+                      : new Uint16Array(data);
         } else {
             decoder_outputs = await this.models["decoder"]["sess"].run(decoder_inputs);
             logits = decoder_outputs["logits"]["cpuData"];
@@ -353,7 +353,7 @@ export class Whisper {
             logits = convertToFloat32Array(logits);
         }
         // find out the token with highest probability, cast INT64 to INT32
-        const new_token = get_new_tokens(logits, [1, 4, 51865]);
+        const new_token = get_new_tokens(logits, this.first_logits_shape);
 
         // add token to final buffer
         tokens = tokens.concat(new_token);
@@ -414,7 +414,7 @@ export class Whisper {
         // Create output MLTensor for cached decoder before the loop
         let kv_decoder_outputs;
         if (this.ioBinding) {
-            let kv_logits = await this.createOutputMLTensor([1, 1, 51865], this.dataType, true);
+            let kv_logits = await this.createOutputMLTensor(this.kv_logits_shape, this.dataType, true);
             const updated_decoder_kv_tensors = {};
             for (let j = 0; j < 6; j++) {
                 updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.key`] =
@@ -430,13 +430,25 @@ export class Whisper {
 
         const position_ids = new Int32Array(kv_decoder_inputs["position_ids"].cpuData.buffer);
 
+        // Initialize reusable logits buffers for IO binding
+        if (this.ioBinding) {
+            const logits_elements = this.kv_logits_shape.reduce((a, b) => a * b, 1);
+            this.kv_logits_buffer =
+                this.dataType == "float32"
+                    ? new Float32Array(logits_elements)
+                    : isFloat16ArrayAvailable
+                      ? new Float16Array(logits_elements)
+                      : new Uint16Array(logits_elements);
+        }
+
         // run complete inference for every item in dataset
         for (let i = 4; i < this.max_sequence_length; i++) {
             // console.log(`Decoder input preparation time · iteration ${i-3}: ${(performance.now() - start).toFixed(2)}ms`);
             // start = performance.now();
             if (this.ioBinding) {
                 await this.models["decoder_cached"]["sess"].run(kv_decoder_inputs, kv_decoder_outputs);
-                logits = await this.readOutputFromMLTensor(kv_decoder_outputs.logits);
+                await this.mlContext.readTensor(kv_decoder_outputs.logits.mlTensor, this.kv_logits_buffer);
+                logits = this.kv_logits_buffer;
             } else {
                 kv_decoder_outputs = await this.models["decoder_cached"]["sess"].run(kv_decoder_inputs);
                 logits = kv_decoder_outputs["logits"]["cpuData"];
@@ -447,7 +459,7 @@ export class Whisper {
             if (this.dataType == "float16") {
                 logits = convertToFloat32Array(logits);
             }
-            const new_token = get_new_tokens(logits, [1, 1, 51865]);
+            const new_token = get_new_tokens(logits, this.kv_logits_shape);
 
             // add token to final buffer
             tokens = tokens.concat(new_token);
