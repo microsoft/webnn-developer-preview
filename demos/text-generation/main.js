@@ -38,7 +38,7 @@ const MODELS = {
     phi4mini: {
         name: "Phi-4 Mini Instruct",
         desc: "Microsoft Phi-4 Mini Instruct",
-        id: "microsoft/Phi-4-mini-instruct-onnx",
+        id: "microsoft/Phi-4-mini-instruct-onnx-webnn",
         remote_id: "microsoft/Phi-4-mini-instruct",
         file_name: "model.onnx",
         local_path: "models/microsoft/Phi-4-mini-instruct-onnx-webnn/",
