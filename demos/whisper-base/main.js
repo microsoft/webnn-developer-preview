@@ -157,10 +157,10 @@ function updateConfig() {
         if (key == "accumulatesubchunks") {
             accumulateSubChunks = value === "true";
         }
-        if (pair[0] == "mask_4d") {
+        if (key == "mask_4d") {
             mask4d = value === "true";
         }
-        if (pair[0] == "ioBinding") {
+        if (key == "iobinding") {
             ioBinding = value === "true";
         }
     }

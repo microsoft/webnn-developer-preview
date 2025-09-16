@@ -4,7 +4,12 @@ import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xeno
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
 import { attention_mask_update, cache_update } from "./post_processing.js";
-import { $, convertToFloat16OrUint16Array, convertToFloat32Array } from "../../assets/js/common_utils.js";
+import {
+    $,
+    isFloat16ArrayAvailable,
+    convertToFloat16OrUint16Array,
+    convertToFloat32Array,
+} from "../../assets/js/common_utils.js";
 import {
     log,
     getModelOPFS,
@@ -47,6 +52,7 @@ export class Whisper {
         this.dataType = dataType;
         this.mask_4d = mask_4d;
         this.ioBinding = ioBinding && deviceType == "gpu";
+        this.mlContext = null;
         ort.env.wasm.simd = true;
 
         this.models = {
@@ -72,6 +78,13 @@ export class Whisper {
                 title: "Whisper Base Decoder (Cached)",
             },
         };
+        this.kv_encoder_shape = [1, 8, 1500, 64];
+        this.kv_decoder_shape = [1, 8, 127, 64];
+        this.first_logits_shape = [1, 4, 51865];
+        this.kv_logits_shape = [1, 1, 51865];
+
+        // Pre-allocated TypedArrays for IO binding reuse
+        this.kv_logits_buffer = null;
 
         this.max_sequence_length = 128;
         // No. of tokens to be used for decoder 1st inference
@@ -95,28 +108,21 @@ export class Whisper {
     }
 
     async create_ort_sessions() {
+        // Create shared MLContext for IO binding
+        if (this.ioBinding && !this.mlContext) {
+            this.mlContext = await navigator.ml.createContext({
+                deviceType: this.deviceType,
+            });
+        }
+
         const options = {
             executionProviders: [
                 {
                     name: this.provider,
                     deviceType: this.deviceType,
+                    context: this.mlContext,
                 },
             ],
-            preferredOutputLocation: this.ioBinding
-                ? (() => {
-                      let pairs = {};
-                      pairs["last_hidden_state"] = "ml-tensor";
-                      for (let i = 0; i < 6; i++) {
-                          pairs[`padded_present_key_values.${i}.decoder.key`] = "ml-tensor";
-                          pairs[`padded_present_key_values.${i}.decoder.value`] = "ml-tensor";
-                          pairs[`present_key_values.${i}.encoder.key`] = "ml-tensor";
-                          pairs[`present_key_values.${i}.encoder.value`] = "ml-tensor";
-                          pairs[`updated_present_key_values.${i}.decoder.key`] = "ml-tensor";
-                          pairs[`updated_present_key_values.${i}.decoder.value`] = "ml-tensor";
-                      }
-                      return pairs;
-                  })()
-                : undefined,
             logSeverityLevel: 0,
         };
 
@@ -201,6 +207,46 @@ export class Whisper {
         }
     }
 
+    // Helper method to create pre-allocated MLTensor
+    async createOutputMLTensor(shape, dataType = "float32", readable = false) {
+        if (!this.ioBinding || !this.mlContext) {
+            return null;
+        }
+        // Create pre-allocated MLTensor
+        const mlTensor = await this.mlContext.createTensor({
+            dataType,
+            shape,
+            readable,
+        });
+
+        // Create ORT tensor from MLTensor
+        return ort.Tensor.fromMLTensor(mlTensor, {
+            dataType,
+            dims: shape,
+        });
+    }
+
+    // Helper method to clean up MLTensors
+    disposeTensors(tensors) {
+        if (tensors && typeof tensors === "object") {
+            for (const name in tensors) {
+                const t = tensors[name];
+                if (t && typeof t === "object") {
+                    if (t.disposer == undefined) {
+                        if (t.location == "ml-tensor" && t.mlTensor) {
+                            t.mlTensor.destroy();
+                        }
+                        if (t.location == "gpu-buffer" && t.gpuBuffer) {
+                            t.gpuBuffer.destroy();
+                        }
+                    } else {
+                        t.dispose();
+                    }
+                }
+            }
+        }
+    }
+
     async run(audio_data) {
         // -----------------------------------FEATURE EXTRACTION-----------------------------------------
         // const audio = await read_audio('https://huggingface.co/datasets/Narsil/asr_dummy/resolve/main/mlk.flac', 16000);
@@ -209,19 +255,29 @@ export class Whisper {
         const { input_features } = await this.processor(audio_data);
         // -----------------------------------ENCODER INFERENCE-----------------------------------------
         // run encoder to get output
-        let encoder_inputs = {
+        const encoder_input = {
             type: this.dataType,
             data: input_features.data,
             dims: input_features.dims,
         };
         if (this.dataType == "float16") {
-            encoder_inputs.data = convertToFloat16OrUint16Array(encoder_inputs.data);
+            encoder_input.data = convertToFloat16OrUint16Array(encoder_input.data);
         }
         // log(`Pre-processing time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
-        const { last_hidden_state } = await this.models["encoder"]["sess"].run({
-            input_features: new ort.Tensor(encoder_inputs.type, encoder_inputs.data, encoder_inputs.dims),
-        });
+        let encoder_outputs;
+        const encoder_inputs = {
+            input_features: new ort.Tensor(encoder_input.type, encoder_input.data, encoder_input.dims),
+        };
+        if (this.ioBinding) {
+            encoder_outputs = {
+                last_hidden_state: await this.createOutputMLTensor([1, 1500, 512], this.dataType),
+            };
+            await this.models["encoder"]["sess"].run(encoder_inputs, encoder_outputs);
+        } else {
+            encoder_outputs = await this.models["encoder"]["sess"].run(encoder_inputs);
+        }
+
         // log(`Encoder inference time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
         // -----------------------------------DECODER 1ST INFERENCE-----------------------------------------
@@ -238,37 +294,76 @@ export class Whisper {
             attention_mask = new ort.Tensor("int32", new Int32Array(4).fill([1, 1, 1, 1]), [1, 4]);
         }
         // create decoder input for the first inference
-        const decoder_input = {
+        const decoder_inputs = {
             input_ids: new ort.Tensor("int32", new Int32Array(tokens), [1, 4]),
             attention_mask: attention_mask,
-            encoder_hidden_states: last_hidden_state,
+            encoder_hidden_states: encoder_outputs.last_hidden_state,
         };
         // console.log(`Non-KV cache decoder input preparation time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
         // run the first inference which generates SA and CA KV cache
-        const decoder_output = await this.models["decoder"]["sess"].run(decoder_input);
+        // Create inputs object with pre-allocated outputs for IO binding
+        let logits, decoder_outputs;
+        if (this.ioBinding) {
+            // pre-allocated MLTensor outputs for IO binding
+            const first_logits = await this.createOutputMLTensor(this.first_logits_shape, this.dataType, true);
+
+            // Create pre-allocated encoder key/value tensors for indices 0-5
+            const encoder_kv_tensors = {};
+            for (let i = 0; i < 6; i++) {
+                encoder_kv_tensors[`present_key_values.${i}.encoder.key`] = await this.createOutputMLTensor(
+                    this.kv_encoder_shape,
+                    this.dataType,
+                );
+                encoder_kv_tensors[`present_key_values.${i}.encoder.value`] = await this.createOutputMLTensor(
+                    this.kv_encoder_shape,
+                    this.dataType,
+                );
+                encoder_kv_tensors[`padded_present_key_values.${i}.decoder.key`] = await this.createOutputMLTensor(
+                    this.kv_decoder_shape,
+                    this.dataType,
+                );
+                encoder_kv_tensors[`padded_present_key_values.${i}.decoder.value`] = await this.createOutputMLTensor(
+                    this.kv_decoder_shape,
+                    this.dataType,
+                );
+            }
+
+            decoder_outputs = {
+                logits: first_logits,
+                ...encoder_kv_tensors,
+            };
+
+            await this.models["decoder"]["sess"].run(decoder_inputs, decoder_outputs);
+            const data = await this.mlContext.readTensor(decoder_outputs.logits.mlTensor);
+            logits =
+                this.dataType == "float32"
+                    ? new Float32Array(data)
+                    : isFloat16ArrayAvailable
+                      ? new Float16Array(data)
+                      : new Uint16Array(data);
+        } else {
+            decoder_outputs = await this.models["decoder"]["sess"].run(decoder_inputs);
+            logits = decoder_outputs["logits"]["cpuData"];
+        }
         // console.log(`Non-KV cache decoder inference time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
-        let logits = decoder_output["logits"]["cpuData"];
 
         if (this.dataType == "float16") {
             logits = convertToFloat32Array(logits);
         }
         // find out the token with highest probability, cast INT64 to INT32
-        const new_token = get_new_tokens(logits, [1, 4, 51865]);
+        const new_token = get_new_tokens(logits, this.first_logits_shape);
 
         // add token to final buffer
         tokens = tokens.concat(new_token);
         const time_to_first_token = performance.now() - start; // TTFT
 
-        // for 2+ inference, we don't need encoder hidden states as input to OV model
-        delete decoder_input.encoder_hidden_states;
-
         // -----------------------------------DECODER 2 INFERENCE-----------------------------------------
         // prepare inputs for decoder kv cache
-
+        const kv_decoder_inputs = {};
         // create 1x1 array for input_ids
-        decoder_input["input_ids"] = new ort.Tensor("int32", new Int32Array([new_token]), [1, 1]);
+        kv_decoder_inputs["input_ids"] = new ort.Tensor("int32", new Int32Array([new_token]), [1, 1]);
 
         // pad attention mask to max_seq_length
         const mask_data = attention_mask_update(
@@ -284,29 +379,30 @@ export class Whisper {
         } else {
             attention_mask = new ort.Tensor("int64", mask_data, [1, 128]);
         }
-        decoder_input["attention_mask"] = attention_mask;
+        kv_decoder_inputs["attention_mask"] = attention_mask;
         // create position_ids as input, value should be same of No. of prefill tokens
-        decoder_input["position_ids"] = new ort.Tensor("int32", new Int32Array([this.num_init_tokens]), [1]);
+        kv_decoder_inputs["position_ids"] = new ort.Tensor("int32", new Int32Array([this.num_init_tokens]), [1]);
 
         // fill decoder kv cache model inputs with cross attention KV cache data from decoder 1st inference
         for (let i = 0; i < 6; i++) {
-            decoder_input[`past_key_values.${i}.encoder.key`] = decoder_output[`present_key_values.${i}.encoder.key`];
-            decoder_input[`past_key_values.${i}.encoder.value`] =
-                decoder_output[`present_key_values.${i}.encoder.value`];
+            kv_decoder_inputs[`past_key_values.${i}.encoder.key`] =
+                decoder_outputs[`present_key_values.${i}.encoder.key`];
+            kv_decoder_inputs[`past_key_values.${i}.encoder.value`] =
+                decoder_outputs[`present_key_values.${i}.encoder.value`];
         }
 
         // modify the self attention kv cache in place
         if (this.ioBinding) {
             for (let i = 0; i < 6; i++) {
-                decoder_input[`past_key_values.${i}.decoder.key`] =
-                    decoder_output[`padded_present_key_values.${i}.decoder.key`];
-                decoder_input[`past_key_values.${i}.decoder.value`] =
-                    decoder_output[`padded_present_key_values.${i}.decoder.value`];
+                kv_decoder_inputs[`past_key_values.${i}.decoder.key`] =
+                    decoder_outputs[`padded_present_key_values.${i}.decoder.key`];
+                kv_decoder_inputs[`past_key_values.${i}.decoder.value`] =
+                    decoder_outputs[`padded_present_key_values.${i}.decoder.value`];
             }
         } else {
             cache_update(
-                decoder_input,
-                decoder_output,
+                kv_decoder_inputs,
+                decoder_outputs,
                 0,
                 this.max_sequence_length,
                 this.num_init_tokens,
@@ -315,21 +411,55 @@ export class Whisper {
             );
         }
 
-        const position_ids = new Int32Array(decoder_input["position_ids"].cpuData.buffer);
+        // Create output MLTensor for cached decoder before the loop
+        let kv_decoder_outputs;
+        if (this.ioBinding) {
+            let kv_logits = await this.createOutputMLTensor(this.kv_logits_shape, this.dataType, true);
+            const updated_decoder_kv_tensors = {};
+            for (let j = 0; j < 6; j++) {
+                updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.key`] =
+                    await this.createOutputMLTensor(this.kv_decoder_shape, this.dataType);
+                updated_decoder_kv_tensors[`updated_present_key_values.${j}.decoder.value`] =
+                    await this.createOutputMLTensor(this.kv_decoder_shape, this.dataType);
+            }
+            kv_decoder_outputs = {
+                logits: kv_logits,
+                ...updated_decoder_kv_tensors,
+            };
+        }
+
+        const position_ids = new Int32Array(kv_decoder_inputs["position_ids"].cpuData.buffer);
+
+        // Initialize reusable logits buffers for IO binding
+        if (this.ioBinding) {
+            const logits_elements = this.kv_logits_shape.reduce((a, b) => a * b, 1);
+            this.kv_logits_buffer =
+                this.dataType == "float32"
+                    ? new Float32Array(logits_elements)
+                    : isFloat16ArrayAvailable
+                      ? new Float16Array(logits_elements)
+                      : new Uint16Array(logits_elements);
+        }
+
         // run complete inference for every item in dataset
         for (let i = 4; i < this.max_sequence_length; i++) {
             // console.log(`Decoder input preparation time · iteration ${i-3}: ${(performance.now() - start).toFixed(2)}ms`);
             // start = performance.now();
-            const decoder_cached_output = await this.models["decoder_cached"]["sess"].run(decoder_input);
-
+            if (this.ioBinding) {
+                await this.models["decoder_cached"]["sess"].run(kv_decoder_inputs, kv_decoder_outputs);
+                await this.mlContext.readTensor(kv_decoder_outputs.logits.mlTensor, this.kv_logits_buffer);
+                logits = this.kv_logits_buffer;
+            } else {
+                kv_decoder_outputs = await this.models["decoder_cached"]["sess"].run(kv_decoder_inputs);
+                logits = kv_decoder_outputs["logits"]["cpuData"];
+            }
             // console.log(`Decoder inference time · Iteration ${i-3}: ${(performance.now() - start).toFixed(2)}ms`);
             // start = performance.now();
             // find out the token with highest probability, cast INT64 to INT32
-            let logits = decoder_cached_output["logits"]["cpuData"];
             if (this.dataType == "float16") {
                 logits = convertToFloat32Array(logits);
             }
-            const new_token = get_new_tokens(logits, [1, 1, 51865]);
+            const new_token = get_new_tokens(logits, this.kv_logits_shape);
 
             // add token to final buffer
             tokens = tokens.concat(new_token);
@@ -339,14 +469,14 @@ export class Whisper {
             }
             // ----------------------------------POST PROCESSING---------------------------------------
             // the following code creates decoder input for the next inference
-            decoder_input["input_ids"] = new ort.Tensor("int32", new Int32Array([new_token]), [1, 1]);
+            kv_decoder_inputs["input_ids"] = new ort.Tensor("int32", new Int32Array([new_token]), [1, 1]);
 
             // increment the position_ids
             position_ids[0] = position_ids[0] + 1;
 
             // update mask using position id
             attention_mask_update(
-                decoder_input["attention_mask"].cpuData,
+                kv_decoder_inputs["attention_mask"].cpuData,
                 i,
                 this.max_sequence_length,
                 this.num_init_tokens,
@@ -356,20 +486,27 @@ export class Whisper {
 
             // modify the kv cache in place
             if (this.ioBinding) {
-                for (let i = 0; i < 6; i++) {
-                    // dispose previous tensors
-                    decoder_input[`past_key_values.${i}.decoder.key`].mlTensor.destroy();
-                    decoder_input[`past_key_values.${i}.decoder.value`].mlTensor.destroy();
-                    // update the kv cache
-                    decoder_input[`past_key_values.${i}.decoder.key`] =
-                        decoder_cached_output[`updated_present_key_values.${i}.decoder.key`];
-                    decoder_input[`past_key_values.${i}.decoder.value`] =
-                        decoder_cached_output[`updated_present_key_values.${i}.decoder.value`];
+                // Swap tensors to reuse MLTensor resources efficiently
+                // This avoids creating new MLTensors in each iteration
+                for (let j = 0; j < 6; j++) {
+                    // Save current input tensors
+                    const tempKey = kv_decoder_inputs[`past_key_values.${j}.decoder.key`];
+                    const tempValue = kv_decoder_inputs[`past_key_values.${j}.decoder.value`];
+
+                    // Move output to input for next iteration
+                    kv_decoder_inputs[`past_key_values.${j}.decoder.key`] =
+                        kv_decoder_outputs[`updated_present_key_values.${j}.decoder.key`];
+                    kv_decoder_inputs[`past_key_values.${j}.decoder.value`] =
+                        kv_decoder_outputs[`updated_present_key_values.${j}.decoder.value`];
+
+                    // Reuse previous input tensors as output for next iteration
+                    kv_decoder_outputs[`updated_present_key_values.${j}.decoder.key`] = tempKey;
+                    kv_decoder_outputs[`updated_present_key_values.${j}.decoder.value`] = tempValue;
                 }
             } else {
                 cache_update(
-                    decoder_input,
-                    decoder_cached_output,
+                    kv_decoder_inputs,
+                    kv_decoder_outputs,
                     i,
                     this.max_sequence_length,
                     this.num_init_tokens,
@@ -379,12 +516,16 @@ export class Whisper {
             }
         }
 
+        // Clean up resources
         if (this.ioBinding) {
-            for (let i = 0; i < 6; i++) {
-                decoder_output[`padded_present_key_values.${i}.decoder.key`].mlTensor.destroy();
-                decoder_output[`padded_present_key_values.${i}.decoder.value`].mlTensor.destroy();
-                decoder_input[`past_key_values.${i}.encoder.key`].mlTensor.destroy();
-                decoder_input[`past_key_values.${i}.encoder.value`].mlTensor.destroy();
+            try {
+                this.disposeTensors(encoder_outputs);
+                this.disposeTensors(decoder_inputs);
+                this.disposeTensors(decoder_outputs);
+                this.disposeTensors(kv_decoder_inputs);
+                this.disposeTensors(kv_decoder_outputs);
+            } catch (e) {
+                log(`Warning: Error during MLTensor cleanup: ${e.message}`);
             }
         }
 
