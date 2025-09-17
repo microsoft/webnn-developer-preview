@@ -418,7 +418,8 @@ export async function createMlTensor(mlContext, dataType, dims, writable, readab
     return ort.Tensor.fromMLTensor(mlTensor, { dataType, dims });
 }
 
-// Normalize the buffer size so that it fits the 128-bits (16 bytes) alignment.
+// Normalize the buffer size so that it fits the 128-bits (16 bytes) alignment,
+// per WebGPU buffer alignment requirements.
 const calculateNormalizedBufferSize = size => Math.ceil(Number(size) / 16) * 16;
 
 // Create a new ORT GPU Tensor from the given parameters.
