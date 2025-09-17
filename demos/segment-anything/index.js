@@ -33,7 +33,7 @@ const MODELS = {
         },
         {
             name: "SAM ViT-B Decoder (FP16)",
-            url: "sam_vit_b_01ec64.decoder-fp16.onnx",
+            url: "sam_vit_b_01ec64.decoder-orig-img-size-dynamic-fp16.onnx",
             size: "15.7MB",
         },
     ],
@@ -45,7 +45,7 @@ const MODELS = {
         },
         {
             name: "SAM ViT-B Decoder (INT8)",
-            url: "sam_vit_b-decoder-int8.onnx",
+            url: "sam_vit_b-decoder-orig-img-size-dynamic-int8.onnx",
             size: "4.52MB",
         },
     ],
@@ -89,7 +89,7 @@ function getConfig() {
     const query = window.location.search.substring(1);
     const config = {
         host: location.href.includes("github.io")
-            ? "https://huggingface.co/microsoft/segment-anything-model-webnn/resolve/main"
+            ? "https://huggingface.co/webnn/segment-anything-model-webnn/resolve/main/onnx"
             : "models",
         mode: "none",
         model: "sam_b",
@@ -127,7 +127,7 @@ function cloneTensor(t) {
 function feedForSam(emb, points, labels) {
     const maskInput = new ort.Tensor(new Float32Array(256 * 256), [1, 1, 256, 256]);
     const hasMask = new ort.Tensor(new Float32Array([0]), [1]);
-    const origianlImageSize = new ort.Tensor(new Float32Array([MODEL_HEIGHT, MODEL_WIDTH]), [2]);
+    const origianlImageSize = new ort.Tensor(new Float32Array(MODEL_HEIGHT * MODEL_WIDTH), [MODEL_HEIGHT, MODEL_WIDTH]);
     const pointCoords = new ort.Tensor(new Float32Array(points), [1, points.length / 2, 2]);
     const pointLabels = new ort.Tensor(new Float32Array(labels), [1, labels.length]);
 
@@ -137,7 +137,7 @@ function feedForSam(emb, points, labels) {
         point_labels: pointLabels,
         mask_input: maskInput,
         has_mask_input: hasMask,
-        orig_im_size: origianlImageSize,
+        orig_im_size_shape: origianlImageSize,
     };
 }
 
@@ -475,8 +475,7 @@ async function load_models(models) {
                 },
                 logSeverityLevel: 0,
             };
-            // sam-b-encoder for WebNN is slow, as which contains 24 Einsum nodes,
-            // WebNN EP is working on Einsum op implementation at https://github.com/microsoft/onnxruntime/pull/19558.
+
             if (config.provider == "webnn") {
                 opt.executionProviders = [
                     {
@@ -484,9 +483,19 @@ async function load_models(models) {
                         deviceType: config.deviceType,
                     },
                 ];
-                opt.freeDimensionOverrides = {
-                    num_points: num_points,
-                };
+                if (model.url.includes("encoder-int8")) {
+                    opt.freeDimensionOverrides = {
+                        image_height: MODEL_HEIGHT,
+                        image_width: MODEL_WIDTH,
+                    };
+                }
+                if (model.url.includes("decoder")) {
+                    opt.freeDimensionOverrides = {
+                        num_points: num_points,
+                        height: MODEL_HEIGHT,
+                        width: MODEL_WIDTH,
+                    };
+                }
             }
 
             let modelUrl = `${config.host}/${models[id].url}`;
