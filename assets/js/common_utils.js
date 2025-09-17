@@ -419,20 +419,20 @@ export async function createMlTensor(mlContext, dataType, dims, writable, readab
 }
 
 // Normalize the buffer size so that it fits the 128-bits (16 bytes) alignment.
-const calcNormalizedBufferSize = size => Math.ceil(Number(size) / 16) * 16;
+const calculateNormalizedBufferSize = size => Math.ceil(Number(size) / 16) * 16;
 
 // Create a new ORT GPU Tensor from the given parameters.
 export function createGpuTensor(device, dataType, dims, bufferSize) {
     const gpuBuffer = device.createBuffer({
         usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
-        size: calcNormalizedBufferSize(bufferSize),
+        size: calculateNormalizedBufferSize(bufferSize),
     });
     // eslint-disable-next-line no-undef
     return ort.Tensor.fromGpuBuffer(gpuBuffer, { dataType, dims });
 }
 
-// Download an ML tensor into a pre-allocated target buffer.
-export async function downloadMlTensor(mlContext, mlTensor, targetBuffer) {
+// Read back an ML tensor into a pre-allocated target buffer.
+export async function readBackMLTensor(mlContext, mlTensor, targetBuffer) {
     await mlContext.readTensor(mlTensor, targetBuffer);
 }
 
@@ -448,9 +448,9 @@ function setBufferData(targetBuffer, arrayBuffer, originalSize) {
     targetBuffer.set(sourceBuffer);
 }
 
-// Download a gpu tensor into a pre-allocated target buffer.
-export async function downloadGpuTensor(device, gpuBuffer, originalSize, targetBuffer) {
-    const bufferSize = calcNormalizedBufferSize(originalSize);
+// Read back a GPU tensor into a pre-allocated target buffer.
+export async function readBackGpuTensor(device, gpuBuffer, originalSize, targetBuffer) {
+    const bufferSize = calculateNormalizedBufferSize(originalSize);
     const gpuReadBuffer = device.createBuffer({
         size: bufferSize,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,

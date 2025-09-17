@@ -4,8 +4,8 @@ import {
     convertToSnakeCase,
     createMlTensor,
     createGpuTensor,
-    downloadMlTensor,
-    downloadGpuTensor,
+    readBackMLTensor,
+    readBackGpuTensor,
 } from "../../assets/js/common_utils.js";
 import {
     getModelOPFS,
@@ -34,7 +34,7 @@ export class LLM {
     deviceType = "gpu";
     maxLength = 2048;
     mlContext = undefined;
-    startLen = 0;
+    startLength = 0;
     decodeLogitsBuffer = undefined;
 
     constructor(maxLength) {
@@ -51,7 +51,7 @@ export class LLM {
         this.headSize = model.head_size;
         this.kvDims = [1, model.kv_num_heads, this.maxLength, model.head_size];
         this.vocabSize = model.vocab_size;
-        this.decodeLogitsBuffer = new Float16Array(this.vocabSize * 2);
+        this.decodeLogitsBuffer = new Float16Array(this.vocabSize);
         log(`WebNN EP config: ${model.name} · ${this.provider} · ${this.deviceType}`);
 
         const path = options.local ? model.local_path : model.remote_path;
@@ -198,7 +198,7 @@ export class LLM {
         } else if (this.provider == "webgpu") {
             // Pre-allocate kv cache gpu-buffer
             const numElements = this.kvDims.reduce((a, b) => a * b, 1);
-            const bufferSize = numElements * 2;
+            const bufferSize = numElements * Float16Array.BYTES_PER_ELEMENT;
             for (let i = 0; i < this.numLayers; ++i) {
                 this.feed[`past_key_values.${i}.key`] = createGpuTensor(
                     this.gpuDevice,
@@ -289,10 +289,10 @@ export class LLM {
     async generate(inputIds, callback) {
         this.outputTokens = [];
         const inputIdsLen = inputIds.length;
-        const attnMaskLen = this.provider == "webnn" ? inputIdsLen : this.startLen + inputIdsLen;
+        const attnMaskLen = this.provider == "webnn" ? inputIdsLen : this.startLength + inputIdsLen;
         let attnMask = Array.from({ length: attnMaskLen }, () => BigInt(1));
         let positionIds = Array.from({ length: inputIdsLen }, (_, i) =>
-            BigInt(this.provider == "webnn" ? i++ : this.startLen + i++),
+            BigInt(this.provider == "webnn" ? i++ : this.startLength + i++),
         );
         // Both input_ids and position_ids have shapes of [batch_size, sequence_length].
         // The sequence_length is the length of inputIds, which is dynamic.
@@ -317,22 +317,27 @@ export class LLM {
         // shape of logits in prefill
         const prefillLogitsShape = [1, this.provider == "webnn" ? this.maxLength : inputIdsLen, this.vocabSize];
         const numElementsOfPrefillLogits = prefillLogitsShape.reduce((a, b) => a * b, 1);
+        const prefillLogitsBufferSize = numElementsOfPrefillLogits * Float16Array.BYTES_PER_ELEMENT;
         let lastToken = 0;
         if (this.provider == "webnn") {
             this.fetches["logits"] = await createMlTensor(this.mlContext, "float16", prefillLogitsShape, false, true);
         } else if (this.provider == "webgpu") {
-            const bufferSize = numElementsOfPrefillLogits * 2; // 2 bytes for float16
-            this.fetches["logits"] = createGpuTensor(this.gpuDevice, "float16", prefillLogitsShape, bufferSize);
+            this.fetches["logits"] = createGpuTensor(
+                this.gpuDevice,
+                "float16",
+                prefillLogitsShape,
+                prefillLogitsBufferSize,
+            );
         }
         let outputs = await this.session1.run(this.feed, this.fetches);
         this.prefillLogitsBuffer = new Float16Array(numElementsOfPrefillLogits);
         if (this.provider == "webnn") {
-            await downloadMlTensor(this.mlContext, this.fetches["logits"].mlTensor, this.prefillLogitsBuffer);
+            await readBackMLTensor(this.mlContext, this.fetches["logits"].mlTensor, this.prefillLogitsBuffer);
         } else if (this.provider == "webgpu") {
-            await downloadGpuTensor(
+            await readBackGpuTensor(
                 this.gpuDevice,
                 this.fetches["logits"].gpuBuffer,
-                this.vocabSize * inputIdsLen * 2,
+                prefillLogitsBufferSize,
                 this.prefillLogitsBuffer,
             );
         } else {
@@ -349,23 +354,23 @@ export class LLM {
         }
         this.fetches["logits"] = undefined;
 
-        this.startLen = this.provider == "webnn" ? inputIdsLen : this.startLen + inputIdsLen;
+        this.startLength = this.provider == "webnn" ? inputIdsLen : this.startLength + inputIdsLen;
         this.outputTokens.push(lastToken);
         if (callback) {
             callback(this.outputTokens);
         }
 
         this.updateKvCache(outputs);
-        while (this.eos.indexOf(lastToken) == -1 && !this.stop && this.startLen < this.maxLength) {
+        while (this.eos.indexOf(lastToken) == -1 && !this.stop && this.startLength < this.maxLength) {
             this.feed["input_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(lastToken)]), [1, 1]);
 
             if (this.provider == "webnn") {
-                attnMask[this.startLen] = 1n;
+                attnMask[this.startLength] = 1n;
             } else {
                 attnMask.push(1n);
             }
             this.feed["attention_mask"] = new ort.Tensor("int64", BigInt64Array.from(attnMask), [1, attnMask.length]);
-            this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(this.startLen)]), [1, 1]);
+            this.feed["position_ids"] = new ort.Tensor("int64", BigInt64Array.from([BigInt(this.startLength)]), [1, 1]);
 
             if (this.provider == "webnn") {
                 // Pre-allocate logits ml-tensor once
@@ -379,23 +384,23 @@ export class LLM {
                     );
                 }
                 outputs = await this.session2.run(this.feed, this.fetches);
-                await downloadMlTensor(this.mlContext, this.fetches["logits"].mlTensor, this.decodeLogitsBuffer);
+                await readBackMLTensor(this.mlContext, this.fetches["logits"].mlTensor, this.decodeLogitsBuffer);
             } else if (this.provider == "webgpu") {
-                const bufferSize = this.vocabSize * 2; // 2 bytes for float16
+                const decodeLogitsBufferSize = this.vocabSize * Float16Array.BYTES_PER_ELEMENT;
                 if (!this.fetches["logits"]) {
                     // Pre-allocate logits gpu-buffer once
                     this.fetches["logits"] = createGpuTensor(
                         this.gpuDevice,
                         "float16",
                         [1, 1, this.vocabSize],
-                        bufferSize,
+                        decodeLogitsBufferSize,
                     );
                 }
                 outputs = await this.session1.run(this.feed, this.fetches);
-                await downloadGpuTensor(
+                await readBackGpuTensor(
                     this.gpuDevice,
                     this.fetches["logits"].gpuBuffer,
-                    this.vocabSize * 2,
+                    decodeLogitsBufferSize,
                     this.decodeLogitsBuffer,
                 );
             } else {
@@ -410,7 +415,7 @@ export class LLM {
                 callback(this.outputTokens);
             }
             this.updateKvCache(outputs);
-            this.startLen++;
+            this.startLength++;
         }
 
         // Clean up the logits tensor after decode
@@ -447,6 +452,6 @@ export class LLM {
         this.outputTokens = [];
         this.kvDims = [];
         this.mlContext = undefined;
-        this.startLen = 0;
+        this.startLength = 0;
     }
 }

@@ -348,11 +348,11 @@ async function Query(continuation, query, cb) {
         !continuation ||
         cleanCache ||
         inputIds.length >= llm.maxLength ||
-        llm.startLen >= llm.maxLength
+        llm.startLength >= llm.maxLength
     ) {
         // Initialize kv cache
         await llm.initialize();
-        llm.startLen = 0;
+        llm.startLength = 0;
         cleanCache = true;
         if (inputIds.length > llm.maxLength) {
             console.log(`Context length exceeds max new tokens, clean up...`);
