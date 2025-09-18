@@ -127,7 +127,7 @@ function cloneTensor(t) {
 function feedForSam(emb, points, labels) {
     const maskInput = new ort.Tensor(new Float32Array(256 * 256), [1, 1, 256, 256]);
     const hasMask = new ort.Tensor(new Float32Array([0]), [1]);
-    const origianlImageSize = new ort.Tensor(new Float32Array(MODEL_HEIGHT * MODEL_WIDTH), [MODEL_HEIGHT, MODEL_WIDTH]);
+    const originalImageSize = new ort.Tensor(new Float32Array(MODEL_HEIGHT * MODEL_WIDTH), [MODEL_HEIGHT, MODEL_WIDTH]);
     const pointCoords = new ort.Tensor(new Float32Array(points), [1, points.length / 2, 2]);
     const pointLabels = new ort.Tensor(new Float32Array(labels), [1, labels.length]);
 
@@ -137,7 +137,7 @@ function feedForSam(emb, points, labels) {
         point_labels: pointLabels,
         mask_input: maskInput,
         has_mask_input: hasMask,
-        orig_im_size_shape: origianlImageSize,
+        orig_im_size_shape: originalImageSize,
     };
 }
 
