@@ -593,7 +593,7 @@ const main = async () => {
     speech.disabled = true;
     // progress.parentNode.style.display = "none";
 
-    await setupORT("whisper-base", "dev");
+    await setupORT("whisper-base", "test");
     showCompatibleChromiumVersion("whisper-base");
     ort.env.wasm.numThreads = 1;
     ort.env.wasm.simd = true;
@@ -670,6 +670,9 @@ const main = async () => {
     await whisper.create_whisper_processor();
     await whisper.create_whisper_tokenizer();
     await whisper.create_ort_sessions();
+    if (whisper.ioBinding) {
+        await whisper.initialize_preallocated_mltensors();
+    }
     log("Ready to transcribe ...");
     ready();
     context = new AudioContext({
