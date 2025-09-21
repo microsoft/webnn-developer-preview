@@ -41,6 +41,31 @@ export class LLM {
         this.maxLength = maxLength;
     }
 
+    computeKvDimsFor(totalSeqLen) {
+        return [1, this.kvNumHeads, totalSeqLen, this.headSize];
+    }
+
+    allocateWebGpuPresent(totalSeqLen) {
+        const dims = this.computeKvDimsFor(totalSeqLen);
+        const numElements = dims.reduce((a, b) => a * b, 1);
+        const bufferSize = numElements * Float16Array.BYTES_PER_ELEMENT;
+
+        for (let i = 0; i < this.numLayers; ++i) {
+            const keyName = `present.${i}.key`;
+            const valueName = `present.${i}.value`;
+
+            if (this.fetches[keyName]?.gpuBuffer) {
+                this.fetches[keyName].gpuBuffer.destroy();
+            }
+            if (this.fetches[valueName]?.gpuBuffer) {
+                this.fetches[valueName].gpuBuffer.destroy();
+            }
+
+            this.fetches[keyName] = createGpuTensor(this.gpuDevice, "float16", dims, bufferSize);
+            this.fetches[valueName] = createGpuTensor(this.gpuDevice, "float16", dims, bufferSize);
+        }
+    }
+
     async load(model, options, flag = true) {
         this.provider = options.provider;
         this.deviceType = options.deviceType;
@@ -196,30 +221,13 @@ export class LLM {
                 );
             }
         } else if (this.provider == "webgpu") {
-            // Pre-allocate kv cache gpu-buffer
-            const numElements = this.kvDims.reduce((a, b) => a * b, 1);
-            const bufferSize = numElements * Float16Array.BYTES_PER_ELEMENT;
-            for (let i = 0; i < this.numLayers; ++i) {
-                this.feed[`past_key_values.${i}.key`] = createGpuTensor(
-                    this.gpuDevice,
-                    "float16",
-                    this.kvDims,
-                    bufferSize,
-                );
-                this.feed[`past_key_values.${i}.value`] = createGpuTensor(
-                    this.gpuDevice,
-                    "float16",
-                    this.kvDims,
-                    bufferSize,
-                );
+            // WebGPU: seed zero-length GPU tensors so the graph sees valid past KV inputs.
+            const zeroDims = this.computeKvDimsFor(0);
+            const bufferSize = Float16Array.BYTES_PER_ELEMENT;
 
-                this.fetches[`present.${i}.key`] = createGpuTensor(this.gpuDevice, "float16", this.kvDims, bufferSize);
-                this.fetches[`present.${i}.value`] = createGpuTensor(
-                    this.gpuDevice,
-                    "float16",
-                    this.kvDims,
-                    bufferSize,
-                );
+            for (let i = 0; i < this.numLayers; ++i) {
+                this.feed[`past_key_values.${i}.key`] = createGpuTensor(this.gpuDevice, "float16", zeroDims, bufferSize);
+                this.feed[`past_key_values.${i}.value`] = createGpuTensor(this.gpuDevice, "float16", zeroDims, bufferSize);
             }
         } else {
             // Initialize kv cache as empty tensors for WASM EP
@@ -328,6 +336,10 @@ export class LLM {
                 prefillLogitsShape,
                 prefillLogitsBufferSize,
             );
+
+            // Pre-fill pre-allocate KV present tensor once
+            const presentLength = this.startLength + inputIdsLen;
+            this.allocateWebGpuPresent(presentLength);
         }
         let outputs = await this.session1.run(this.feed, this.fetches);
         this.prefillLogitsBuffer = new Float16Array(numElementsOfPrefillLogits);
@@ -386,6 +398,8 @@ export class LLM {
                 outputs = await this.session2.run(this.feed, this.fetches);
                 await readBackMLTensor(this.mlContext, this.fetches["logits"].mlTensor, this.decodeLogitsBuffer);
             } else if (this.provider == "webgpu") {
+                // Pre-allocate present kv cache for next run
+                this.allocateWebGpuPresent(this.startLength + 1);
                 const decodeLogitsBufferSize = this.vocabSize * Float16Array.BYTES_PER_ELEMENT;
                 if (!this.fetches["logits"]) {
                     // Pre-allocate logits gpu-buffer once
