@@ -84,11 +84,11 @@ export class Whisper {
         this.first_logits_shape = [1, 4, 51865];
         this.kv_logits_shape = [1, 1, 51865];
 
-        // Pre-allocated TypedArrays for IO binding reuse
+        // Set up preallocated TypedArrays for IO binding reuse.
         this.logits_buffer = null;
         this.kv_logits_buffer = null;
 
-        // Pre-allocated MLTensors for IO binding (initialized once)
+        // Set up preallocated MLTensors for IO binding (initialized once).
         this.pre_allocated_mltensors = {
             encoder: {
                 last_hidden_state: null,
@@ -224,12 +224,12 @@ export class Whisper {
         }
     }
 
-    // Helper method to create pre-allocated MLTensor
+    // Helper method to create preallocated MLTensor
     async createOutputMLTensor(shape, dataType = "float32", readable = false) {
         if (!this.ioBinding || !this.mlContext) {
             return null;
         }
-        // Create pre-allocated MLTensor
+        // Create preallocated MLTensor
         const mlTensor = await this.mlContext.createTensor({
             dataType,
             shape,
@@ -243,9 +243,9 @@ export class Whisper {
         });
     }
 
-    // Initialize all pre-allocated MLTensors for optimal real-time performance
+    // Initialize all preallocated MLTensors for optimal real-time performance
     async initialize_preallocated_mltensors() {
-        log("Initializing pre-allocated MLTensors and buffers...");
+        log("Initializing preallocated MLTensors and buffers...");
 
         // Encoder outputs
         this.pre_allocated_mltensors.encoder.last_hidden_state = await this.createOutputMLTensor(
@@ -305,7 +305,7 @@ export class Whisper {
                   ? new Float16Array(kv_logits_elements)
                   : new Uint16Array(kv_logits_elements);
 
-        log("Pre-allocated MLTensors and buffers initialization complete!");
+        log("Preallocated MLTensors and buffers initialization complete!");
     }
 
     async run(audio_data) {
@@ -363,7 +363,7 @@ export class Whisper {
         // console.log(`Non-KV cache decoder input preparation time: ${(performance.now() - start).toFixed(2)}ms`);
         // start = performance.now();
         // run the first inference which generates SA and CA KV cache
-        // Create inputs object with pre-allocated outputs for IO binding
+        // Create inputs object with preallocated outputs for IO binding
         let logits, decoder_outputs;
         if (this.ioBinding) {
             decoder_outputs = {
