@@ -213,13 +213,11 @@ export class LLM {
                     bufferSize,
                 );
 
-                this.fetches[`present.${i}.key`] = createGpuTensor(this.gpuDevice, "float16", this.kvDims, bufferSize);
-                this.fetches[`present.${i}.value`] = createGpuTensor(
-                    this.gpuDevice,
-                    "float16",
-                    this.kvDims,
-                    bufferSize,
-                );
+                // The GQA spec suggests to use the same tensor for both present_key & present_value
+                // and past_key & past_value if the total_sequence_length = max_sequence_length
+                // in order to save GPU memory.
+                this.fetches[`present.${i}.key`] = this.feed[`past_key_values.${i}.key`];
+                this.fetches[`present.${i}.value`] = this.feed[`past_key_values.${i}.value`];
             }
         } else {
             // Initialize kv cache as empty tensors for WASM EP
