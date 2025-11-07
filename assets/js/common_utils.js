@@ -125,7 +125,7 @@ export const getTime = () => {
     return `${hour}:${min}:${sec}`;
 };
 
-const DEV_ORT_VERSION = "1.23.0-dev.20250917-21fbad8a65";
+const DEV_ORT_VERSION = "1.24.0-dev.20251104-75d35474d5";
 const STABLE_ORT_VERSION = "";
 const TEST_ORT_VERSION = "test";
 
