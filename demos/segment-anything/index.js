@@ -14,6 +14,7 @@ import {
     getWebnnStatus,
     showCompatibleChromiumVersion,
     setupORT,
+    getHuggingFaceDomain,
 } from "../../assets/js/common_utils.js";
 
 // the image size on canvas
@@ -85,11 +86,11 @@ let num_points = 1;
 /**
  * create config from url
  */
-function getConfig() {
+async function getConfig() {
     const query = window.location.search.substring(1);
     const config = {
         host: location.href.includes("github.io")
-            ? "https://huggingface.co/webnn/segment-anything-model-webnn/resolve/main/onnx"
+            ? `https://${await getHuggingFaceDomain()}/webnn/segment-anything-model-webnn/resolve/main/onnx`
             : "models",
         mode: "none",
         model: "sam_b",

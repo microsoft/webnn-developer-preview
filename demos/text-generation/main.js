@@ -14,6 +14,7 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
     updateQueryStringParameter,
+    getHuggingFaceDomain,
 } from "../../assets/js/common_utils.js";
 import { env, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.2";
 import { LLM } from "./llm.js";
@@ -450,6 +451,16 @@ const main = async () => {
         if (!config.local && config.model.remote_id) {
             modelId = config.model.remote_id;
         }
+
+        if (!config.local) {
+            const domain = await getHuggingFaceDomain();
+            // 1. Replace 'huggingface.co' with the detected domain (could be hf-mirror.com)
+            config.model.remote_path = config.model.remote_path.replace("huggingface.co", domain);
+
+            // 2. Update transformers.js env so AutoTokenizer uses the mirror
+            env.remoteHost = "https://" + domain + "/";
+        }
+
         tokenizer = await AutoTokenizer.from_pretrained(modelId);
         await llm.load(config.model, {
             provider: config.provider,

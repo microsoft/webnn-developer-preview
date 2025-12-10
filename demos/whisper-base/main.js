@@ -6,7 +6,14 @@
 //
 
 import { Whisper } from "./whisper.js";
-import { $, getMode, getWebnnStatus, setupORT, showCompatibleChromiumVersion } from "../../assets/js/common_utils.js";
+import {
+    $,
+    getMode,
+    getWebnnStatus,
+    setupORT,
+    showCompatibleChromiumVersion,
+    getHuggingFaceDomain,
+} from "../../assets/js/common_utils.js";
 import { log, logError, concatBuffer, concatBufferArray, logUser } from "./utils.js";
 import VADBuilder, { VADMode, VADEvent } from "./vad/embedded.js";
 import AudioMotionAnalyzer from "./static/js/audioMotion-analyzer.js?min";
@@ -664,7 +671,7 @@ const main = async () => {
 
     context = new AudioContext({ sampleRate: kSampleRate });
     const whisper_url = location.href.includes("github.io")
-        ? "https://huggingface.co/webnn/whisper-base-webnn/resolve/main/"
+        ? `https://${await getHuggingFaceDomain()}/webnn/whisper-base-webnn/resolve/main/`
         : "./models/";
     whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d, ioBinding);
     await whisper.create_whisper_processor();

@@ -15,16 +15,17 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
     toHalf,
+    getHuggingFaceDomain,
 } from "../../assets/js/common_utils.js";
 
 /*
  * get configuration from url
  */
-function getConfig() {
+async function getConfig() {
     const queryParams = new URLSearchParams(window.location.search);
     const config = {
         model: location.href.includes("github.io")
-            ? "https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main"
+            ? `https://${await getHuggingFaceDomain()}/microsoft/sd-turbo-webnn/resolve/main`
             : "models",
         mode: "none",
         safetyChecker: true,
