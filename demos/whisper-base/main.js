@@ -670,8 +670,9 @@ const main = async () => {
     log(`ONNX Runtime Web Execution Provider loaded · ${provider.toUpperCase()}`);
 
     context = new AudioContext({ sampleRate: kSampleRate });
+    const remoteHost = await getHuggingFaceDomain();
     const whisper_url = location.href.includes("github.io")
-        ? `https://${await getHuggingFaceDomain()}/webnn/whisper-base-webnn/resolve/main/`
+        ? `https://${remoteHost}/webnn/whisper-base-webnn/resolve/main/`
         : "./models/";
     whisper = new Whisper(whisper_url, provider, deviceType, dataType, mask4d, ioBinding);
     await whisper.create_whisper_processor();

@@ -52,8 +52,9 @@ export class LLM {
         this.kv_dims = [1, 32, this.max_cache, 96];
         this.num_layers = 32;
 
+        const remoteHost = await getHuggingFaceDomain();
         const path = location.href.includes("github.io")
-            ? `https://${await getHuggingFaceDomain()}/webnn/Phi3-mini-4k-instruct-static/resolve/main/`
+            ? `https://${remoteHost}/webnn/Phi3-mini-4k-instruct-static/resolve/main/`
             : "models/";
 
         const type_suffix = this.dtype == "float16" ? "_fp16" : "";

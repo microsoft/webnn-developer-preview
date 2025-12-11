@@ -139,7 +139,7 @@ export const getHuggingFaceDomain = async () => {
     // Helper to test a specific domain with a timeout
     const checkDomain = async domain => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
         try {
             const response = await fetch(`https://${domain}${testPath}`, {

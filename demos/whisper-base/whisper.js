@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1";
+import { AutoProcessor, AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1";
 
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
@@ -9,6 +9,7 @@ import {
     isFloat16ArrayAvailable,
     convertToFloat16OrUint16Array,
     convertToFloat32Array,
+    getHuggingFaceDomain,
 } from "../../assets/js/common_utils.js";
 import {
     log,
@@ -34,9 +35,9 @@ if (
     location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
     location.href.toLowerCase().indexOf("vercel.app") > -1
 ) {
-    let path = "webnn/whisper-base-webnn/resolve/main";
-    tokenizerPath = `${path}/tokenizer`;
-    processerPath = `${path}/processer`;
+    let path = "webnn/whisper-base-webnn";
+    tokenizerPath = `${path}`;
+    processerPath = `${path}`;
 } else {
     let path = "../../demos/whisper-base/models";
     tokenizerPath = `${path}/tokenizer/`;
@@ -114,11 +115,35 @@ export class Whisper {
 
     async create_whisper_processor() {
         // processor contains feature extractor
+        if (
+            location.href.toLowerCase().indexOf("github.io") > -1 ||
+            location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
+            location.href.toLowerCase().indexOf("vercel.app") > -1
+        ) {
+            const remoteHost = await getHuggingFaceDomain();
+            if (remoteHost !== "huggingface.co") {
+                // PRC users only, set remote host to mirror site of huggingface for processor loading
+                console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
+                env.remoteHost = `https://${remoteHost}`;
+            }
+        }
         this.processor = await AutoProcessor.from_pretrained(processerPath);
     }
 
     async create_whisper_tokenizer() {
         // processor contains feature extractor
+        if (
+            location.href.toLowerCase().indexOf("github.io") > -1 ||
+            location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
+            location.href.toLowerCase().indexOf("vercel.app") > -1
+        ) {
+            const remoteHost = await getHuggingFaceDomain();
+            if (remoteHost !== "huggingface.co") {
+                // PRC users only, set remote host to mirror site of huggingface for tokenizer loading
+                console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
+                env.remoteHost = `https://${remoteHost}`;
+            }
+        }
         this.tokenizer = await AutoTokenizer.from_pretrained(tokenizerPath, {
             config: { do_normalize: true },
         });

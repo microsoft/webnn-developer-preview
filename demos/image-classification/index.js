@@ -91,7 +91,6 @@ const main = async () => {
     const domain = await getHuggingFaceDomain();
     if (domain !== "huggingface.co") {
         transformers.env.remoteHost = "https://" + domain + "/";
-        transformers.env.remotePathTemplate = "{model}/resolve/{revision}/{file}";
     }
 
     let device = "webnn-gpu";

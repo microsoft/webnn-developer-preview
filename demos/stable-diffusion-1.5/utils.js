@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
+import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
 import { isFloat16ArrayAvailable, getQueryValue, getHuggingFaceDomain } from "../../assets/js/common_utils.js";
 let tokenizers;
 document.addEventListener("DOMContentLoaded", async () => {
@@ -9,11 +9,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
         location.href.toLowerCase().indexOf("vercel.app") > -1
     ) {
-        path = "microsoft/stable-diffusion-v1.5-webnn/resolve/main/tokenizer";
+        path = "webnn/stable-diffusion-v1.5-webnn";
+        const remoteHost = await getHuggingFaceDomain();
+        if (remoteHost !== "huggingface.co") {
+            // PRC users only, set remote host to mirror site of huggingface for model loading
+            console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
+            env.remoteHost = `https://${remoteHost}`;
+        }
     } else {
         path = "../../demos/stable-diffusion-1.5/models/tokenizer/";
     }
-
     tokenizers = await AutoTokenizer.from_pretrained(path);
 });
 
@@ -233,7 +238,8 @@ export const modelPath = async () => {
         location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
         location.href.toLowerCase().indexOf("vercel.app") > -1
     ) {
-        return `https://${await getHuggingFaceDomain()}/microsoft/stable-diffusion-v1.5-webnn/resolve/main/`;
+        const remoteHost = await getHuggingFaceDomain();
+        return `https://${remoteHost}/microsoft/stable-diffusion-v1.5-webnn/resolve/main/`;
     } else {
         return "models/";
     }

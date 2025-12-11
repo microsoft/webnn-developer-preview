@@ -527,6 +527,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     }
 
     log(`[Load] Loading model ${modelName} · ${modelSize}`);
+    const modelPathFromUtils = await Utils.modelPath();
     if (modelName == "text-encoder") {
         //  Inputs:
         //    int32 input_ids[batch,sequence]
@@ -538,7 +539,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         //    Addlast_hidden_state_dim_0: 2
         //    Addlast_hidden_state_dim_1: 77
         // modelPath = 'models/Stable-Diffusion-v1.5-text-encoder-float16.onnx';
-        modelPath = Utils.modelPath() + "text-encoder.onnx";
+        modelPath = modelPathFromUtils + "text-encoder.onnx";
         freeDimensionOverrides = {
             batch: unetBatch,
             sequence: textEmbeddingSequenceLength,
@@ -552,7 +553,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         //    float16 encoder_hidden_states[2, 77, 768]
         //  Outputs:
         //    float16 out_sample[2, 4, 64, 64]
-        modelPath = Utils.modelPath() + "sd-unet-v1.5-model-b2c4h64w64s77-float16-compute-and-inputs-layernorm.onnx";
+        modelPath = modelPathFromUtils + "sd-unet-v1.5-model-b2c4h64w64s77-float16-compute-and-inputs-layernorm.onnx";
 
         freeDimensionOverrides = {
             batch: unetBatch,
@@ -573,7 +574,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         //    float16 latent_sample[1, 4, 64, 64]
         //  Outputs:
         //    float16 sample[1, 3, 512, 512]
-        modelPath = Utils.modelPath() + "Stable-Diffusion-v1.5-vae-decoder-float16-fp32-instancenorm.onnx";
+        modelPath = modelPathFromUtils + "Stable-Diffusion-v1.5-vae-decoder-float16-fp32-instancenorm.onnx";
         freeDimensionOverrides = {
             batch: 1,
             channels: latentChannelCount,
@@ -587,7 +588,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         //  Outputs:
         //    float16 out_images
         //    bool has_nsfw_concepts
-        modelPath = Utils.modelPath() + "safety_checker_int32_reduceSum.onnx";
+        modelPath = modelPathFromUtils + "safety_checker_int32_reduceSum.onnx";
         freeDimensionOverrides = {
             batch: 1,
             channels: 3,
