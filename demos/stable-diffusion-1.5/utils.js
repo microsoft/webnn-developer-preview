@@ -10,12 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         location.href.toLowerCase().indexOf("vercel.app") > -1
     ) {
         path = "webnn/stable-diffusion-v1.5-webnn";
-        const remoteHost = await getHuggingFaceDomain();
-        if (remoteHost !== "huggingface.co") {
-            // PRC users only, set remote host to mirror site of huggingface for model loading
-            console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
-            env.remoteHost = `https://${remoteHost}`;
-        }
+        await remapHuggingFaceDomainIfNeeded(env);
     } else {
         path = "../../demos/stable-diffusion-1.5/models/tokenizer/";
     }

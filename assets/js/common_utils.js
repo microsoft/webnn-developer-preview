@@ -176,6 +176,19 @@ export const getHuggingFaceDomain = async () => {
     return mainDomain;
 };
 
+export async function remapHuggingFaceDomainIfNeeded(envOrObj, property = "remoteHost") {
+    const remoteHost = await getHuggingFaceDomain();
+    if (remoteHost.toLowerCase() !== "huggingface.co") {
+        const url = `https://${remoteHost}`;
+        if (envOrObj && typeof envOrObj === "object") {
+            envOrObj[property] = url;
+            log(`Using alternative Hugging Face mirror: ${url}`);
+        }
+        return url;
+    }
+    return `https://huggingface.co`;
+}
+
 const DEV_ORT_VERSION = "1.24.0-dev.20251104-75d35474d5";
 const STABLE_ORT_VERSION = "";
 const TEST_ORT_VERSION = "test";

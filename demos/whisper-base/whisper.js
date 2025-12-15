@@ -9,7 +9,7 @@ import {
     isFloat16ArrayAvailable,
     convertToFloat16OrUint16Array,
     convertToFloat32Array,
-    getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
 } from "../../assets/js/common_utils.js";
 import {
     log,
@@ -120,12 +120,7 @@ export class Whisper {
             location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
             location.href.toLowerCase().indexOf("vercel.app") > -1
         ) {
-            const remoteHost = await getHuggingFaceDomain();
-            if (remoteHost !== "huggingface.co") {
-                // PRC users only, set remote host to mirror site of huggingface for processor loading
-                console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
-                env.remoteHost = `https://${remoteHost}`;
-            }
+            await remapHuggingFaceDomainIfNeeded(env);
         }
         this.processor = await AutoProcessor.from_pretrained(processerPath);
     }
@@ -137,12 +132,7 @@ export class Whisper {
             location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
             location.href.toLowerCase().indexOf("vercel.app") > -1
         ) {
-            const remoteHost = await getHuggingFaceDomain();
-            if (remoteHost !== "huggingface.co") {
-                // PRC users only, set remote host to mirror site of huggingface for tokenizer loading
-                console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
-                env.remoteHost = `https://${remoteHost}`;
-            }
+            await remapHuggingFaceDomainIfNeeded(env);
         }
         this.tokenizer = await AutoTokenizer.from_pretrained(tokenizerPath, {
             config: { do_normalize: true },

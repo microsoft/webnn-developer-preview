@@ -13,7 +13,7 @@ import {
     getWebnnStatus,
     setupORT,
     showCompatibleChromiumVersion,
-    getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
 } from "../../assets/js/common_utils.js";
 import { env, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1";
 import { LLM } from "./llm.js";
@@ -334,12 +334,7 @@ const main = async () => {
             location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
             location.href.toLowerCase().indexOf("vercel.app") > -1
         ) {
-            const remoteHost = await getHuggingFaceDomain();
-            if (remoteHost !== "huggingface.co") {
-                // PRC users only, set remote host to mirror site of huggingface for tokenizer loading
-                console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
-                env.remoteHost = `https://${remoteHost}`;
-            }
+            await remapHuggingFaceDomainIfNeeded(env);
         }
 
         model_id = `microsoft/Phi-3-mini-4k-instruct`;

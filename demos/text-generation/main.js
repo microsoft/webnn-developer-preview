@@ -458,7 +458,7 @@ const main = async () => {
             config.model.remote_path = config.model.remote_path.replace("huggingface.co", domain);
 
             // 2. Update transformers.js env so AutoTokenizer uses the mirror
-            env.remoteHost = "https://" + domain + "/";
+            env.remoteHost = `https://${domain}/`;
         }
 
         tokenizer = await AutoTokenizer.from_pretrained(modelId);

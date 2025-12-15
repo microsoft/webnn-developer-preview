@@ -16,7 +16,7 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
     toHalf,
-    getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
 } from "../../assets/js/common_utils.js";
 
 /*
@@ -1044,12 +1044,7 @@ const ui = async () => {
         location.href.toLowerCase().indexOf("vercel.app") > -1
     ) {
         path = "webnn/sd-turbo-webnn";
-        const remoteHost = await getHuggingFaceDomain();
-        if (remoteHost !== "huggingface.co") {
-            // PRC users only, set remote host to mirror site of huggingface for tokenizer loading
-            console.log(`Using alternative Hugging Face mirror: ${remoteHost}`);
-            env.remoteHost = `https://${remoteHost}`;
-        }
+        await remapHuggingFaceDomainIfNeeded(env);
     } else {
         path = "../../demos/sd-turbo/models/tokenizer";
     }
