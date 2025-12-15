@@ -10,6 +10,7 @@ import {
     convertToFloat16OrUint16Array,
     convertToFloat32Array,
     remapHuggingFaceDomainIfNeeded,
+    checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 import {
     log,
@@ -30,11 +31,7 @@ import {
 
 let tokenizerPath = "";
 let processerPath = "";
-if (
-    location.href.toLowerCase().indexOf("github.io") > -1 ||
-    location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-    location.href.toLowerCase().indexOf("vercel.app") > -1
-) {
+if (checkRemoteEnvironment()) {
     let path = "webnn/whisper-base-webnn";
     tokenizerPath = `${path}`;
     processerPath = `${path}`;
@@ -115,11 +112,7 @@ export class Whisper {
 
     async create_whisper_processor() {
         // processor contains feature extractor
-        if (
-            location.href.toLowerCase().indexOf("github.io") > -1 ||
-            location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-            location.href.toLowerCase().indexOf("vercel.app") > -1
-        ) {
+        if (checkRemoteEnvironment()) {
             await remapHuggingFaceDomainIfNeeded(env);
         }
         this.processor = await AutoProcessor.from_pretrained(processerPath);
@@ -127,11 +120,7 @@ export class Whisper {
 
     async create_whisper_tokenizer() {
         // processor contains feature extractor
-        if (
-            location.href.toLowerCase().indexOf("github.io") > -1 ||
-            location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-            location.href.toLowerCase().indexOf("vercel.app") > -1
-        ) {
+        if (checkRemoteEnvironment()) {
             await remapHuggingFaceDomainIfNeeded(env);
         }
         this.tokenizer = await AutoTokenizer.from_pretrained(tokenizerPath, {

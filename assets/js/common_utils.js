@@ -125,6 +125,11 @@ export const getTime = () => {
     return `${hour}:${min}:${sec}`;
 };
 
+export const checkRemoteEnvironment = () => {
+    const href = location.href.toLowerCase();
+    return href.indexOf("github.io") > -1 || href.indexOf("huggingface.co") > -1 || href.indexOf("vercel.app") > -1;
+};
+
 let cachedHfDomain = null;
 
 export const getHuggingFaceDomain = async () => {

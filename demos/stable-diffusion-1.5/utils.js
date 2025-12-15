@@ -1,14 +1,15 @@
 /* eslint-disable no-undef */
 import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
-import { isFloat16ArrayAvailable, getQueryValue, getHuggingFaceDomain } from "../../assets/js/common_utils.js";
+import {
+    isFloat16ArrayAvailable,
+    getQueryValue,
+    getHuggingFaceDomain,
+    checkRemoteEnvironment,
+} from "../../assets/js/common_utils.js";
 let tokenizers;
 document.addEventListener("DOMContentLoaded", async () => {
     let path = "";
-    if (
-        location.href.toLowerCase().indexOf("github.io") > -1 ||
-        location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-        location.href.toLowerCase().indexOf("vercel.app") > -1
-    ) {
+    if (checkRemoteEnvironment()) {
         path = "webnn/stable-diffusion-v1.5-webnn";
         await remapHuggingFaceDomainIfNeeded(env);
     } else {
@@ -228,11 +229,7 @@ export function encodeFloat16(floatValue) /*: uint16 Number*/ {
 }
 
 export const modelPath = async () => {
-    if (
-        location.href.toLowerCase().indexOf("github.io") > -1 ||
-        location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-        location.href.toLowerCase().indexOf("vercel.app") > -1
-    ) {
+    if (checkRemoteEnvironment()) {
         const remoteHost = await getHuggingFaceDomain();
         return `https://${remoteHost}/microsoft/stable-diffusion-v1.5-webnn/resolve/main/`;
     } else {

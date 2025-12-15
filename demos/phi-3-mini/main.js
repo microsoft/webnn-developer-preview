@@ -14,6 +14,7 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
     remapHuggingFaceDomainIfNeeded,
+    checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 import { env, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1";
 import { LLM } from "./llm.js";
@@ -329,11 +330,7 @@ const main = async () => {
 
     try {
         let model_id;
-        if (
-            location.href.toLowerCase().indexOf("github.io") > -1 ||
-            location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-            location.href.toLowerCase().indexOf("vercel.app") > -1
-        ) {
+        if (checkRemoteEnvironment()) {
             await remapHuggingFaceDomainIfNeeded(env);
         }
 

@@ -17,6 +17,7 @@ import {
     showCompatibleChromiumVersion,
     toHalf,
     remapHuggingFaceDomainIfNeeded,
+    checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 
 /*
@@ -1038,11 +1039,7 @@ const ui = async () => {
     ort.env.wasm.simd = true;
 
     let path = "";
-    if (
-        location.href.toLowerCase().indexOf("github.io") > -1 ||
-        location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-        location.href.toLowerCase().indexOf("vercel.app") > -1
-    ) {
+    if (checkRemoteEnvironment()) {
         path = "webnn/sd-turbo-webnn";
         await remapHuggingFaceDomainIfNeeded(env);
     } else {
