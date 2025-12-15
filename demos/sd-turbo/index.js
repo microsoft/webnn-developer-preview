@@ -16,6 +16,7 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
     toHalf,
+    getHuggingFaceDomain,
     remapHuggingFaceDomainIfNeeded,
     checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";

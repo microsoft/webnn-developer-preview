@@ -4,6 +4,7 @@ import {
     isFloat16ArrayAvailable,
     getQueryValue,
     getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
     checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 let tokenizers;
