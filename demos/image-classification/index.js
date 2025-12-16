@@ -19,7 +19,7 @@ import {
     asyncErrorHandling,
     getMode,
     showCompatibleChromiumVersion,
-    getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
 } from "../../assets/js/common_utils.js";
 
 transformers.env.backends.onnx.wasm.proxy = false;
@@ -88,10 +88,7 @@ const main = async () => {
         }
     }
 
-    const domain = await getHuggingFaceDomain();
-    if (domain !== "huggingface.co") {
-        transformers.env.remoteHost = `https://${domain}/`;
-    }
+    await remapHuggingFaceDomainIfNeeded(transformers.env);
 
     let device = "webnn-gpu";
     if (provider.toLowerCase() === "webnn") {
