@@ -19,6 +19,7 @@ import {
     asyncErrorHandling,
     getMode,
     showCompatibleChromiumVersion,
+    remapHuggingFaceDomainIfNeeded,
 } from "../../assets/js/common_utils.js";
 
 transformers.env.backends.onnx.wasm.proxy = false;
@@ -86,6 +87,8 @@ const main = async () => {
                 break;
         }
     }
+
+    await remapHuggingFaceDomainIfNeeded(transformers.env);
 
     let device = "webnn-gpu";
     if (provider.toLowerCase() === "webnn") {

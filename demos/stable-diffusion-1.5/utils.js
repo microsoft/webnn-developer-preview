@@ -1,19 +1,21 @@
 /* eslint-disable no-undef */
-import { AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
-import { isFloat16ArrayAvailable, getQueryValue } from "../../assets/js/common_utils.js";
+import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
+import {
+    isFloat16ArrayAvailable,
+    getQueryValue,
+    getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
+    checkRemoteEnvironment,
+} from "../../assets/js/common_utils.js";
 let tokenizers;
 document.addEventListener("DOMContentLoaded", async () => {
     let path = "";
-    if (
-        location.href.toLowerCase().indexOf("github.io") > -1 ||
-        location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-        location.href.toLowerCase().indexOf("vercel.app") > -1
-    ) {
-        path = "microsoft/stable-diffusion-v1.5-webnn/resolve/main/tokenizer";
+    if (checkRemoteEnvironment()) {
+        path = "webnn/stable-diffusion-v1.5-webnn";
+        await remapHuggingFaceDomainIfNeeded(env);
     } else {
         path = "../../demos/stable-diffusion-1.5/models/tokenizer/";
     }
-
     tokenizers = await AutoTokenizer.from_pretrained(path);
 });
 
@@ -227,13 +229,10 @@ export function encodeFloat16(floatValue) /*: uint16 Number*/ {
     return bits;
 }
 
-export const modelPath = () => {
-    if (
-        location.href.toLowerCase().indexOf("github.io") > -1 ||
-        location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-        location.href.toLowerCase().indexOf("vercel.app") > -1
-    ) {
-        return "https://huggingface.co/microsoft/stable-diffusion-v1.5-webnn/resolve/main/";
+export const modelPath = async () => {
+    if (checkRemoteEnvironment()) {
+        const remoteHost = await getHuggingFaceDomain();
+        return `https://${remoteHost}/microsoft/stable-diffusion-v1.5-webnn/resolve/main/`;
     } else {
         return "models/";
     }

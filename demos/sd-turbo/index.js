@@ -5,6 +5,7 @@
 // An example how to run sd-turbo with webnn in onnxruntime-web.
 //
 
+import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.js";
 import {
     $,
     $$,
@@ -15,6 +16,9 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
     toHalf,
+    getHuggingFaceDomain,
+    remapHuggingFaceDomainIfNeeded,
+    checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 
 /*
@@ -24,7 +28,7 @@ function getConfig() {
     const queryParams = new URLSearchParams(window.location.search);
     const config = {
         model: location.href.includes("github.io")
-            ? "https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main"
+            ? `https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main`
             : "models",
         mode: "none",
         safetyChecker: true,
@@ -246,6 +250,11 @@ async function load_models(models) {
             } else if (name == "safety_checker") {
                 modelNameInLog = "Safety Checker";
                 modelUrl = `${config.model}/${name}/safety_checker_int32_reduceSum.onnx`;
+            }
+            if (modelUrl.includes("huggingface.co")) {
+                await getHuggingFaceDomain().then(domain => {
+                    modelUrl = modelUrl.replace("huggingface.co", domain);
+                });
             }
             log(`[Load] Loading model ${modelNameInLog} · ${model.size}`);
             let modelBuffer = await getModelOPFS(`sd_turbo_${name}`, modelUrl, false);
@@ -1031,12 +1040,9 @@ const ui = async () => {
     ort.env.wasm.simd = true;
 
     let path = "";
-    if (
-        location.href.toLowerCase().indexOf("github.io") > -1 ||
-        location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-        location.href.toLowerCase().indexOf("vercel.app") > -1
-    ) {
-        path = "microsoft/sd-turbo-webnn/resolve/main/tokenizer";
+    if (checkRemoteEnvironment()) {
+        path = "webnn/sd-turbo-webnn";
+        await remapHuggingFaceDomainIfNeeded(env);
     } else {
         path = "../../demos/sd-turbo/models/tokenizer";
     }

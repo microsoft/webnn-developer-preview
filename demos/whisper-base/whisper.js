@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { AutoProcessor, AutoTokenizer } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1";
+import { AutoProcessor, AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1";
 
 //'@xenova/transformers';
 import { get_new_tokens } from "./generation_utils.js";
@@ -9,6 +9,8 @@ import {
     isFloat16ArrayAvailable,
     convertToFloat16OrUint16Array,
     convertToFloat32Array,
+    remapHuggingFaceDomainIfNeeded,
+    checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 import {
     log,
@@ -29,14 +31,10 @@ import {
 
 let tokenizerPath = "";
 let processerPath = "";
-if (
-    location.href.toLowerCase().indexOf("github.io") > -1 ||
-    location.href.toLowerCase().indexOf("huggingface.co") > -1 ||
-    location.href.toLowerCase().indexOf("vercel.app") > -1
-) {
-    let path = "webnn/whisper-base-webnn/resolve/main";
-    tokenizerPath = `${path}/tokenizer`;
-    processerPath = `${path}/processer`;
+if (checkRemoteEnvironment()) {
+    let path = "webnn/whisper-base-webnn";
+    tokenizerPath = `${path}`;
+    processerPath = `${path}`;
 } else {
     let path = "../../demos/whisper-base/models";
     tokenizerPath = `${path}/tokenizer/`;
@@ -114,11 +112,17 @@ export class Whisper {
 
     async create_whisper_processor() {
         // processor contains feature extractor
+        if (checkRemoteEnvironment()) {
+            await remapHuggingFaceDomainIfNeeded(env);
+        }
         this.processor = await AutoProcessor.from_pretrained(processerPath);
     }
 
     async create_whisper_tokenizer() {
         // processor contains feature extractor
+        if (checkRemoteEnvironment()) {
+            await remapHuggingFaceDomainIfNeeded(env);
+        }
         this.tokenizer = await AutoTokenizer.from_pretrained(tokenizerPath, {
             config: { do_normalize: true },
         });
