@@ -1117,7 +1117,9 @@ const updateLoadWave = value => {
 
 const updateDeviceTypeLinks = () => {
     let backendLinks = $("#backend-links");
-    const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    // Fix me: Once NPU is supported, uncomment the following line
+    // const links = `· <a href="./?devicetype=gpu">GPU</a> · <a id="npu_link" href="./?devicetype=npu">NPU</a>`;
+    const links = `· <a href="./?devicetype=gpu">GPU</a>`;
     backendLinks.innerHTML = `${links}`;
 };
 
