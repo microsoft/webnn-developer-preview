@@ -1153,8 +1153,11 @@ const ui = async () => {
 
     if (getQueryValue("provider") && getQueryValue("provider").toLowerCase() === "webgpu") {
         title.innerHTML = "WebGPU";
+        $("#webnnstatus").hidden = true;
+        load.disabled = false;
+    } else {
+        await checkWebNN();
     }
-    await checkWebNN();
 
     for (const [modelName, prefix] of Object.entries(modelDOMPrefixes)) {
         dom[modelName] = {
