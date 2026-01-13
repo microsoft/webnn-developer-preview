@@ -57,7 +57,8 @@ const tokenizer = await AutoTokenizer.from_pretrained("tokenizer");
 const tokenizer2 = await AutoTokenizer.from_pretrained("tokenizer_2");
 
 const batchSize = config.images;
-const imageSize = 512;
+const imageHeight = 512;
+const imageWidth = 512;
 const models = {
     text_encoder: {
         name: "Text Encoder",
@@ -125,20 +126,20 @@ const models = {
             freeDimensionOverrides: {
                 batch: batchSize,
                 channels: 4,
-                height: imageSize / 8,
-                width: imageSize / 8,
+                height: imageHeight / 8,
+                width: imageWidth / 8,
             },
         },
         inputInfo: {
             sample: {
                 dataType: dataType,
-                dims: [batchSize, 4, imageSize / 8, imageSize / 8],
+                dims: [batchSize, 4, imageHeight / 8, imageWidth / 8],
                 readable: true,
             },
         },
         outputInfo: {
-            latents: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
-            latentModelInput: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
+            latents: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
+            latentModelInput: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
         },
     },
     unet: {
@@ -149,8 +150,8 @@ const models = {
             freeDimensionOverrides: {
                 unet_sample_batch: batchSize,
                 unet_sample_channels: 4,
-                unet_sample_height: imageSize / 8,
-                unet_sample_width: imageSize / 8,
+                unet_sample_height: imageHeight / 8,
+                unet_sample_width: imageWidth / 8,
                 unet_time_batch: 1,
                 unet_hidden_batch: batchSize,
                 unet_hidden_sequence: 77,
@@ -161,14 +162,14 @@ const models = {
             },
         },
         inputInfo: {
-            sample: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
+            sample: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
             timestep: { dataType: dataType, dims: [1], writable: true },
             encoder_hidden_states: { dataType: dataType, dims: [batchSize, 77, 2048] },
             text_embeds: { dataType: dataType, dims: [batchSize, 1280] },
             time_ids: { dataType: dataType, dims: [batchSize, 6], writable: true },
         },
         outputInfo: {
-            out_sample: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
+            out_sample: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
         },
     },
     scheduler: {
@@ -180,16 +181,16 @@ const models = {
             freeDimensionOverrides: {
                 batch: batchSize,
                 channels: 4,
-                height: imageSize / 8,
-                width: imageSize / 8,
+                height: imageHeight / 8,
+                width: imageWidth / 8,
             },
         },
         inputInfo: {
-            sample: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
-            out_sample: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
+            sample: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
+            out_sample: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
         },
         outputInfo: {
-            prevSample: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
+            prevSample: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
         },
     },
     vae_decoder: {
@@ -200,15 +201,15 @@ const models = {
             freeDimensionOverrides: {
                 batch_size: batchSize,
                 num_channels_latent: 4,
-                height_latent: imageSize / 8,
-                width_latent: imageSize / 8,
+                height_latent: imageHeight / 8,
+                width_latent: imageWidth / 8,
             },
         },
         inputInfo: {
-            latent_sample: { dataType: dataType, dims: [batchSize, 4, imageSize / 8, imageSize / 8] },
+            latent_sample: { dataType: dataType, dims: [batchSize, 4, imageHeight / 8, imageWidth / 8] },
         },
         outputInfo: {
-            sample: { dataType: dataType, dims: [batchSize, 3, imageSize, imageSize], readable: true },
+            sample: { dataType: dataType, dims: [batchSize, 3, imageHeight, imageWidth], readable: true },
         },
     },
     safety_checker: {
@@ -381,25 +382,25 @@ async function readResponse(name, response) {
     const contentLength = response.headers.get("Content-Length");
     let total = parseInt(contentLength ?? "0");
     let buffer = new Uint8Array(total);
-    let loaded = 0;
+    let loadedByteCount = 0;
 
     const reader = response.body.getReader();
     async function read() {
         const { done, value } = await reader.read();
         if (done) return;
 
-        let newLoaded = loaded + value.length;
-        let fetchProgress = (newLoaded / contentLength) * 100;
+        let newLoadedByteCount = loadedByteCount + value.length;
+        let fetchProgress = (newLoadedByteCount / contentLength) * 100;
         progressManager.update(name, "fetch", fetchProgress);
 
-        if (newLoaded > total) {
-            total = newLoaded;
+        if (newLoadedByteCount > total) {
+            total = newLoadedByteCount;
             let newBuffer = new Uint8Array(total);
             newBuffer.set(buffer);
             buffer = newBuffer;
         }
-        buffer.set(value, loaded);
-        loaded = newLoaded;
+        buffer.set(value, loadedByteCount);
+        loadedByteCount = newLoadedByteCount;
         return read();
     }
 
@@ -434,7 +435,7 @@ async function loadModels(models) {
             log(`[Load] Loading model ${modelNameInLog} · ${model.size}`);
             const modelBuffer = await getModelOPFS(`sdxl-turbo_${modelUrl.replace(/\//g, "_")}`, modelUrl, false);
             const sessOpt = { ...opt, ...model.opt };
-            let modelFetchTime = (performance.now() - start).toFixed(2);
+            const modelFetchTime = (performance.now() - start).toFixed(2);
 
             if (dom[name]) {
                 dom[name].fetch.innerHTML = modelFetchTime;
@@ -447,15 +448,15 @@ async function loadModels(models) {
             console.log(sessOpt);
 
             models[name].sess = await ort.InferenceSession.create(modelBuffer, sessOpt);
-            let createTime = (performance.now() - start).toFixed(2);
+            const sessCreationTime = (performance.now() - start).toFixed(2);
 
             if (dom[name]) {
-                dom[name].create.innerHTML = createTime;
+                dom[name].create.innerHTML = sessCreationTime;
                 progressManager.update(name, "compile", 100);
             }
 
             if (getMode()) {
-                log(`[Session Create] Create ${modelNameInLog} completed · ${createTime}ms`);
+                log(`[Session Create] Create ${modelNameInLog} completed · ${sessCreationTime}ms`);
             } else {
                 log(`[Session Create] Create ${modelNameInLog} completed`);
             }
@@ -653,7 +654,7 @@ async function initializeTensors() {
     };
     // Initialize the tensors early to avoid re-allocation during execution
     writeTensor(models["unet"].feed.timestep, new Float16Array([999]));
-    writeTensor(models["unet"].feed.time_ids, getAddTimeIds(imageSize, imageSize, batchSize));
+    writeTensor(models["unet"].feed.time_ids, getAddTimeIds(imageHeight, imageWidth, batchSize));
     models["unet"].fetches = {
         out_sample: await createTensor(models["unet"].outputInfo.out_sample),
     };
@@ -733,41 +734,46 @@ const SC_OFFSET = SC_MEAN.map((m, i) => (0.5 - m) / SC_STD[i]);
  * Output: NCHW, normalized (Safety Checker input)
  * This avoids the overhead of converting to RGBA, drawing to Canvas, and reading back.
  *
- * @param {Float32Array or Float16Array} vaeOutput - The raw output from VAE Decoder
+ * @param {Float16Array} vaeOutput - The raw output from VAE Decoder
  * @param {number} batchSize - Number of images in the batch
- * @param {number} srcSize - Source image size (e.g., 512)
+ * @param {number} srcHeight - Source image height
+ * @param {number} srcWidth - Source image width
  * @param {number} dstSize - Destination image size (e.g., 224)
  */
-function getSafetyCheckerFeedFromVaeOutput(vaeOutput, batchSize, srcSize, dstSize) {
+function getSafetyCheckerFeedFromVaeOutput(vaeOutput, batchSize, srcHeight, srcWidth, dstSize) {
     const dstTotalSize = batchSize * 3 * dstSize * dstSize;
     const dstData = new Float16Array(dstTotalSize);
 
-    const ratio = srcSize / dstSize;
+    const ratioH = srcHeight / dstSize;
+    const ratioW = srcWidth / dstSize;
 
-    // Pre-calculate interpolation weights and indices
+    // Pre-calculate interpolation weights and indices for Height (Y) and Width (X)
     const yIndices = new Int32Array(dstSize * 2); // [y0, y1]
     const yWeights = new Float16Array(dstSize); // yWeight
     const xIndices = new Int32Array(dstSize * 2); // [x0, x1]
     const xWeights = new Float16Array(dstSize); // xWeight
 
     for (let i = 0; i < dstSize; i++) {
-        const src = i * ratio;
-        const p0 = Math.floor(src);
-        const p1 = Math.min(p0 + 1, srcSize - 1);
-        const w = src - p0;
+        const srcH = i * ratioH;
+        const p0H = Math.floor(srcH);
+        const p1H = Math.min(p0H + 1, srcHeight - 1);
 
-        yIndices[i * 2] = p0;
-        yIndices[i * 2 + 1] = p1;
-        yWeights[i] = w;
+        yIndices[i * 2] = p0H;
+        yIndices[i * 2 + 1] = p1H;
+        yWeights[i] = srcH - p0H;
 
-        xIndices[i * 2] = p0;
-        xIndices[i * 2 + 1] = p1;
-        xWeights[i] = w;
+        const srcW = i * ratioW;
+        const p0W = Math.floor(srcW);
+        const p1W = Math.min(p0W + 1, srcWidth - 1);
+
+        xIndices[i * 2] = p0W;
+        xIndices[i * 2 + 1] = p1W;
+        xWeights[i] = srcW - p0W;
     }
 
     for (let b = 0; b < batchSize; b++) {
         for (let c = 0; c < 3; c++) {
-            const srcOffset = (b * 3 + c) * srcSize * srcSize;
+            const srcOffset = (b * 3 + c) * srcHeight * srcWidth;
             const dstOffset = (b * 3 + c) * dstSize * dstSize;
 
             const cScale = SC_SCALE[c];
@@ -779,8 +785,8 @@ function getSafetyCheckerFeedFromVaeOutput(vaeOutput, batchSize, srcSize, dstSiz
                 const yWeight = yWeights[y];
                 const invYWeight = 1.0 - yWeight;
 
-                const srcRow0 = srcOffset + y0 * srcSize;
-                const srcRow1 = srcOffset + y1 * srcSize;
+                const srcRow0 = srcOffset + y0 * srcWidth;
+                const srcRow1 = srcOffset + y1 * srcWidth;
                 const dstRow = dstOffset + y * dstSize;
 
                 for (let x = 0; x < dstSize; x++) {
@@ -813,7 +819,7 @@ function getSafetyCheckerFeedFromVaeOutput(vaeOutput, batchSize, srcSize, dstSiz
 
 /**
  * draw images from pixel data
- * @param {Float32Array or Float16Array} pix
+ * @param {Float16Array} pix
  * @param {number} imageIndex
  * @param {number} height
  * @param {number} width
@@ -969,10 +975,10 @@ async function generateImage() {
 
         start = performance.now();
         for (let i = 0; i < batchSize; i++) {
-            const size = 3 * imageSize * imageSize;
+            const size = 3 * imageHeight * imageWidth;
             const offset = i * size;
             const subPix = pix.subarray(offset, offset + size);
-            drawImage(subPix, i, imageSize, imageSize);
+            drawImage(subPix, i, imageHeight, imageWidth);
         }
         const imageDrawTime = (performance.now() - start).toFixed(2);
         log(`[Images Drawing] drawing ${batchSize} images time: ${imageDrawTime}ms`);
@@ -986,7 +992,7 @@ async function generateImage() {
         if (config.safetyChecker) {
             // 1. Prepare Batch Data (Directly from VAE output)
             let scPrepStart = performance.now();
-            const feed = getSafetyCheckerFeedFromVaeOutput(pix, batchSize, imageSize, 224);
+            const feed = getSafetyCheckerFeedFromVaeOutput(pix, batchSize, imageHeight, imageWidth, 224);
 
             if (getMode()) {
                 log(
