@@ -212,6 +212,25 @@ const models = {
             sample: { dataType: dataType, dims: [batchSize, 3, imageHeight, imageWidth], readable: true },
         },
     },
+    sc_prep: {
+        name: "Safety Checker Pre-processing Model",
+        url: "sc_prep_model_f16.onnx",
+        size: "1KB",
+        opt: {
+            freeDimensionOverrides: {
+                batch: batchSize,
+                channels: 3,
+                height: imageHeight,
+                width: imageWidth,
+            },
+        },
+        inputInfo: {
+            sample: { dataType: dataType, dims: [batchSize, 3, imageHeight, imageWidth] },
+        },
+        outputInfo: {
+            clip_input: { dataType: dataType, dims: [batchSize, 3, 224, 224] },
+        },
+    },
     safety_checker: {
         name: "Safety Checker",
         url: "safety_checker_model_f16.onnx",
@@ -678,8 +697,15 @@ async function initializeTensors() {
 
     // safety_checker
     if (config.safetyChecker) {
+        models["sc_prep"].feed = {
+            sample: models["vae_decoder"].fetches.sample,
+        };
+        models["sc_prep"].fetches = {
+            clip_input: await createTensor(models["sc_prep"].outputInfo.clip_input),
+        };
+
         models["safety_checker"].feed = {
-            clip_input: await createTensor(models["safety_checker"].inputInfo.clip_input),
+            clip_input: models["sc_prep"].fetches.clip_input,
         };
         models["safety_checker"].fetches = {
             has_nsfw_concepts: await createTensor(models["safety_checker"].outputInfo.has_nsfw_concepts),
@@ -720,101 +746,6 @@ function getAddTimeIds(height, width, batchSize = 1) {
     }
 
     return data;
-}
-
-const SC_MEAN = [0.48145466, 0.4578275, 0.40821073];
-const SC_STD = [0.26862954, 0.26130258, 0.27577711];
-const SC_SCALE = SC_MEAN.map((m, i) => 0.5 / SC_STD[i]);
-const SC_OFFSET = SC_MEAN.map((m, i) => (0.5 - m) / SC_STD[i]);
-
-/**
- * Directly process VAE output for Safety Checker input.
- * Performs bilinear interpolation (resize) and normalization in one pass.
- * Input: NCHW, range [-1, 1] (VAE output)
- * Output: NCHW, normalized (Safety Checker input)
- * This avoids the overhead of converting to RGBA, drawing to Canvas, and reading back.
- *
- * @param {Float16Array} vaeOutput - The raw output from VAE Decoder
- * @param {number} batchSize - Number of images in the batch
- * @param {number} srcHeight - Source image height
- * @param {number} srcWidth - Source image width
- * @param {number} dstSize - Destination image size (e.g., 224)
- */
-function getSafetyCheckerFeedFromVaeOutput(vaeOutput, batchSize, srcHeight, srcWidth, dstSize) {
-    const dstTotalSize = batchSize * 3 * dstSize * dstSize;
-    const dstData = new Float16Array(dstTotalSize);
-
-    const ratioH = srcHeight / dstSize;
-    const ratioW = srcWidth / dstSize;
-
-    // Pre-calculate interpolation weights and indices for Height (Y) and Width (X)
-    const yIndices = new Int32Array(dstSize * 2); // [y0, y1]
-    const yWeights = new Float16Array(dstSize); // yWeight
-    const xIndices = new Int32Array(dstSize * 2); // [x0, x1]
-    const xWeights = new Float16Array(dstSize); // xWeight
-
-    for (let i = 0; i < dstSize; i++) {
-        const srcH = i * ratioH;
-        const p0H = Math.floor(srcH);
-        const p1H = Math.min(p0H + 1, srcHeight - 1);
-
-        yIndices[i * 2] = p0H;
-        yIndices[i * 2 + 1] = p1H;
-        yWeights[i] = srcH - p0H;
-
-        const srcW = i * ratioW;
-        const p0W = Math.floor(srcW);
-        const p1W = Math.min(p0W + 1, srcWidth - 1);
-
-        xIndices[i * 2] = p0W;
-        xIndices[i * 2 + 1] = p1W;
-        xWeights[i] = srcW - p0W;
-    }
-
-    for (let b = 0; b < batchSize; b++) {
-        for (let c = 0; c < 3; c++) {
-            const srcOffset = (b * 3 + c) * srcHeight * srcWidth;
-            const dstOffset = (b * 3 + c) * dstSize * dstSize;
-
-            const cScale = SC_SCALE[c];
-            const cOffset = SC_OFFSET[c];
-
-            for (let y = 0; y < dstSize; y++) {
-                const y0 = yIndices[y * 2];
-                const y1 = yIndices[y * 2 + 1];
-                const yWeight = yWeights[y];
-                const invYWeight = 1.0 - yWeight;
-
-                const srcRow0 = srcOffset + y0 * srcWidth;
-                const srcRow1 = srcOffset + y1 * srcWidth;
-                const dstRow = dstOffset + y * dstSize;
-
-                for (let x = 0; x < dstSize; x++) {
-                    const x0 = xIndices[x * 2];
-                    const x1 = xIndices[x * 2 + 1];
-                    const xWeight = xWeights[x];
-                    const invXWeight = 1.0 - xWeight;
-
-                    // Fetch 4 neighbors
-                    const p00 = vaeOutput[srcRow0 + x0];
-                    const p01 = vaeOutput[srcRow0 + x1];
-                    const p10 = vaeOutput[srcRow1 + x0];
-                    const p11 = vaeOutput[srcRow1 + x1];
-
-                    // Interpolate
-                    const val =
-                        (p00 * invXWeight + p01 * xWeight) * invYWeight + (p10 * invXWeight + p11 * xWeight) * yWeight;
-
-                    // Normalize and store
-                    dstData[dstRow + x] = val * cScale + cOffset;
-                }
-            }
-        }
-    }
-
-    return {
-        clip_input: new ort.Tensor(dataType, dstData, [batchSize, 3, dstSize, dstSize]),
-    };
 }
 
 /**
@@ -990,21 +921,20 @@ async function generateImage() {
         dom.runTotal.innerHTML = totalRunTime;
 
         if (config.safetyChecker) {
-            // 1. Prepare Batch Data (Directly from VAE output)
-            let scPrepStart = performance.now();
-            const feed = getSafetyCheckerFeedFromVaeOutput(pix, batchSize, imageHeight, imageWidth, 224);
+            // 1. Run Preprocessing Model (VAE Output -> SC Input)
+            let start = performance.now();
+            await runModel(models["sc_prep"]);
 
             if (getMode()) {
-                log(
-                    `[Session Run] Safety Checker input prepared time: ${(performance.now() - scPrepStart).toFixed(2)}ms`,
-                );
+                log(`[Session Run] Safety Checker input prepared time: ${(performance.now() - start).toFixed(2)}ms`);
+            } else {
+                log(`[Session Run] Safety Checker input prepared`);
             }
 
-            // 2. Write Tensor and Run Once
-            writeTensor(models["safety_checker"].feed.clip_input, feed.clip_input.data);
-
+            // 2. Run Safety Checker
             start = performance.now();
             await runModel(models["safety_checker"]);
+
             // 3. Read Results
             let nsfwBuffer = new Uint8Array(batchSize);
             await readTensor(models["safety_checker"].fetches.has_nsfw_concepts, nsfwBuffer);
@@ -1233,6 +1163,7 @@ const ui = async () => {
     const loadModelUi = () => {
         if (!config.safetyChecker) {
             delete models["safety_checker"];
+            delete models["sc_prep"];
         }
         loading = loadModels(models);
         const imgDivs = $$("#image_area > div");
@@ -1261,6 +1192,7 @@ const ui = async () => {
                 models["text_encoder_2"]?.sess,
                 models["unet"]?.sess,
                 models["vae_decoder"]?.sess,
+                models["sc_prep"]?.sess,
                 models["safety_checker"]?.sess,
             ];
 
