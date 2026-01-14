@@ -5,6 +5,7 @@ export const isFloat16ArrayAvailable = typeof Float16Array !== "undefined" && Fl
 const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
     "stable-diffusion-1.5": "136.0.7051.0",
     "sd-turbo": "136.0.7051.0",
+    "sdxl-turbo": "136.0.7051.0",
     "segment-anything": "136.0.7051.0",
     "whisper-base": "136.0.7051.0",
     "image-classification": "136.0.7051.0",
@@ -205,6 +206,11 @@ const KNOWN_COMPATIBLE_ORT_VERSION = {
         test: TEST_ORT_VERSION,
     },
     "sd-turbo": {
+        dev: DEV_ORT_VERSION,
+        stable: STABLE_ORT_VERSION,
+        test: TEST_ORT_VERSION,
+    },
+    "sdxl-turbo": {
         dev: DEV_ORT_VERSION,
         stable: STABLE_ORT_VERSION,
         test: TEST_ORT_VERSION,
@@ -482,7 +488,12 @@ export function convertToFloat16OrUint16Array(fp32_array) {
 
 // Create a new ORT ML Tensor from the given parameters.
 export async function createMlTensor(mlContext, dataType, dims, writable, readable) {
-    const mlTensor = await mlContext.createTensor({ dataType, shape: dims, writable, readable });
+    const mlTensor = await mlContext.createTensor({
+        dataType: dataType === "bool" ? "uint8" : dataType,
+        shape: dims,
+        writable,
+        readable,
+    });
     // eslint-disable-next-line no-undef
     return ort.Tensor.fromMLTensor(mlTensor, { dataType, dims });
 }

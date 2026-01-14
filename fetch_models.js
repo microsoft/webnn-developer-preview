@@ -40,6 +40,54 @@ const models = [
         path: "./demos/sd-turbo/models/safety_checker",
     },
     {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/text_encoder_model_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/text_encoder_model_qdq_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/text_encoder_2_model_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/text_encoder_2_model_qdq_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/unet_model_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/unet_model_qdq_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/vae_decoder_model_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/vae_decoder_model_qdq_q4f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/safety_checker_model_f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/concat_model_f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/latents_model_f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
+        url: "webnn/sdxl-turbo/resolve/main/onnx/scheduler_model_f16.onnx",
+        path: "./demos/sdxl-turbo/models/onnx",
+    },
+    {
         url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/text-encoder.onnx",
         path: "./demos/stable-diffusion-1.5/models",
     },
