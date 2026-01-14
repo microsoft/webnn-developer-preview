@@ -465,16 +465,15 @@ async function loadModels(models) {
 
             start = performance.now();
             console.log(sessOpt);
+            models[name].sess = await ort.InferenceSession.create(modelBuffer, sessOpt);
             const sessionCreationTime = (performance.now() - start).toFixed(2);
 
             if (dom[name]) {
-                dom[name].create.innerHTML = createTime;
                 dom[name].create.innerHTML = sessionCreationTime;
                 progressManager.update(name, "compile", 100);
             }
 
             if (getMode()) {
-                log(`[Session Create] Create ${modelNameInLog} completed · ${createTime}ms`);
                 log(`[Session Create] Create ${modelNameInLog} completed · ${sessionCreationTime}ms`);
             } else {
                 log(`[Session Create] Create ${modelNameInLog} completed`);
