@@ -16,7 +16,7 @@ import {
     setupORT,
     getHuggingFaceDomain,
 } from "../../assets/js/common_utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 // the image size on canvas
 const MAX_WIDTH = 480;
 const MAX_HEIGHT = 480;
@@ -214,7 +214,7 @@ async function decoder(points, labels) {
             }
 
             const start = performance.now();
-            const res = await session.run(feed);
+            const res = await WebNNPerf.time("webnn.inference", () => session.run(feed), { model: "sam-decoder" });
 
             if (getMode()) {
                 decoder_latency.innerText = `${(performance.now() - start).toFixed(2)}`;
@@ -332,7 +332,7 @@ async function handleImage(img) {
     const session = await MODELS[config.model][0].sess;
 
     const start = performance.now();
-    image_embeddings = session.run(feed);
+    image_embeddings = WebNNPerf.time("webnn.inference", () => session.run(feed), { model: "sam-encoder" });
     image_embeddings.then(() => {
         if (getMode()) {
             log(`[Session Run] Encoder execution time: ${(performance.now() - start).toFixed(2)}ms`);
@@ -456,6 +456,7 @@ async function readResponse(name, response) {
 async function load_models(models) {
     log("[Load] ONNX Runtime Execution Provider: " + config.provider);
     log("[Load] ONNX Runtime EP device type: " + config.deviceType);
+    WebNNPerf.configure({ device: config.deviceType, provider: config.provider });
 
     for (const [id, model] of Object.entries(models)) {
         let start;
@@ -507,13 +508,21 @@ async function load_models(models) {
             }
             log(`[Load] Loading ${name} · ${models[id].size}`);
 
-            let modelBuffer = await getModelOPFS(`segment_anything_${name}`, modelUrl, false);
+            let modelBuffer = await WebNNPerf.time(
+                "webnn.model.fetch",
+                () => getModelOPFS(`segment_anything_${name}`, modelUrl, false),
+                { model: name },
+            );
             log(`[Load] ${name} load time: ${(performance.now() - start).toFixed(2)}ms`);
             log(`[Session Create] Creating ${name}`);
             start = performance.now();
             const extra_opt = model.opt || {};
             const sess_opt = { ...opt, ...extra_opt };
-            model.sess = await ort.InferenceSession.create(modelBuffer, sess_opt);
+            model.sess = await WebNNPerf.time(
+                "webnn.session.create",
+                () => ort.InferenceSession.create(modelBuffer, sess_opt),
+                { model: name },
+            );
 
             if (getMode()) {
                 log(`[Session Create] ${name} create time: ${(performance.now() - start).toFixed(2)}ms`);

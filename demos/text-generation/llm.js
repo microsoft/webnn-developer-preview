@@ -20,7 +20,7 @@ import {
     onnxCompileProgress,
     onnxDataCompileProgress,
 } from "./utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 // Class to handle a large language model on top of onnxruntime-web
 export class LLM {
     provider = "webnn";
@@ -58,17 +58,28 @@ export class LLM {
         const modelFile = model.file_name;
         const modelPath = path + modelFile;
         const modelName = convertToSnakeCase(model.name);
-        const modelBytes = await getModelOPFS(`${modelName}_${modelFile}`, modelPath, false);
+        const modelBytes = await WebNNPerf.time(
+            "webnn.model.fetch",
+            () => getModelOPFS(`${modelName}_${modelFile}`, modelPath, false),
+            { model: modelName },
+        );
         const externalFile = modelFile + ".data";
         const externalDataPath = path + externalFile;
-        const externalDataBytes = await getModelOPFS(`${modelName}_${externalFile}`, externalDataPath, false);
+        const externalDataBytes = await WebNNPerf.time(
+            "webnn.model.fetch",
+            () => getModelOPFS(`${modelName}_${externalFile}`, externalDataPath, false),
+            { model: `${modelName}-data` },
+        );
 
         let modelSize = modelBytes.byteLength;
         modelSize += externalDataBytes.byteLength;
 
         log(`model size: ${Math.round(modelSize / 1024 / 1024)} MB`);
+        WebNNPerf.configure({ model: modelName, device: this.deviceType, provider: this.provider });
         if (this.provider == "webnn") {
-            this.mlContext = await navigator.ml.createContext({ deviceType: this.deviceType });
+            this.mlContext = await WebNNPerf.time("webnn.context.create", () =>
+                navigator.ml.createContext({ deviceType: this.deviceType }),
+            );
         }
         const sessionOptions = {
             executionProviders: [{ name: this.provider, deviceType: this.deviceType, context: this.mlContext }],
@@ -98,7 +109,11 @@ export class LLM {
         log("Create session for prefill process");
         console.log("Create session 1 with option: ");
         console.log({ ...sessionOptions });
-        this.session1 = await ort.InferenceSession.create(modelBytes, sessionOptions);
+        this.session1 = await WebNNPerf.time(
+            "webnn.session.create",
+            () => ort.InferenceSession.create(modelBytes, sessionOptions),
+            { model: `${modelName}-prefill` },
+        );
         updateOnnxCompileProgress(10);
         updateLoadProgress(onnxFetchProgress + onnxDataFetchProgress + onnxCompileProgress + onnxDataCompileProgress);
         updateProgressBar(loadProgress.toFixed(2));
@@ -116,7 +131,11 @@ export class LLM {
             log("Create session for decode process");
             console.log("Create session 2 with option: ");
             console.log({ ...sessionOptions });
-            this.session2 = await ort.InferenceSession.create(modelBytes, sessionOptions);
+            this.session2 = await WebNNPerf.time(
+                "webnn.session.create",
+                () => ort.InferenceSession.create(modelBytes, sessionOptions),
+                { model: `${modelName}-decode` },
+            );
             log("Decode process session created");
         }
 
@@ -327,7 +346,9 @@ export class LLM {
                 prefillLogitsBufferSize,
             );
         }
-        let outputs = await this.session1.run(this.feed, this.fetches);
+        let outputs = await WebNNPerf.time("webnn.inference.first", () => this.session1.run(this.feed, this.fetches), {
+            model: "prefill",
+        });
         this.prefillLogitsBuffer = new Float16Array(numElementsOfPrefillLogits);
         if (this.provider == "webnn") {
             await readBackMLTensor(this.mlContext, this.fetches["logits"].mlTensor, this.prefillLogitsBuffer);
@@ -381,7 +402,10 @@ export class LLM {
                         true,
                     );
                 }
-                outputs = await this.session2.run(this.feed, this.fetches);
+                outputs = await WebNNPerf.time("webnn.inference", () => this.session2.run(this.feed, this.fetches), {
+                    model: "decode",
+                    iteration: this.outputTokens.length,
+                });
                 await readBackMLTensor(this.mlContext, this.fetches["logits"].mlTensor, this.decodeLogitsBuffer);
             } else if (this.provider == "webgpu") {
                 const decodeLogitsBufferSize = this.vocabSize * Float16Array.BYTES_PER_ELEMENT;
@@ -394,7 +418,10 @@ export class LLM {
                         decodeLogitsBufferSize,
                     );
                 }
-                outputs = await this.session1.run(this.feed, this.fetches);
+                outputs = await WebNNPerf.time("webnn.inference", () => this.session1.run(this.feed, this.fetches), {
+                    model: "decode-webgpu",
+                    iteration: this.outputTokens.length,
+                });
                 await readBackGpuTensor(
                     this.gpuDevice,
                     this.fetches["logits"].gpuBuffer,
@@ -402,7 +429,10 @@ export class LLM {
                     this.decodeLogitsBuffer,
                 );
             } else {
-                outputs = await this.session1.run(this.feed, this.fetches);
+                outputs = await WebNNPerf.time("webnn.inference", () => this.session1.run(this.feed, this.fetches), {
+                    model: "decode-wasm",
+                    iteration: this.outputTokens.length,
+                });
                 this.decodeLogitsBuffer = outputs["logits"].cpuData;
             }
 

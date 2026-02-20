@@ -28,7 +28,7 @@ import {
     decoderCompileProgress,
     decoderCachedCompileProgress,
 } from "./utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 let tokenizerPath = "";
 let processerPath = "";
 if (checkRemoteEnvironment()) {
@@ -130,10 +130,13 @@ export class Whisper {
 
     async create_ort_sessions() {
         // Create shared MLContext for IO binding
+        WebNNPerf.configure({ device: this.deviceType, provider: this.provider });
         if (this.ioBinding && !this.mlContext) {
-            this.mlContext = await navigator.ml.createContext({
-                deviceType: this.deviceType,
-            });
+            this.mlContext = await WebNNPerf.time("webnn.context.create", () =>
+                navigator.ml.createContext({
+                    deviceType: this.deviceType,
+                }),
+            );
         }
 
         const options = {
@@ -168,15 +171,19 @@ export class Whisper {
                     log(`Loading ${this.models[name]["title"]} · ${this.dataType} · ${this.models[name]["fp32size"]}`);
                 }
 
-                const modelBuffer = await getModelOPFS(
-                    `${this.ioBinding}_${this.deviceType}_${name}_${this.dataType}`,
-                    url,
-                    false,
+                const modelBuffer = await WebNNPerf.time(
+                    "webnn.model.fetch",
+                    () => getModelOPFS(`${this.ioBinding}_${this.deviceType}_${name}_${this.dataType}`, url, false),
+                    { model: name },
                 );
                 log(`${this.models[name]["title"]} loaded`);
 
                 log(`Creating session for ${this.models[name]["title"]}`);
-                this.models[name]["sess"] = await ort.InferenceSession.create(modelBuffer, options);
+                this.models[name]["sess"] = await WebNNPerf.time(
+                    "webnn.session.create",
+                    () => ort.InferenceSession.create(modelBuffer, options),
+                    { model: name },
+                );
                 log(`${this.models[name]["title"]} session created`);
 
                 let progressBarLabel = $("#p-bar-label");
@@ -338,9 +345,17 @@ export class Whisper {
             encoder_outputs = {
                 last_hidden_state: this.pre_allocated_mltensors.encoder.last_hidden_state,
             };
-            await this.models["encoder"]["sess"].run(encoder_inputs, encoder_outputs);
+            await WebNNPerf.time(
+                "webnn.inference",
+                () => this.models["encoder"]["sess"].run(encoder_inputs, encoder_outputs),
+                { model: "encoder" },
+            );
         } else {
-            encoder_outputs = await this.models["encoder"]["sess"].run(encoder_inputs);
+            encoder_outputs = await WebNNPerf.time(
+                "webnn.inference",
+                () => this.models["encoder"]["sess"].run(encoder_inputs),
+                { model: "encoder" },
+            );
         }
 
         // log(`Encoder inference time: ${(performance.now() - start).toFixed(2)}ms`);
@@ -375,11 +390,19 @@ export class Whisper {
                 ...this.pre_allocated_mltensors.decoder.kv_cache,
             };
 
-            await this.models["decoder"]["sess"].run(decoder_inputs, decoder_outputs);
+            await WebNNPerf.time(
+                "webnn.inference.first",
+                () => this.models["decoder"]["sess"].run(decoder_inputs, decoder_outputs),
+                { model: "decoder" },
+            );
             await this.mlContext.readTensor(decoder_outputs.logits.mlTensor, this.logits_buffer);
             logits = this.logits_buffer;
         } else {
-            decoder_outputs = await this.models["decoder"]["sess"].run(decoder_inputs);
+            decoder_outputs = await WebNNPerf.time(
+                "webnn.inference.first",
+                () => this.models["decoder"]["sess"].run(decoder_inputs),
+                { model: "decoder" },
+            );
             logits = decoder_outputs["logits"]["cpuData"];
         }
         // console.log(`Non-KV cache decoder inference time: ${(performance.now() - start).toFixed(2)}ms`);
@@ -463,11 +486,19 @@ export class Whisper {
             // console.log(`Decoder input preparation time · iteration ${i-3}: ${(performance.now() - start).toFixed(2)}ms`);
             // start = performance.now();
             if (this.ioBinding) {
-                await this.models["decoder_cached"]["sess"].run(kv_decoder_inputs, kv_decoder_outputs);
+                await WebNNPerf.time(
+                    "webnn.inference",
+                    () => this.models["decoder_cached"]["sess"].run(kv_decoder_inputs, kv_decoder_outputs),
+                    { model: "decoder_cached", iteration: i - 3 },
+                );
                 await this.mlContext.readTensor(kv_decoder_outputs.logits.mlTensor, this.kv_logits_buffer);
                 logits = this.kv_logits_buffer;
             } else {
-                kv_decoder_outputs = await this.models["decoder_cached"]["sess"].run(kv_decoder_inputs);
+                kv_decoder_outputs = await WebNNPerf.time(
+                    "webnn.inference",
+                    () => this.models["decoder_cached"]["sess"].run(kv_decoder_inputs),
+                    { model: "decoder_cached", iteration: i - 3 },
+                );
                 logits = kv_decoder_outputs["logits"]["cpuData"];
             }
             // console.log(`Decoder inference time · Iteration ${i-3}: ${(performance.now() - start).toFixed(2)}ms`);

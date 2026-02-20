@@ -13,7 +13,7 @@ import {
     onnxCompileProgress,
     onnxDataCompileProgress,
 } from "./utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 function product(shape) {
     if (!Array.isArray(shape) || shape.length === 0) {
         return 0;
@@ -60,16 +60,27 @@ export class LLM {
         const type_suffix = this.dtype == "float16" ? "_fp16" : "";
         const model_file = `Phi_3_mini_4k_instruct_static_kvcache_uint4_sink_simlayernorm${type_suffix}.onnx`;
         const model_path = path + model_file;
-        const model_bytes = await getModelOPFS(`id_${model_file}`, model_path, false);
+        const model_bytes = await WebNNPerf.time(
+            "webnn.model.fetch",
+            () => getModelOPFS(`id_${model_file}`, model_path, false),
+            { model: "phi3-mini" },
+        );
         const external_file = model_file + ".data";
         const external_data_path = path + external_file;
-        const external_data_bytes = await getModelOPFS(`id_${external_file}`, external_data_path, false);
+        const external_data_bytes = await WebNNPerf.time(
+            "webnn.model.fetch",
+            () => getModelOPFS(`id_${external_file}`, external_data_path, false),
+            { model: "phi3-mini-data" },
+        );
 
         let model_size = model_bytes.byteLength;
         model_size += external_data_bytes.byteLength;
 
         log(`Phi-3 Mini model size: ${Math.round(model_size / 1024 / 1024)} MB`);
-        this.ml_context = await navigator.ml.createContext({ deviceType: this.device_type });
+        WebNNPerf.configure({ model: "phi3-mini", device: this.device_type, provider: this.provider });
+        this.ml_context = await WebNNPerf.time("webnn.context.create", () =>
+            navigator.ml.createContext({ deviceType: this.device_type }),
+        );
         const session_options = {
             executionProviders: [{ name: this.provider, deviceType: this.device_type, context: this.ml_context }],
             externalData: [
@@ -119,7 +130,11 @@ export class LLM {
         log("Create session for prefill process");
         console.log("Create session 1 with option: ");
         console.log({ ...session_options });
-        this.sess_1 = await ort.InferenceSession.create(model_bytes, session_options);
+        this.sess_1 = await WebNNPerf.time(
+            "webnn.session.create",
+            () => ort.InferenceSession.create(model_bytes, session_options),
+            { model: "phi3-mini-prefill" },
+        );
 
         updateOnnxCompileProgress(10);
         updateLoadProgress(onnxFetchProgress + onnxDataFetchProgress + onnxCompileProgress + onnxDataCompileProgress);
@@ -137,7 +152,11 @@ export class LLM {
             log("Create session for decode process");
             console.log("Create session 2 with option: ");
             console.log({ ...session_options });
-            this.sess_2 = await ort.InferenceSession.create(model_bytes, session_options);
+            this.sess_2 = await WebNNPerf.time(
+                "webnn.session.create",
+                () => ort.InferenceSession.create(model_bytes, session_options),
+                { model: "phi3-mini-decode" },
+            );
             log("Decode process session created");
         }
 
@@ -261,7 +280,9 @@ export class LLM {
         this.stop = false;
 
         let last_token = 0;
-        let outputs = await this.sess_1.run(this.feed);
+        let outputs = await WebNNPerf.time("webnn.inference.first", () => this.sess_1.run(this.feed), {
+            model: "phi3-mini-prefill",
+        });
         last_token = outputs["token_id"].cpuData[0];
         console.log("first token: ", last_token);
         this.start_len += input_ids_len;
@@ -282,7 +303,10 @@ export class LLM {
             this.feed["attention_mask"] = new ort.Tensor("int32", new Int32Array(attn_mask), [1, this.max_cache + 1]);
             this.feed["position_ids"] = new ort.Tensor("int32", Int32Array.from([this.start_len]), [1, 1]);
 
-            outputs = await this.sess_2.run(this.feed);
+            outputs = await WebNNPerf.time("webnn.inference", () => this.sess_2.run(this.feed), {
+                model: "phi3-mini-decode",
+                iteration: this.output_tokens.length,
+            });
             last_token = outputs["token_id"].cpuData[0];
 
             console.log("next token: ", last_token);

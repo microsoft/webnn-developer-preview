@@ -20,7 +20,7 @@ import {
     remapHuggingFaceDomainIfNeeded,
     checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 /*
  * get configuration from url
  */
@@ -230,6 +230,7 @@ const updateProgress = () => {
 async function load_models(models) {
     log("[Load] ONNX Runtime Execution Provider: " + config.provider);
     log("[Load] ONNX Runtime EP device type: " + config.deviceType);
+    WebNNPerf.configure({ device: config.deviceType, provider: config.provider });
     updateLoadWave(0.0);
     load.disabled = true;
 
@@ -257,7 +258,11 @@ async function load_models(models) {
                 });
             }
             log(`[Load] Loading model ${modelNameInLog} · ${model.size}`);
-            let modelBuffer = await getModelOPFS(`sd_turbo_${name}`, modelUrl, false);
+            let modelBuffer = await WebNNPerf.time(
+                "webnn.model.fetch",
+                () => getModelOPFS(`sd_turbo_${name}`, modelUrl, false),
+                { model: name },
+            );
             let modelFetchTime = (performance.now() - start).toFixed(2);
             if (name == "text_encoder") {
                 textEncoderFetch.innerHTML = modelFetchTime;
@@ -274,7 +279,11 @@ async function load_models(models) {
             start = performance.now();
             const sess_opt = { ...opt, ...model.opt };
             console.log(sess_opt);
-            models[name].sess = await ort.InferenceSession.create(modelBuffer, sess_opt);
+            models[name].sess = await WebNNPerf.time(
+                "webnn.session.create",
+                () => ort.InferenceSession.create(modelBuffer, sess_opt),
+                { model: name },
+            );
             let createTime = (performance.now() - start).toFixed(2);
 
             if (getSafetyChecker()) {
@@ -587,9 +596,14 @@ async function generate_image() {
 
         // text_encoder
         let start = performance.now();
-        const { last_hidden_state } = await models.text_encoder.sess.run({
-            input_ids: new ort.Tensor("int32", input_ids, [1, input_ids.length]),
-        });
+        const { last_hidden_state } = await WebNNPerf.time(
+            "webnn.inference",
+            () =>
+                models.text_encoder.sess.run({
+                    input_ids: new ort.Tensor("int32", input_ids, [1, input_ids.length]),
+                }),
+            { model: "text_encoder" },
+        );
         if (config.logOutput) {
             console.log(`[Model Output] Text Encoder - last_hidden_state:`);
             console.log(last_hidden_state.data);
@@ -625,7 +639,10 @@ async function generate_image() {
                 timestep: new ort.Tensor("float16", new Uint16Array([toHalf(999)]), [1]),
                 encoder_hidden_states: last_hidden_state,
             };
-            let { out_sample } = await models.unet.sess.run(feed);
+            let { out_sample } = await WebNNPerf.time("webnn.inference", () => models.unet.sess.run(feed), {
+                model: "unet",
+                iteration: j + 1,
+            });
             if (config.logOutput) {
                 console.log(`[Model Output][Image ${j + 1}] UNet - out_sample: `);
                 console.log(last_hidden_state.data);
@@ -647,9 +664,14 @@ async function generate_image() {
 
             // vae_decoder
             start = performance.now();
-            const { sample } = await models.vae_decoder.sess.run({
-                latent_sample: new_latents,
-            });
+            const { sample } = await WebNNPerf.time(
+                "webnn.inference",
+                () =>
+                    models.vae_decoder.sess.run({
+                        latent_sample: new_latents,
+                    }),
+                { model: "vae_decoder", iteration: j + 1 },
+            );
             if (config.logOutput) {
                 console.log(`[Model Output][Image ${j + 1}] VAE Decoder - sample:`);
                 console.log(sample.data);
@@ -687,7 +709,11 @@ async function generate_image() {
                     images: get_tensor_from_image(resized_image_data, "NHWC"),
                 };
                 start = performance.now();
-                const { has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
+                const { has_nsfw_concepts } = await WebNNPerf.time(
+                    "webnn.inference",
+                    () => models.safety_checker.sess.run(safety_checker_feed),
+                    { model: "safety_checker", iteration: j + 1 },
+                );
                 if (config.logOutput) {
                     console.log(`[Model Output][Image ${j + 1}] Safety Checker - has_nsfw_concepts:`);
                     console.log(has_nsfw_concepts.data);

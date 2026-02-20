@@ -21,6 +21,7 @@ import {
     showCompatibleChromiumVersion,
     remapHuggingFaceDomainIfNeeded,
 } from "../../assets/js/common_utils.js";
+import { WebNNPerf } from "../webnn-perf.js";
 
 transformers.env.backends.onnx.wasm.proxy = false;
 transformers.env.backends.onnx.wasm.simd = true;
@@ -121,10 +122,17 @@ const main = async () => {
     try {
         log("[ONNX Runtime] Options: " + JSON.stringify(options));
         log(`[Transformer.js] Loading ${modelPath} and running image-classification pipeline`);
+        WebNNPerf.configure({ model: modelId, device: deviceType, provider });
 
-        const classifier = await transformers.pipeline("image-classification", modelPath, options);
+        const classifier = await WebNNPerf.time(
+            "webnn.session.create",
+            () => transformers.pipeline("image-classification", modelPath, options),
+            { model: modelId },
+        );
 
-        let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
+        let [err, output] = await asyncErrorHandling(
+            WebNNPerf.time("webnn.inference", () => classifier(imageUrl, { topk: 3 }), { model: modelId }),
+        );
 
         if (err) {
             status.setAttribute("class", "red");
