@@ -176,4 +176,51 @@ describe("WebNNPerf", () => {
             assert.equal(entries[0].detail.device, undefined);
         });
     });
+
+    describe("record()", () => {
+        it("should create a performance entry with the given duration", () => {
+            WebNNPerf.configure({ device: "npu" });
+            WebNNPerf.record("webnn.test.record", 42.5, { model: "resnet-50", iteration: 1 });
+
+            const entries = WebNNPerf.getEntries().filter(e => e.name === "webnn.test.record");
+            assert.equal(entries.length, 1);
+            assert.equal(entries[0].detail.durationMs, 42.5);
+            assert.equal(entries[0].detail.model, "resnet-50");
+            assert.equal(entries[0].detail.device, "npu");
+            assert.equal(entries[0].detail.iteration, 1);
+            assert.equal(entries[0].detail.seq, 1);
+        });
+
+        it("should increment seq counter for repeated record calls", () => {
+            WebNNPerf.record("webnn.test.recseq", 10, {});
+            WebNNPerf.record("webnn.test.recseq", 20, {});
+
+            const entries = WebNNPerf.getEntries()
+                .filter(e => e.name === "webnn.test.recseq")
+                .sort((a, b) => a.detail.seq - b.detail.seq);
+            assert.equal(entries.length, 2);
+            assert.equal(entries[0].detail.seq, 1);
+            assert.equal(entries[1].detail.seq, 2);
+        });
+
+        it("should emit structured JSON with [WebNN:Perf] prefix", () => {
+            const logs = [];
+            const origLog = console.log;
+            console.log = (...args) => logs.push(args.join(" "));
+
+            try {
+                WebNNPerf.record("webnn.test.reclog", 55.3, { model: "encoder" });
+            } finally {
+                console.log = origLog;
+            }
+
+            const perfLog = logs.find(l => l.startsWith("[WebNN:Perf]"));
+            assert.ok(perfLog, "Should have a [WebNN:Perf] prefixed log");
+
+            const json = JSON.parse(perfLog.slice("[WebNN:Perf] ".length));
+            assert.equal(json.name, "webnn.test.reclog");
+            assert.equal(json.durationMs, 55.3);
+            assert.equal(json.model, "encoder");
+        });
+    });
 });

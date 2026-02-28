@@ -115,4 +115,26 @@ function getEntries() {
         }));
 }
 
-export const WebNNPerf = { configure, reset, time, getEntries };
+/**
+ * Record a pre-measured duration as a WebNN performance entry.
+ * Use when timing data comes from an external source (e.g. Transformers.js getPerf()).
+ *
+ * @param {string} name  Metric name, e.g. 'webnn.inference.first'
+ * @param {number} durationMs  Duration in milliseconds
+ * @param {Object} [meta]  Additional metadata
+ */
+function record(name, durationMs, meta) {
+    const seq = (_counter[name] = (_counter[name] || 0) + 1);
+    const detail = { ..._defaults, ...meta, seq, durationMs: parseFloat(durationMs.toFixed(2)) };
+
+    try {
+        const end = performance.now();
+        performance.measure(name, { start: end - durationMs, end, detail });
+    } catch {
+        // Fallback for browsers that don't support measure options
+    }
+
+    console.log(`${PREFIX} ${JSON.stringify({ name, ...detail })}`);
+}
+
+export const WebNNPerf = { configure, reset, time, record, getEntries };

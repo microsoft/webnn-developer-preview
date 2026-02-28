@@ -124,21 +124,22 @@ const main = async () => {
         log(`[Transformer.js] Loading ${modelPath} and running image-classification pipeline`);
         WebNNPerf.configure({ model: modelId, device: deviceType, provider });
 
-        const classifier = await WebNNPerf.time(
-            "webnn.session.create",
-            () => transformers.pipeline("image-classification", modelPath, options),
-            { model: modelId },
-        );
+        const classifier = await transformers.pipeline("image-classification", modelPath, options);
 
-        let [err, output] = await asyncErrorHandling(
-            WebNNPerf.time("webnn.inference", () => classifier(imageUrl, { topk: 3 }), { model: modelId }),
-        );
+        let [err, output] = await asyncErrorHandling(classifier(imageUrl, { topk: 3 }));
 
         if (err) {
             status.setAttribute("class", "red");
             info.innerHTML = err.message;
             logError(err.message);
         } else {
+            // Emit accurate WebNNPerf entries from Transformers.js built-in instrumentation
+            const perf = transformers.getPerf();
+            WebNNPerf.record("webnn.inference.first", perf.warmup, { model: modelId });
+            perf.inference.forEach((duration, i) => {
+                WebNNPerf.record("webnn.inference", duration, { model: modelId, iteration: i + 1 });
+            });
+
             if (getMode()) {
                 log(JSON.stringify(transformers.getPerf()));
                 let warmUp = transformers.getPerf().warmup;
