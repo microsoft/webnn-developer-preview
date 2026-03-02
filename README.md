@@ -28,7 +28,7 @@ This model is meant to be used with the corresponding sample on this repo for ed
 
 ### 3. SDXL-Turbo
 
-[SDXL-Turbo](https://huggingface.co/microsoft/sdxl-turbo-webnn/tree/main) is a fast generative text-to-image model that can synthesize photorealistic images from a text prompt in a single network evaluation.
+[SDXL-Turbo](https://huggingface.co/webnn/sdxl-turbo/tree/main) is a fast generative text-to-image model that can synthesize photorealistic images from a text prompt in a single network evaluation.
 
 This Stable Diffusion XL Turbo model has been optimized to work with WebNN. This model is licensed under the [STABILITY AI NON-COMMERCIAL RESEARCH COMMUNITY LICENSE AGREEMENT](https://huggingface.co/stabilityai/sdxl-turbo/blob/main/LICENSE.md). For terms of use, please visit the [Acceptable Use Policy](https://stability.ai/use-policy). If you comply with the license and terms of use, you have the rights described therin. By using this Model, you accept the terms.
 
@@ -36,7 +36,7 @@ This model is meant to be used with the corresponding sample on this repo for ed
 
 ### 4. Segment Anything
 
-[Segment Anything](https://huggingface.co/microsoft/segment-anything-model-webnn/tree/main) is a new AI model from Meta AI that can "cut out" any object. In the demo, you can segment any object from your uploaded images.
+[Segment Anything](https://huggingface.co/webnn/segment-anything-model-webnn/tree/main) is a new AI model from Meta AI that can "cut out" any object. In the demo, you can segment any object from your uploaded images.
 
 This Segment Anything Model has been optimized to work with WebNN. This model is licensed under the [Apache-2.0 License](https://github.com/facebookresearch/segment-anything?tab=Apache-2.0-1-ov-file#readme). For terms of use, please visit the [Code of Conduct](https://github.com/facebookresearch/segment-anything?tab=coc-ov-file#readme). If you comply with the license and terms of use, you have the rights described therin. By using this Model, you accept the terms.
 
@@ -44,7 +44,7 @@ This model is meant to be used with the corresponding sample on this repo for ed
 
 ### 5. Whisper Base
 
-[Whisper Base](https://huggingface.co/microsoft/whisper-base-webnn/tree/main) is a pre-trained model for automatic speech recognition (ASR) and speech translation. In the demo, you can experience the speech to text feature by using on-device inference powered by WebNN API and DirectML, especially the NPU acceleration.
+[Whisper Base](https://huggingface.co/webnn/whisper-base-webnn/tree/main) is a pre-trained model for automatic speech recognition (ASR) and speech translation. In the demo, you can experience the speech to text feature by using on-device inference powered by WebNN API and DirectML, especially the NPU acceleration.
 
 This Whisper-base model has been optimized to work with WebNN. This model is licensed under the [Apache-2.0 license](https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md). For terms of use, please visit the [Intended use](https://huggingface.co/openai/whisper-base#evaluated-use). If you comply with the license and terms of use, you have the rights described therin. By using this Model, you accept the terms.
 
