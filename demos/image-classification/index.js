@@ -36,7 +36,7 @@ if (useRemoteModels) {
     transformers.env.allowRemoteModels = true;
     transformers.env.useBrowserCache = true;
 } else {
-    transformers.env.localModelPath = `./`;
+    transformers.env.localModelPath = `./models`;
     transformers.env.allowLocalModels = true;
     transformers.env.allowRemoteModels = false;
     transformers.env.useBrowserCache = false;
