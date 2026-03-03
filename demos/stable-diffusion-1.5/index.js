@@ -48,20 +48,20 @@ let performanceData = {
         textencoder: 0,
         unet: 0,
         vaedecoder: 0,
-        sc,
+        sc: 0,
     },
     sessioncreate: {
         textencoder: 0,
         unet: 0,
         vaedecoder: 0,
-        sc,
+        sc: 0,
     },
     sessionrun: {
         textencoder: 0,
         unet: [],
         unettotal: 0,
         vaedecoder: 0,
-        sc,
+        sc: 0,
         total: 0,
     },
 };
