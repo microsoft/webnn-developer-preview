@@ -127,7 +127,7 @@ function getEntries() {
  */
 function record(name, durationMs, meta) {
     const seq = (_counter[name] = (_counter[name] || 0) + 1);
-    const detail = { ..._defaults, ...meta, seq, durationMs: parseFloat(durationMs.toFixed(2)) };
+    const details = { ..._defaults, ...meta, seq, durationMs: parseFloat(durationMs.toFixed(2)) };
 
     try {
         const endTime = performance.now();
