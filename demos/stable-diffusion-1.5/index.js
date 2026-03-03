@@ -1256,14 +1256,17 @@ const ui = async () => {
     }
     await checkWebNN();
     if (deviceType === "cpu" || provider === "wasm") {
+        device = "cpu";
         deviceElement.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
     } else if (deviceType === "gpu" || provider === "webgpu") {
+        device = "gpu";
         deviceElement.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
     } else if (deviceType === "npu") {
+        device = "npu";
         deviceElement.innerHTML = "NPU";
         badge.setAttribute("class", "npu");
         document.body.setAttribute("class", "npu");
