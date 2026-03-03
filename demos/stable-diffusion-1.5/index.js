@@ -23,6 +23,7 @@ import {
 import { WebNNPerf } from "../webnn-perf.js";
 // Configuration...
 let device = "gpu";
+let deviceElement;
 let badge;
 const pixelWidth = 512;
 const pixelHeight = 512;
@@ -1244,7 +1245,7 @@ const updateDeviceTypeLinks = () => {
 };
 
 const ui = async () => {
-    device = $("#device");
+    deviceElement = $("#device");
     badge = $("#badge");
     const provider = getQueryValue("provider")?.toLowerCase();
     const deviceType = getQueryVariable("devicetype", "gpu")?.toLowerCase();
@@ -1255,15 +1256,15 @@ const ui = async () => {
     }
     await checkWebNN();
     if (deviceType === "cpu" || provider === "wasm") {
-        device.innerHTML = "CPU";
+        deviceElement.innerHTML = "CPU";
         badge.setAttribute("class", "cpu");
         document.body.setAttribute("class", "cpu");
     } else if (deviceType === "gpu" || provider === "webgpu") {
-        device.innerHTML = "GPU";
+        deviceElement.innerHTML = "GPU";
         badge.setAttribute("class", "");
         document.body.setAttribute("class", "gpu");
     } else if (deviceType === "npu") {
-        device.innerHTML = "NPU";
+        deviceElement.innerHTML = "NPU";
         badge.setAttribute("class", "npu");
         document.body.setAttribute("class", "npu");
     }
