@@ -4,7 +4,7 @@
 // An example how to run Image Classification with webnn in onnxruntime-web.
 //
 
-import * as transformers from "../../assets/dist_transformers/1.22.0-dev.20250325/transformers.js";
+import * as transformers from "../../assets/dist_transformers/1.25.0-dev.20260221/transformers.js";
 import {
     $,
     $$,
@@ -23,14 +23,23 @@ import {
 } from "../../assets/js/common_utils.js";
 import { WebNNPerf } from "../webnn-perf.js";
 
+const useRemoteModels = location.hostname.includes("github.io");
+
 transformers.env.backends.onnx.wasm.proxy = false;
 transformers.env.backends.onnx.wasm.simd = true;
 transformers.env.backends.onnx.wasm.numThreads = 1;
-transformers.env.backends.onnx.wasm.wasmPaths = "../../assets/dist_transformers/1.22.0-dev.20250325/";
 
-const useRemoteModels = location.hostname.includes("github.io");
-transformers.env.allowRemoteModels = useRemoteModels;
-transformers.env.allowLocalModels = !useRemoteModels;
+if (useRemoteModels) {
+    transformers.env.allowLocalModels = false;
+    transformers.env.allowRemoteModels = true;
+    transformers.env.useBrowserCache = true;
+} else {
+    transformers.env.localModelPath = `./models`;
+    transformers.env.allowLocalModels = true;
+    transformers.env.allowRemoteModels = false;
+    transformers.env.useBrowserCache = false;
+}
+
 log("[Transformer.js] env.allowRemoteModels: " + transformers.env.allowRemoteModels);
 log("[Transformer.js] env.allowLocalModels: " + transformers.env.allowLocalModels);
 
@@ -59,11 +68,6 @@ let latency, latencyDiv, indicator;
 let title, device, badge;
 
 const main = async () => {
-    // xenova/resnet-50
-    // webnn/mobilenet-v2
-    // webnn/squeezenet-1.0
-    // webnn/efficientnet-lite4
-
     fullResult.setAttribute("class", "none");
     result.setAttribute("class", "none");
     latencyDiv.setAttribute("class", "latency none");
@@ -478,7 +482,7 @@ const ui = async () => {
     updateUi();
     showCompatibleChromiumVersion("image-classification");
     const transformersJs = $("#ortversion");
-    transformersJs.innerHTML = `<a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js</a>`;
+    transformersJs.innerHTML = `<a href="https://www.npmjs.com/package/onnxruntime-web/v/1.25.0-dev.20260221-b2a6e69e82">onnxruntime-web@1.25.0-dev.20260221</a> <a href="https://huggingface.co/docs/transformers.js/en/index">Transformer.js v4</a>`;
 
     console.log(`${provider} ${deviceType} ${modelId} ${runs}`);
 

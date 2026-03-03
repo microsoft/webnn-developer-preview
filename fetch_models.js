@@ -104,35 +104,64 @@ const models = [
         path: "./demos/stable-diffusion-1.5/models",
     },
     {
-        url: "microsoft/segment-anything-model-webnn/resolve/main/sam_vit_b_01ec64.encoder-fp16.onnx",
+        url: "webnn/segment-anything-model-webnn/resolve/main/sam_vit_b_01ec64.encoder-fp16.onnx",
         path: "./demos/segment-anything/models",
     },
     {
-        url: "microsoft/segment-anything-model-webnn/resolve/main/sam_vit_b_01ec64.decoder-fp16.onnx",
+        url: "webnn/segment-anything-model-webnn/resolve/main/sam_vit_b_01ec64.decoder-orig-img-size-dynamic-fp16.onnx",
         path: "./demos/segment-anything/models",
     },
     {
-        url: "microsoft/segment-anything-model-webnn/resolve/main/sam_vit_b-encoder-int8.onnx",
+        url: "webnn/segment-anything-model-webnn/resolve/main/sam_vit_b-encoder-int8.onnx",
         path: "./demos/segment-anything/models",
     },
     {
-        url: "microsoft/segment-anything-model-webnn/resolve/main/sam_vit_b-decoder-int8.onnx",
+        url: "webnn/segment-anything-model-webnn/resolve/main/sam_vit_b-decoder-orig-img-size-dynamic-int8.onnx",
         path: "./demos/segment-anything/models",
     },
     {
-        url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm_gelu_4dmask.onnx",
+        url: "webnn/whisper-base-webnn/resolve/main/whisper_base_decoder_static_kvcache_128_lm_fp16_layernorm_gelu_4dmask_iobinding.onnx",
         path: "./demos/whisper-base/models",
-        note: "Gelu and 4D mask are used for decoder",
     },
     {
-        url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm_gelu_4dmask.onnx",
+        url: "webnn/whisper-base-webnn/resolve/main/whisper_base_decoder_static_non_kvcache_lm_fp16_layernorm_gelu_4dmask_iobinding.onnx",
         path: "./demos/whisper-base/models",
-        note: "Gelu and 4D mask are used for decoder",
     },
     {
-        url: "microsoft/whisper-base-webnn/resolve/main/whisper_base_encoder_lm_fp16_layernorm_gelu.onnx",
+        url: "webnn/whisper-base-webnn/resolve/main/whisper_base_encoder_lm_fp16_layernorm_gelu.onnx",
         path: "./demos/whisper-base/models",
-        note: "Gelu is used for encoder",
+    },
+    {
+        url: "webnn/Phi-4-mini-instruct-onnx-webnn/resolve/main/onnx/model.onnx",
+        path: "./demos/text-generation/microsoft/Phi-4-mini-instruct-onnx-webnn/models",
+    },
+    {
+        url: "webnn/Phi-4-mini-instruct-onnx-webnn/resolve/main/onnx/model.onnx.data",
+        path: "./demos/text-generation/microsoft/Phi-4-mini-instruct-onnx-webnn/models",
+    },
+    {
+        url: "webnn/TinyLlama-1.1B-Chat-v1.0-onnx/resolve/main/onnx/model_fp16.onnx",
+        path: "./demos/text-generation/TinyLlama/TinyLlama-1.1B-Chat-v1.0/models",
+    },
+    {
+        url: "webnn/TinyLlama-1.1B-Chat-v1.0-onnx/resolve/main/onnx/model.onnx.data",
+        path: "./demos/text-generation/TinyLlama/TinyLlama-1.1B-Chat-v1.0/models",
+    },
+    {
+        url: "webnn/Qwen2-0.5B-Instruct-onnx/resolve/main/onnx/model_fp16.onnx",
+        path: "./demos/text-generation/Qwen/Qwen2-0.5B-Instruct/models",
+    },
+    {
+        url: "webnn/Qwen2-0.5B-Instruct-onnx/resolve/main/onnx/model.onnx.data",
+        path: "./demos/text-generation/Qwen/Qwen2-0.5B-Instruct/models",
+    },
+    {
+        url: "webnn/DeepSeek-R1-Distill-ONNX/resolve/main/onnx/model_fp16.onnx",
+        path: "./demos/text-generation/onnxruntime/DeepSeek-R1-Distill-ONNX/models",
+    },
+    {
+        url: "webnn/DeepSeek-R1-Distill-ONNX/resolve/main/onnx/model.onnx.data",
+        path: "./demos/text-generation/onnxruntime/DeepSeek-R1-Distill-ONNX/models",
     },
 ];
 
