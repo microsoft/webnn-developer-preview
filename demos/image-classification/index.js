@@ -28,9 +28,6 @@ transformers.env.backends.onnx.wasm.proxy = false;
 transformers.env.backends.onnx.wasm.simd = true;
 transformers.env.backends.onnx.wasm.numThreads = 1;
 
-transformers.env.allowRemoteModels = useRemoteModels;
-transformers.env.allowLocalModels = !useRemoteModels;
-
 if (useRemoteModels) {
     transformers.env.allowLocalModels = false;
     transformers.env.allowRemoteModels = true;
