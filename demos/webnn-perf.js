@@ -9,9 +9,11 @@
 // Usage:
 //   import { WebNNPerf } from '../webnn-perf.js';
 //   WebNNPerf.configure({ model: 'resnet-50', device: 'gpu', provider: 'webnn' });
-//   const session = await WebNNPerf.time('webnn.session.create', () =>
-//     ort.InferenceSession.create(buf, opts)
-//   , { model: 'unet' });
+//    const session = await WebNNPerf.time(
+//        "webnn.session.create",
+//        () => ort.InferenceSession.create(buf, opts),
+//        { model: 'unet' },
+//    );
 //
 // Collecting from Playwright:
 //   const metrics = await page.evaluate(() =>
