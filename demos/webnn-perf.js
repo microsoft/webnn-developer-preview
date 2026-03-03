@@ -72,9 +72,9 @@ function reset() {
  * @returns {*} The return value of fn()
  */
 async function time(name, fn, meta) {
-    const seq = (_counter[name] = (_counter[name] || 0) + 1);
-    const startMark = `${name}:start:${seq}`;
-    const endMark = `${name}:end:${seq}`;
+    const sequence = (_counter[name] = (_counter[name] || 0) + 1);
+    const startMark = `${name}:start:${sequence}`;
+    const endMark = `${name}:end:${sequence}`;
 
     performance.mark(startMark);
     const t0 = performance.now();
@@ -84,20 +84,20 @@ async function time(name, fn, meta) {
         const duration = performance.now() - t0;
 
         performance.mark(endMark);
-        const detail = { ..._defaults, ...meta, seq, durationMs: parseFloat(duration.toFixed(2)) };
-
-        try {
-            performance.measure(name, { start: startMark, end: endMark, detail });
-        } catch {
-            // Fallback for browsers that don't support detail in measure
-            performance.measure(name, startMark, endMark);
-        }
+        const detail = { ..._defaults, ...meta, sequence, durationMs: parseFloat(duration.toFixed(2)) };
+        performance.measure(name, { start: startMark, end: endMark, detail });
 
         console.log(`${PREFIX} ${JSON.stringify({ name, ...detail })}`);
         return result;
     } catch (err) {
         const duration = performance.now() - t0;
-        const detail = { ..._defaults, ...meta, seq, durationMs: parseFloat(duration.toFixed(2)), error: err.message };
+        const detail = {
+            ..._defaults,
+            ...meta,
+            sequence,
+            durationMs: parseFloat(duration.toFixed(2)),
+            error: err.message,
+        };
         console.log(`${PREFIX} ${JSON.stringify({ name, ...detail })}`);
         throw err;
     }
@@ -121,22 +121,18 @@ function getEntries() {
  * Record a pre-measured duration as a WebNN performance entry.
  * Use when timing data comes from an external source (e.g. Transformers.js getPerf()).
  *
- * @param {string} name  Metric name, e.g. 'webnn.inference.first'
+ * @param {string} metricName  Metric name, e.g. 'webnn.inference.first'
  * @param {number} durationMs  Duration in milliseconds
  * @param {Object} [meta]  Additional metadata
  */
-function record(name, durationMs, meta) {
-    const seq = (_counter[name] = (_counter[name] || 0) + 1);
-    const details = { ..._defaults, ...meta, seq, durationMs: parseFloat(durationMs.toFixed(2)) };
+function record(metricName, durationMs, meta) {
+    const sequence = (_counter[metricName] = (_counter[metricName] || 0) + 1);
+    const detail = { ..._defaults, ...meta, sequence, durationMs: parseFloat(durationMs.toFixed(2)) };
 
-    try {
-        const endTime = performance.now();
-        performance.measure(name, { start: endTime - durationMs, end, detail });
-    } catch {
-        // Fallback for browsers that don't support measure options
-    }
+    const endTime = performance.now();
+    performance.measure(metricName, { start: endTime - durationMs, end: endTime, detail });
 
-    console.log(`${PREFIX} ${JSON.stringify({ name, ...detail })}`);
+    console.log(`${PREFIX} ${JSON.stringify({ name: metricName, ...detail })}`);
 }
 
 export const WebNNPerf = { configure, reset, time, record, getEntries };

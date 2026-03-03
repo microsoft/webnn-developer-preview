@@ -53,7 +53,7 @@ describe("WebNNPerf", () => {
             assert.equal(entry.detail.device, "npu");
             assert.equal(entry.detail.model, "unet");
             assert.equal(entry.detail.iteration, 3);
-            assert.equal(entry.detail.seq, 1);
+            assert.equal(entry.detail.sequence, 1);
             assert.ok(typeof entry.detail.durationMs === "number");
         });
 
@@ -64,9 +64,9 @@ describe("WebNNPerf", () => {
 
             const entries = WebNNPerf.getEntries().filter(e => e.name === "webnn.test.seq");
             assert.equal(entries.length, 3);
-            assert.equal(entries[0].detail.seq, 1);
-            assert.equal(entries[1].detail.seq, 2);
-            assert.equal(entries[2].detail.seq, 3);
+            assert.equal(entries[0].detail.sequence, 1);
+            assert.equal(entries[1].detail.sequence, 2);
+            assert.equal(entries[2].detail.sequence, 3);
         });
 
         it("should measure non-trivial durations", async () => {
@@ -164,7 +164,7 @@ describe("WebNNPerf", () => {
             // Verify seq counter was reset
             await WebNNPerf.time("webnn.test.reset", () => Promise.resolve());
             const entries = WebNNPerf.getEntries();
-            assert.equal(entries[0].detail.seq, 1);
+            assert.equal(entries[0].detail.sequence, 1);
         });
 
         it("should clear configured defaults", async () => {
@@ -188,19 +188,19 @@ describe("WebNNPerf", () => {
             assert.equal(entries[0].detail.model, "resnet-50");
             assert.equal(entries[0].detail.device, "npu");
             assert.equal(entries[0].detail.iteration, 1);
-            assert.equal(entries[0].detail.seq, 1);
+            assert.equal(entries[0].detail.sequence, 1);
         });
 
-        it("should increment seq counter for repeated record calls", () => {
+        it("should increment sequence counter for repeated record calls", () => {
             WebNNPerf.record("webnn.test.recseq", 10, {});
             WebNNPerf.record("webnn.test.recseq", 20, {});
 
             const entries = WebNNPerf.getEntries()
                 .filter(e => e.name === "webnn.test.recseq")
-                .sort((a, b) => a.detail.seq - b.detail.seq);
+                .sort((a, b) => a.detail.sequence - b.detail.sequence);
             assert.equal(entries.length, 2);
-            assert.equal(entries[0].detail.seq, 1);
-            assert.equal(entries[1].detail.seq, 2);
+            assert.equal(entries[0].detail.sequence, 1);
+            assert.equal(entries[1].detail.sequence, 2);
         });
 
         it("should emit structured JSON with [WebNN:Perf] prefix", () => {

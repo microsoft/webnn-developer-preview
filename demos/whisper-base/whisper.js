@@ -132,9 +132,8 @@ export class Whisper {
         // Create shared MLContext for IO binding
         WebNNPerf.configure({ device: this.deviceType, provider: this.provider });
         if (this.ioBinding && !this.mlContext) {
-            this.mlContext = await WebNNPerf.time(
-                "webnn.context.create",
-                () => navigator.ml.createContext({
+            this.mlContext = await WebNNPerf.time("webnn.context.create", () =>
+                navigator.ml.createContext({
                     deviceType: this.deviceType,
                 }),
             );
