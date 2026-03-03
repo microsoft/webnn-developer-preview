@@ -130,8 +130,8 @@ function record(name, durationMs, meta) {
     const detail = { ..._defaults, ...meta, seq, durationMs: parseFloat(durationMs.toFixed(2)) };
 
     try {
-        const end = performance.now();
-        performance.measure(name, { start: end - durationMs, end, detail });
+        const endTime = performance.now();
+        performance.measure(name, { start: endTime - durationMs, end, detail });
     } catch {
         // Fallback for browsers that don't support measure options
     }
