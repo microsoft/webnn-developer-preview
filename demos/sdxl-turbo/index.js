@@ -24,7 +24,7 @@ import {
     readBackMLTensor,
     readBackGpuTensor,
 } from "../../assets/js/common_utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 let device = "gpu";
 let mlContext;
 let gpuDevice;
@@ -439,6 +439,7 @@ const sizeOfShape = shape => shape.reduce((a, b) => a * b, 1);
 async function loadModels(models) {
     log("[Load] ONNX Runtime Execution Provider: " + config.provider);
     log("[Load] ONNX Runtime EP device type: " + config.deviceType);
+    WebNNPerf.configure({ device: config.deviceType, provider: config.provider });
     updateLoadWave(0.0);
     load.disabled = true;
     try {
@@ -452,7 +453,11 @@ async function loadModels(models) {
                 });
             }
             log(`[Load] Loading model ${modelNameInLog} · ${model.size}`);
-            const modelBuffer = await getModelOPFS(`sdxl-turbo_${modelUrl.replace(/\//g, "_")}`, modelUrl, false);
+            const modelBuffer = await WebNNPerf.time(
+                "webnn.model.fetch",
+                () => getModelOPFS(`sdxl-turbo_${modelUrl.replace(/\//g, "_")}`, modelUrl, false),
+                { model: name },
+            );
             const sessOpt = { ...opt, ...model.opt };
             const modelFetchTime = (performance.now() - start).toFixed(2);
 
@@ -465,7 +470,11 @@ async function loadModels(models) {
 
             start = performance.now();
             console.log(sessOpt);
-            models[name].sess = await ort.InferenceSession.create(modelBuffer, sessOpt);
+            models[name].sess = await WebNNPerf.time(
+                "webnn.session.create",
+                () => ort.InferenceSession.create(modelBuffer, sessOpt),
+                { model: name },
+            );
             const sessionCreationTime = (performance.now() - start).toFixed(2);
 
             if (dom[name]) {
@@ -714,9 +723,13 @@ async function initializeTensors() {
 
 async function runModel(model) {
     if (config.useIOBinding) {
-        await model.sess.run(model.feed, model.fetches);
+        await WebNNPerf.time("webnn.inference", () => model.sess.run(model.feed, model.fetches), {
+            model: model.name || "unknown",
+        });
     } else {
-        const results = await model.sess.run(model.feed);
+        const results = await WebNNPerf.time("webnn.inference", () => model.sess.run(model.feed), {
+            model: model.name || "unknown",
+        });
         for (const [name, tensor] of Object.entries(results)) {
             if (model.fetches[name]) {
                 model.fetches[name].data.set(tensor.data);
@@ -1114,7 +1127,9 @@ const ui = async () => {
             webnnStatus = await getWebnnStatus();
             if (webnnStatus.webnn) {
                 if (config.useIOBinding) {
-                    mlContext = await navigator.ml.createContext({ deviceType: config.deviceType });
+                    mlContext = await WebNNPerf.time("webnn.context.create", () =>
+                        navigator.ml.createContext({ deviceType: config.deviceType }),
+                    );
                 }
                 opt.executionProviders = [
                     {

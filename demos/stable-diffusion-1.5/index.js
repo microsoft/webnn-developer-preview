@@ -20,7 +20,7 @@ import {
     setupORT,
     showCompatibleChromiumVersion,
 } from "../../assets/js/common_utils.js";
-
+import { WebNNPerf } from "../webnn-perf.js";
 // Configuration...
 let device = "gpu";
 let badge;
@@ -511,6 +511,7 @@ function convertPlanarFloat32RgbToUint8Rgba(input /*Uint16Array*/, width, height
 }
 
 async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
+    WebNNPerf.configure({ device: device, provider: executionProvider });
     let modelPath;
     let modelSession;
     let freeDimensionOverrides;
@@ -618,7 +619,11 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     let modelBuffer;
 
     let fetchStartTime = performance.now();
-    modelBuffer = await getModelOPFS(`sd_1.5_${modelName}`, modelPath, false);
+    modelBuffer = await WebNNPerf.time(
+        "webnn.model.fetch",
+        () => getModelOPFS(`sd_1.5_${modelName}`, modelPath, false),
+        { model: modelName },
+    );
     let fetchTime = (performance.now() - fetchStartTime).toFixed(2);
 
     if (modelName == "text-encoder") {
@@ -656,7 +661,11 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
     }
 
     let createStartTime = performance.now();
-    modelSession = await ort.InferenceSession.create(modelBuffer, options);
+    modelSession = await WebNNPerf.time(
+        "webnn.session.create",
+        () => ort.InferenceSession.create(modelBuffer, options),
+        { model: modelName },
+    );
 
     if (modelName == "text-encoder") {
         let textencoderCreateTime = (performance.now() - createStartTime).toFixed(2);
@@ -959,7 +968,11 @@ async function executeStableDiffusion() {
     const textEncoderInputs = {
         input_ids: Utils.generateTensorFromValues("int32", [unetBatch, textEmbeddingSequenceLength], token_ids),
     };
-    const textEncoderOutputs = await textEncoderSession.run(textEncoderInputs);
+    const textEncoderOutputs = await WebNNPerf.time(
+        "webnn.inference",
+        () => textEncoderSession.run(textEncoderInputs),
+        { model: "text-encoder" },
+    );
 
     let textEncoderExecutionTime = (performance.now() - startTextEncoder).toFixed(2);
     performanceData.sessionrun.textencoder = textEncoderExecutionTime;
@@ -1023,7 +1036,10 @@ async function executeStableDiffusion() {
             [unetBatch, unetChannelCount, latentHeight, latentWidth],
             nextLatents,
         );
-        const unetOutputs = await unetModelSession.run(unetInputs);
+        const unetOutputs = await WebNNPerf.time("webnn.inference", () => unetModelSession.run(unetInputs), {
+            model: "unet",
+            iteration: i + 1,
+        });
 
         let predictedNoise = new Uint16Array(unetOutputs["out_sample"].cpuData.buffer);
         denoiseLatentSpace(/*inout*/ latents, i, predictedNoise);
@@ -1056,7 +1072,9 @@ async function executeStableDiffusion() {
     const vaeDecoderInputs = {
         latent_sample: Utils.generateTensorFromBytes("float16", dimensions, halfLatents.slice(0)),
     };
-    const decodedOutputs = await vaeDecoderModelSession.run(vaeDecoderInputs);
+    const decodedOutputs = await WebNNPerf.time("webnn.inference", () => vaeDecoderModelSession.run(vaeDecoderInputs), {
+        model: "vae-decoder",
+    });
     let vaeDecoderExecutionTime = (performance.now() - startVaeDecoder).toFixed(2);
 
     if (getMode()) {
@@ -1105,7 +1123,11 @@ async function executeStableDiffusionAndDisplayOutput() {
                 clip_input: get_tensor_from_image(normalized_image_data, "NCHW"),
                 images: get_tensor_from_image(resized_image_data, "NHWC"),
             };
-            const { has_nsfw_concepts } = await scModelSession.run(safety_checker_feed);
+            const { has_nsfw_concepts } = await WebNNPerf.time(
+                "webnn.inference",
+                () => scModelSession.run(safety_checker_feed),
+                { model: "safety-checker" },
+            );
             // const { out_images, has_nsfw_concepts } = await models.safety_checker.sess.run(safety_checker_feed);
             let scExecutionTime = (performance.now() - startSc).toFixed(2);
             if (getMode()) {
