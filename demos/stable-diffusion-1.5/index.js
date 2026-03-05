@@ -41,27 +41,27 @@ let performanceData = {
         textencoder: 0,
         unet: 0,
         vaedecoder: 0,
-        sc: 0,
+        safetychecker: 0,
         total: 0,
     },
     modelfetch: {
         textencoder: 0,
         unet: 0,
         vaedecoder: 0,
-        sc: 0,
+        safetychecker: 0,
     },
     sessioncreate: {
         textencoder: 0,
         unet: 0,
         vaedecoder: 0,
-        sc: 0,
+        safetychecker: 0,
     },
     sessionrun: {
         textencoder: 0,
         unet: [],
         unettotal: 0,
         vaedecoder: 0,
-        sc: 0,
+        safetychecker: 0,
         total: 0,
     },
 };
@@ -340,18 +340,18 @@ loadButton.onclick = async () => {
     performanceData.loadtime.textencoder = 0;
     performanceData.loadtime.unet = [];
     performanceData.loadtime.vaedecoder = 0;
-    performanceData.loadtime.sc = 0;
+    performanceData.loadtime.safetychecker = 0;
     performanceData.loadtime.total = 0;
 
     performanceData.modelfetch.textencoder = 0;
     performanceData.modelfetch.unet = 0;
     performanceData.modelfetch.vaedecoder = 0;
-    performanceData.modelfetch.sc = 0;
+    performanceData.modelfetch.safetychecker = 0;
 
     performanceData.sessioncreate.textencoder = 0;
     performanceData.sessioncreate.unet = 0;
     performanceData.sessioncreate.vaedecoder = 0;
-    performanceData.sessioncreate.sc = 0;
+    performanceData.sessioncreate.safetychecker = 0;
 
     loadButton.disabled = true;
     startButton.disabled = true;
@@ -374,9 +374,9 @@ loadButton.onclick = async () => {
         vaeDecoderCreate.innerHTML = performanceData.sessioncreate.vaedecoder;
         vaeDecoderRun.innerHTML = "-";
 
-        scLoad.innerHTML = performanceData.loadtime.sc;
-        scFetch.innerHTML = performanceData.modelfetch.sc;
-        scCreate.innerHTML = performanceData.sessioncreate.sc;
+        scLoad.innerHTML = performanceData.loadtime.safetychecker;
+        scFetch.innerHTML = performanceData.modelfetch.safetychecker;
+        scCreate.innerHTML = performanceData.sessioncreate.safetychecker;
         scRun.innerHTML = "-";
 
         totalLoad.innerHTML = performanceData.loadtime.total;
@@ -397,7 +397,7 @@ startButton.onclick = async () => {
     performanceData.sessionrun.unet = [];
     performanceData.sessionrun.unettotal = 0;
     performanceData.sessionrun.vaedecoder = 0;
-    performanceData.sessionrun.sc = 0;
+    performanceData.sessionrun.safetychecker = 0;
     performanceData.sessionrun.total = 0;
 
     startButton.disabled = true;
@@ -652,7 +652,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         progressBarLabel.textContent = `Creating session for VAE Decoder · ${progress}%`;
         log("[Session Create] Beginning VAE decode");
     } else if (modelName == "safety-checker") {
-        performanceData.modelfetch.sc = fetchTime;
+        performanceData.modelfetch.safetychecker = fetchTime;
         updateProgress();
         progressBarLabel.textContent = `Loaded Safety Checker · ${(fetchTime / 1000).toFixed(2)}s · ${progress}%`;
         log(`[Load] Safety Checker loaded · ${(fetchTime / 1000).toFixed(2)}s`);
@@ -710,7 +710,7 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         }
     } else if (modelName == "safety-checker") {
         let scCreateTime = (performance.now() - createStartTime).toFixed(2);
-        performanceData.sessioncreate.sc = scCreateTime;
+        performanceData.sessioncreate.safetychecker = scCreateTime;
         scCompileProgress = 5;
         updateProgress();
         if (getMode()) {
@@ -820,7 +820,7 @@ async function loadStableDiffusion(executionProvider) {
         if (Utils.getSafetyChecker()) {
             const scLoadStartTime = performance.now();
             scModelSession = await loadModel("safety-checker", executionProvider);
-            performanceData.loadtime.sc = (performance.now() - scLoadStartTime).toFixed(2);
+            performanceData.loadtime.safetychecker = (performance.now() - scLoadStartTime).toFixed(2);
         }
 
         progressBarInner.style.width = progress + "%";
@@ -1136,7 +1136,7 @@ async function executeStableDiffusionAndDisplayOutput() {
             } else {
                 log(`[Session Run] Safety Checker completed`);
             }
-            performanceData.sessionrun.sc = scExecutionTime;
+            performanceData.sessionrun.safetychecker = scExecutionTime;
 
             inferenceProgress += 1;
             progressBarInnerInference.style.width = inferenceProgress + "%";
@@ -1192,10 +1192,10 @@ async function generateNextImage() {
         vaeDecoderCreate.innerHTML = performanceData.sessioncreate.vaedecoder;
         vaeDecoderRun.innerHTML = performanceData.sessionrun.vaedecoder;
 
-        scLoad.innerHTML = performanceData.loadtime.sc;
-        scFetch.innerHTML = performanceData.modelfetch.sc;
-        scCreate.innerHTML = performanceData.sessioncreate.sc;
-        scRun.innerHTML = performanceData.sessionrun.sc;
+        scLoad.innerHTML = performanceData.loadtime.safetychecker;
+        scFetch.innerHTML = performanceData.modelfetch.safetychecker;
+        scCreate.innerHTML = performanceData.sessioncreate.safetychecker;
+        scRun.innerHTML = performanceData.sessionrun.safetychecker;
 
         totalLoad.innerHTML = performanceData.loadtime.total;
         totalRun.innerHTML = performanceData.sessionrun.total;
