@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+.claude
+.gemini
+.shared
+.github
+demos/z-image-turbo/models/onnx/*
+
 # User-specific files
 *.rsuser
 *.suo
