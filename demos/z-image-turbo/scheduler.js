@@ -12,13 +12,9 @@ function linspace(start, end, num) {
         return out;
     }
     const step = (end - start) / (num - 1);
-    for (let i = 0; i < num; i++) out[i] = start + step * i;
-    return out;
-}
-
-function reverseFloat32(arr) {
-    const out = new Float32Array(arr.length);
-    for (let i = 0; i < arr.length; i++) out[i] = arr[arr.length - 1 - i];
+    for (let i = 0; i < num; i++) {
+        out[i] = start + step * i;
+    }
     return out;
 }
 
@@ -32,8 +28,7 @@ class Scheduler {
         this.step_index_ = null;
 
         // sigmas: np.linspace(1, self.num_train_timesteps_, self.num_train_timesteps_)[::-1]
-        const timestepsInit = linspace(1, this.num_train_timesteps_, this.num_train_timesteps_);
-        const timestepsRev = reverseFloat32(timestepsInit);
+        const timestepsRev = linspace(1, this.num_train_timesteps_, this.num_train_timesteps_).reverse();
 
         // sigmas = timesteps / self.num_train_timesteps_
         const sigmasTmp = new Float32Array(timestepsRev.length);

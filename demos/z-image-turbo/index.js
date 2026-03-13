@@ -22,7 +22,7 @@ import {
     drawImage,
     getConfig,
     getModelOPFS,
-    getMode,
+    isNormalMode,
     sizeOfShape,
     createLatents,
 } from "./utils.js";
@@ -43,6 +43,11 @@ const buttons = $("#buttons");
 const generate = $("#generate");
 const load = $("#load");
 const prompt = $("#user-input");
+const totalData = $("#total_data");
+const progressStatus = $("#progress-status");
+const progressText = $("#progress-text");
+const finalTime = $("#final-time");
+/** @type {Promise<void>} Promise that resolves when models are loaded */
 let loading;
 
 const config = getConfig();
@@ -57,8 +62,8 @@ let currentResolution = resolution;
 let imageHeight = resolution;
 let imageWidth = resolution;
 
-// Currently WebNN is not available for this demo, depends on WebNN dynamic shape support which is in development,
-// so we set the sequence length to a fixed value for now for internal testing.
+// Currently only WebGPU is available for this demo, not WebNN which depends dynamic shape support still in development.
+// So set the sequence length to a fixed value for now for internal testing.
 // TODO: Once WebNN supports dynamic shapes, we can remove this and use the actual sequence length from the text encoder inputs.
 let sequenceLength = 113;
 
@@ -102,9 +107,9 @@ const models = {
     },
 };
 
-function updateModelDimensions(res) {
-    imageHeight = res;
-    imageWidth = res;
+function updateModelDimensions(resolution) {
+    imageHeight = resolution;
+    imageWidth = resolution;
 
     if (config.provider === "webnn") {
         models["text_encoder"].opt = {
@@ -374,7 +379,7 @@ async function loadModels(models) {
                 progressManager.update(name, "compile", 100);
             }
 
-            if (getMode()) {
+            if (isNormalMode()) {
                 log(`[Session Create] Create ${modelNameInLog} completed · ${sessionCreationTime}ms`);
             } else {
                 log(`[Session Create] Create ${modelNameInLog} completed`);
@@ -528,7 +533,7 @@ function disposeTensors() {
 
 async function initializeTensors() {
     // text_encoder
-    // Delay the creation of this tensor until needed, as the sequence length may change
+    // Delay the creation of this tensor until needed, as the sequence length may change.
     models["text_encoder"].feed = {
         // "input_ids": await createTensor(models["text_encoder"].inputInfo.input_ids),
         // "attention_mask": await createTensor(models["text_encoder"].inputInfo.attention_mask),
@@ -624,8 +629,10 @@ async function generateImage() {
         dom["runTotal"].innerHTML = "";
         dom["safety_checker"].run.innerHTML = "";
 
-        $("#total_data").innerHTML = "";
-        $("#total_data").setAttribute("class", "show");
+        progressStatus.style.display = "flex";
+        progressText.innerHTML = "generating ...";
+        finalTime.style.display = "none";
+        totalData.setAttribute("class", "show");
 
         log(`[Session Run] Beginning`);
 
@@ -676,7 +683,7 @@ async function generateImage() {
 
         const sessionRunTimeTextEncode = (performance.now() - start).toFixed(2);
 
-        if (getMode()) {
+        if (isNormalMode()) {
             log(`[Session Run] Text Encoder execution time: ${sessionRunTimeTextEncode}ms`);
         } else {
             log(`[Session Run] Text Encoder completed`);
@@ -692,17 +699,16 @@ async function generateImage() {
         writeTensor(tensorA, latents);
 
         for (let i = 0; i < numInferenceSteps; i++) {
-            const totalData = $("#total_data");
             if (config.useIOBinding && config.provider === "webnn") {
-                totalData.innerHTML = `<svg class="step-spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/><path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg> generating ...`;
+                progressText.innerHTML = "generating ...";
                 totalData.setAttribute("class", "show");
             } else {
-                totalData.innerHTML = `<svg class="step-spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/><path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>${i + 1} / ${numInferenceSteps} steps`;
+                progressText.innerHTML = `${i + 1} / ${numInferenceSteps} steps`;
                 totalData.setAttribute("class", "show steps-progress");
                 totalData.style.setProperty("--progress", `${((i + 1) / numInferenceSteps) * 100}%`);
             }
             start = performance.now();
-            // Inference prepare for Transformer
+            // Prepare inference for VAE Decoder
             models["transformer"].feed.encoder_hidden_states = models["text_encoder"].fetches["encoder_hidden_state"];
             writeTensor(models["transformer"].feed.timestep, new Float32Array([timesteps[i]]));
 
@@ -710,7 +716,7 @@ async function generateImage() {
             await runModel(models["transformer"]);
             const transformerRunTime = (performance.now() - start).toFixed(2);
 
-            if (getMode()) {
+            if (isNormalMode()) {
                 log(`[Session Run] Transformer execution time ${i}: ${transformerRunTime}ms`);
             } else {
                 log(`[Session Run] Transformer completed`);
@@ -732,7 +738,7 @@ async function generateImage() {
             models["transformer"].feed.hidden_states = nextInput;
 
             const schedulerRunTime = (performance.now() - start).toFixed(2);
-            if (getMode()) {
+            if (isNormalMode()) {
                 log(`[Session Run] Scheduler step execution time ${i}: ${schedulerRunTime}ms`);
             } else {
                 log(`[Session Run] Scheduler step completed`);
@@ -746,7 +752,7 @@ async function generateImage() {
         start = performance.now();
         await runModel(models["vae_pre_process"]);
         const vaePreProcessTime = (performance.now() - start).toFixed(2);
-        if (getMode()) {
+        if (isNormalMode()) {
             log(`[Session Run] VAE pre-processing execution time: ${vaePreProcessTime}ms`);
         } else {
             log(`[Session Run] VAE pre-processing completed`);
@@ -756,25 +762,25 @@ async function generateImage() {
         start = performance.now();
         await runModel(models["vae_decoder"]);
 
-        const pixSize = sizeOfShape(models["vae_decoder"].outputInfo.sample.dims);
-        const pix = new Float32Array(pixSize);
-        await readTensor(models["vae_decoder"].fetches.sample, pix);
+        const pixelsSize = sizeOfShape(models["vae_decoder"].outputInfo.sample.dims);
+        const pixels = new Float32Array(pixelsSize);
+        await readTensor(models["vae_decoder"].fetches.sample, pixels);
 
         let vaeRunTime = (performance.now() - start).toFixed(2);
 
-        if (getMode()) {
+        if (isNormalMode()) {
             log(`[Session Run] VAE Decoder execution time: ${vaeRunTime}ms`);
         } else {
             log(`[Session Run] VAE Decoder completed`);
         }
 
         start = performance.now();
-        drawImage(pix, imageHeight, imageWidth, $(`#img_canvas`));
+        drawImage(pixels, imageHeight, imageWidth, $(`#img_canvas`));
         const imageDrawTime = (performance.now() - start).toFixed(2);
         log(`[Image Drawing] drawing image time: ${imageDrawTime}ms`);
 
         const totalRunTime = (performance.now() - startTotal).toFixed(2);
-        if (getMode()) {
+        if (isNormalMode()) {
             log(`[Total] Total image generation time: ${totalRunTime}ms`);
         }
         dom.runTotal.innerHTML = totalRunTime;
@@ -784,7 +790,7 @@ async function generateImage() {
             let start = performance.now();
             await runModel(models["sc_prep"]);
 
-            if (getMode()) {
+            if (isNormalMode()) {
                 log(`[Session Run] Safety Checker input prepared time: ${(performance.now() - start).toFixed(2)}ms`);
             } else {
                 log(`[Session Run] Safety Checker input prepared`);
@@ -811,15 +817,17 @@ async function generateImage() {
             }
 
             dom["safety_checker"].run.innerHTML = totalScRunTime;
-            if (getMode()) {
+            if (isNormalMode()) {
                 log(`[Session Run] Safety Checker execution time: ${totalScRunTime}ms`);
             }
         } else {
             $("#img_div").setAttribute("class", "frame done");
         }
 
-        $("#total_data").setAttribute("class", "show");
-        $("#total_data").innerHTML = `${totalRunTime}ms`;
+        totalData.setAttribute("class", "show");
+        progressStatus.style.display = "none";
+        finalTime.style.display = "block";
+        finalTime.innerHTML = `${totalRunTime}ms`;
 
         // Restore original tensors for next run
         models["transformer"].feed.hidden_states = tensorA;
@@ -956,7 +964,7 @@ const ui = async () => {
         }
     });
 
-    if (!getMode()) {
+    if (!isNormalMode()) {
         dev.setAttribute("class", "mt-1");
     }
 

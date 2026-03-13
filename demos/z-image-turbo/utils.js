@@ -16,13 +16,13 @@ const tokenizer = await AutoTokenizer.from_pretrained("tokenizer");
  */
 async function getTextEncoderInputs(prompt, maxSequenceLength) {
     const messages = [{ role: "user", content: prompt }];
-    const prompt_with_template = tokenizer.apply_chat_template(messages, {
+    const promptWithTemplate = tokenizer.apply_chat_template(messages, {
         tokenize: false,
         add_generation_prompt: true,
         enable_thinking: true,
     });
 
-    const promptInputs = tokenizer([prompt_with_template], {
+    const promptInputs = tokenizer([promptWithTemplate], {
         padding: false,
         max_length: maxSequenceLength,
         truncation: true,
@@ -36,21 +36,21 @@ async function getTextEncoderInputs(prompt, maxSequenceLength) {
 }
 
 /**
- * draw image from pixel data
- * @param {Float32Array} pix
+ * Draw image from pixel data, rescaling data -0.5 to 0.5 into pixels 0 to 255.
+ * @param {Float32Array} pixels
  * @param {number} height
  * @param {number} width
  * @param {HTMLCanvasElement} canvas
  */
-function drawImage(pix, height, width, canvas) {
+function drawImage(pixels, height, width, canvas) {
     const channelSize = height * width;
     const rgbaData = new Uint8ClampedArray(channelSize * 4);
 
     for (let j = 0; j < channelSize; j++) {
         // NCHW layout: R is at 0, G at channelSize, B at 2*channelSize
-        let r = pix[j];
-        let g = pix[j + channelSize];
-        let b = pix[j + 2 * channelSize];
+        let r = pixels[j];
+        let g = pixels[j + channelSize];
+        let b = pixels[j + 2 * channelSize];
 
         // Map [-1, 1] to [0, 255]
         rgbaData[j * 4 + 0] = (r / 2 + 0.5) * 255;
@@ -171,7 +171,7 @@ async function readResponse(response, onProgress) {
     return buffer;
 }
 
-const getMode = () => {
+const isNormalMode = () => {
     return getQueryValue("mode") === "normal" ? false : true;
 };
 
@@ -209,4 +209,4 @@ function createLatents(shape, seed = 42) {
     return { data: out, shape };
 }
 
-export { getTextEncoderInputs, drawImage, getConfig, getModelOPFS, getMode, sizeOfShape, createLatents };
+export { getTextEncoderInputs, drawImage, getConfig, getModelOPFS, isNormalMode, sizeOfShape, createLatents };
