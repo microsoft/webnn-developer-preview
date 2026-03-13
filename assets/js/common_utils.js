@@ -195,8 +195,8 @@ export async function remapHuggingFaceDomainIfNeeded(envOrObj, property = "remot
     return `https://huggingface.co`;
 }
 
-const DEV_ORT_VERSION = "1.24.0-dev.20251104-75d35474d5";
-const STABLE_ORT_VERSION = "";
+const DEV_ORT_VERSION = "1.25.0-dev.20260307-d626b568e0";
+const STABLE_ORT_VERSION = "1.24.3";
 const TEST_ORT_VERSION = "test";
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
@@ -211,6 +211,11 @@ const KNOWN_COMPATIBLE_ORT_VERSION = {
         test: TEST_ORT_VERSION,
     },
     "sdxl-turbo": {
+        dev: DEV_ORT_VERSION,
+        stable: STABLE_ORT_VERSION,
+        test: TEST_ORT_VERSION,
+    },
+    "z-image-turbo": {
         dev: DEV_ORT_VERSION,
         stable: STABLE_ORT_VERSION,
         test: TEST_ORT_VERSION,
