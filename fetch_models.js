@@ -24,6 +24,10 @@ const models = [
         path: "./demos/image-classification/models/webnn/efficientnet-lite4/onnx",
     },
     {
+        url: "amd/resnet50/resolve/main/webnn/onnx/model.onnx",
+        path: "./demos/image-classification/models/amd/resnet50/onnx",
+    },
+    {
         url: "microsoft/sd-turbo-webnn/resolve/main/text_encoder/model_layernorm.onnx",
         path: "./demos/sd-turbo/models/text_encoder",
     },
