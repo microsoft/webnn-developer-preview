@@ -28,6 +28,10 @@ const models = [
         path: "./demos/image-classification/models/amd/resnet50/onnx",
     },
     {
+        url: "amd/MobileNetV2/resolve/main/webnn/onnx/model.onnx",
+        path: "./demos/image-classification/models/amd/MobileNetV2/onnx",
+    },
+    {
         url: "microsoft/sd-turbo-webnn/resolve/main/text_encoder/model_layernorm.onnx",
         path: "./demos/sd-turbo/models/text_encoder",
     },

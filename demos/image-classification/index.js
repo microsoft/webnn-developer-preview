@@ -50,72 +50,72 @@ const FP16_MODEL_PATHS = {
 };
 
 /**
- * FP32 model IDs. Local `amd/resnet50` matches xenova (`config.json`, preprocessor, `onnx/` next
- * to them). On the Hub, those assets may live under `webnn/`; remote loads rewrite JSON fetch URLs
- * and use `subfolder: "webnn/onnx"` for weights. Transformers.js dtype → `model.onnx` / `model_fp16.onnx`.
+ * FP32 model IDs. Local AMD repos match xenova (`config.json`, preprocessor, `onnx/`). On the Hub,
+ * the same repos may use a `webnn/` folder; remote loads rewrite JSON URLs and use `subfolder:
+ * "webnn/onnx"` for weights.
  */
 const FP32_MODEL_PATHS = {
     "mobilenet-v2": "amd/MobileNetV2",
     "resnet-50": "amd/resnet50",
 };
 
-/**
- * ONNX session subfolder per FP32 AMD repo (`options.subfolder`). `amd/resnet50` is set in `main`
- * (`onnx` locally vs `webnn/onnx` on the Hub).
- */
-const AMD_FP32_ONNX_SUBFOLDER = {
-    "amd/MobileNetV2": "onnx",
-};
+/** AMD Hub repos that store `config.json` / preprocessor under `webnn/` and ONNX under `webnn/onnx/`. */
+const AMD_WEBNN_HUB_LAYOUT_MODEL_IDS = ["amd/resnet50", "amd/MobileNetV2"];
 
-const AMD_RESNET50_MODEL_ID = "amd/resnet50";
+const isAmdWebnnHubLayoutModel = modelPath => AMD_WEBNN_HUB_LAYOUT_MODEL_IDS.includes(modelPath);
 
 function isRemoteHubArtifactUrl(urlString) {
-    return (
-        typeof urlString === "string" &&
-        /^https?:\/\//i.test(urlString) &&
-        urlString.includes("/resolve/") &&
-        urlString.includes("/amd/resnet50/")
-    );
+    if (typeof urlString !== "string" || !/^https?:\/\//i.test(urlString) || !urlString.includes("/resolve/")) {
+        return false;
+    }
+    return urlString.includes("/amd/resnet50/") || urlString.includes("/amd/MobileNetV2/");
 }
 
 /**
- * Remote Hub only: Transformers.js requests `.../resolve/.../config.json` at repo root; AMD may
- * host those files under `webnn/`. Local requests (no `/resolve/`) stay flat like xenova.
+ * Remote Hub only: map `.../resolve/<rev>/config.json` → `.../resolve/<rev>/webnn/config.json`.
+ * Local file URLs (no `/resolve/`) are unchanged.
  */
-function rewriteAmdResnet50JsonAssetUrl(urlString) {
+function rewriteAmdWebnnHubJsonAssetUrl(urlString) {
     if (!isRemoteHubArtifactUrl(urlString)) {
         return urlString;
     }
-    if (urlString.includes("/amd/resnet50/webnn/")) {
+    if (urlString.includes("/webnn/config.json") || urlString.includes("/webnn/preprocessor_config.json")) {
         return urlString;
     }
-    const match = urlString.match(/^(.*\/amd\/resnet50\/)(config\.json|preprocessor_config\.json)(\?.*)?$/);
-    if (!match) {
-        return urlString;
+    for (const id of AMD_WEBNN_HUB_LAYOUT_MODEL_IDS) {
+        const escaped = id.replace(/\//g, "\\/");
+        const re = new RegExp(
+            `^(https?://[^/]+/${escaped}/resolve/[^/]+/)(config\\.json|preprocessor_config\\.json)(\\?.*)?$`,
+            "i",
+        );
+        const match = urlString.match(re);
+        if (match) {
+            return `${match[1]}webnn/${match[2]}${match[3] ?? ""}`;
+        }
     }
-    return `${match[1]}webnn/${match[2]}${match[3] ?? ""}`;
+    return urlString;
 }
 
-let amdResnet50WebnnJsonFetchInstalled = false;
+let amdWebnnHubJsonFetchInstalled = false;
 
-function ensureAmdResnet50WebnnJsonFetch(env) {
-    if (amdResnet50WebnnJsonFetchInstalled) {
+function ensureAmdWebnnHubJsonFetch(env) {
+    if (amdWebnnHubJsonFetchInstalled) {
         return;
     }
     const inner = env.fetch.bind(env);
     env.fetch = async (input, init) => {
         if (typeof input === "string") {
-            return inner(rewriteAmdResnet50JsonAssetUrl(input), init);
+            return inner(rewriteAmdWebnnHubJsonAssetUrl(input), init);
         }
         if (typeof Request !== "undefined" && input instanceof Request) {
-            const next = rewriteAmdResnet50JsonAssetUrl(input.url);
+            const next = rewriteAmdWebnnHubJsonAssetUrl(input.url);
             if (next !== input.url) {
                 return inner(new Request(next, input), init);
             }
         }
         return inner(input, init);
     };
-    amdResnet50WebnnJsonFetchInstalled = true;
+    amdWebnnHubJsonFetchInstalled = true;
 }
 
 const resolveModelPath = (id, dtype) => {
@@ -227,8 +227,8 @@ const main = async () => {
 
     modelPath = resolveModelPath(modelId, dataType);
 
-    if (modelPath === AMD_RESNET50_MODEL_ID) {
-        ensureAmdResnet50WebnnJsonFetch(transformers.env);
+    if (isAmdWebnnHubLayoutModel(modelPath)) {
+        ensureAmdWebnnHubJsonFetch(transformers.env);
     }
 
     await remapHuggingFaceDomainIfNeeded(transformers.env);
@@ -259,11 +259,7 @@ const main = async () => {
     }
 
     if (dataType === "fp32" && Object.values(FP32_MODEL_PATHS).includes(modelPath)) {
-        if (modelPath === AMD_RESNET50_MODEL_ID) {
-            options.subfolder = useRemoteModels ? "webnn/onnx" : "onnx";
-        } else {
-            options.subfolder = AMD_FP32_ONNX_SUBFOLDER[modelPath] ?? "onnx";
-        }
+        options.subfolder = useRemoteModels && isAmdWebnnHubLayoutModel(modelPath) ? "webnn/onnx" : "onnx";
     }
 
     modelIdSpan.innerHTML = dataType;
