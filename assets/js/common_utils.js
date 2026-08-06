@@ -260,8 +260,21 @@ const getLatestOrtWebDevVersion = async () => {
     }
 };
 
+// Matches a custom ORT Web URL, e.g. ?ort=https://localhost:8080/dist/ort.jspi.js
+const isOrtUrl = value => /^https?:\/\//i.test(value ?? "");
+
 const loadScriptWithMessage = async version => {
     try {
+        // Allow loading ORT Web from a custom URL, e.g. a locally deployed build.
+        // Cross-origin note: the host serving this script must send CORS headers
+        // (Access-Control-Allow-Origin), because loadScript sets crossOrigin="anonymous"
+        // and ORT fetches its sibling .wasm/.mjs files (resolved relative to this URL)
+        // cross-origin as well. An https page can only load https URLs (http://localhost
+        // is treated as secure; other http URLs are blocked as mixed content).
+        if (isOrtUrl(version)) {
+            await loadScript("onnxruntime-web", version);
+            return `ONNX Runtime Web: <a href="${version}">custom build</a>`;
+        }
         if (version === "test") {
             await loadScript("onnxruntime-web", "../../assets/dist/ort.webgpu.min.js");
             return "ONNX Runtime Web: Test version";
@@ -282,7 +295,9 @@ export const setupORT = async (key, branch) => {
     const version = KNOWN_COMPATIBLE_ORT_VERSION[key][branch];
     const ortVersionElement = $("#ortversion");
     removeElement("onnxruntime-web");
-    const queryOrt = getQueryValue("ort")?.toLowerCase();
+    const rawQueryOrt = getQueryValue("ort");
+    // Preserve case for custom URLs (paths are case-sensitive); lowercase keywords only.
+    const queryOrt = isOrtUrl(rawQueryOrt) ? rawQueryOrt : rawQueryOrt?.toLowerCase();
     let versionHtml;
     if (queryOrt) {
         versionHtml = await loadScriptWithMessage(queryOrt);
