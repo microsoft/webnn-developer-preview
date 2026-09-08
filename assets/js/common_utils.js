@@ -195,8 +195,8 @@ export async function remapHuggingFaceDomainIfNeeded(envOrObj, property = "remot
     return `https://huggingface.co`;
 }
 
-const DEV_ORT_VERSION = "1.27.0-dev.20260506-673c3320fc";
-const STABLE_ORT_VERSION = "1.27.0";
+const DEV_ORT_VERSION = "1.30.0-dev.20260904-d47fd8824";
+const STABLE_ORT_VERSION = "1.29.0";
 const TEST_ORT_VERSION = "test";
 
 const KNOWN_COMPATIBLE_ORT_VERSION = {
@@ -263,7 +263,11 @@ const getLatestOrtWebDevVersion = async () => {
 // Matches a custom ORT Web URL, e.g. ?ort=https://localhost:8080/dist/ort.jspi.js
 const isOrtUrl = value => /^https?:\/\//i.test(value ?? "");
 
-const loadScriptWithMessage = async version => {
+// Resolve the ORT Web dist variant. A demo can request the advanced JSPI build ("jspi").
+// JSPI needs WebAssembly stack switching, so fall back to the default "webgpu" build when the browser lacks it.
+const resolveOrtDist = dist => (dist === "jspi" && typeof WebAssembly.Suspending !== "function" ? "webgpu" : dist);
+
+const loadScriptWithMessage = async (version, dist = "webgpu") => {
     try {
         // Allow loading ORT Web from a custom URL, e.g. a locally deployed build.
         // Cross-origin note: the host serving this script must send CORS headers
@@ -276,13 +280,13 @@ const loadScriptWithMessage = async version => {
             return `ONNX Runtime Web: <a href="${version}">custom build</a>`;
         }
         if (version === "test") {
-            await loadScript("onnxruntime-web", "../../assets/dist/ort.webgpu.min.js");
+            await loadScript("onnxruntime-web", `../../assets/dist/ort.${resolveOrtDist(dist)}.min.js`);
             return "ONNX Runtime Web: Test version";
         } else {
             if (version === "latest") {
                 version = await getLatestOrtWebDevVersion();
             }
-            await loadScript("onnxruntime-web", `${ORT_CDN_URL}${version}/dist/ort.webgpu.min.js`);
+            await loadScript("onnxruntime-web", `${ORT_CDN_URL}${version}/dist/ort.${resolveOrtDist(dist)}.min.js`);
             return `ONNX Runtime Web: <a href="${ortLink(version)}">${version}</a>`;
         }
     } catch (error) {
@@ -291,7 +295,7 @@ const loadScriptWithMessage = async version => {
     }
 };
 
-export const setupORT = async (key, branch) => {
+export const setupORT = async (key, branch, dist = "webgpu") => {
     const version = KNOWN_COMPATIBLE_ORT_VERSION[key][branch];
     const ortVersionElement = $("#ortversion");
     removeElement("onnxruntime-web");
@@ -300,9 +304,9 @@ export const setupORT = async (key, branch) => {
     const queryOrt = isOrtUrl(rawQueryOrt) ? rawQueryOrt : rawQueryOrt?.toLowerCase();
     let versionHtml;
     if (queryOrt) {
-        versionHtml = await loadScriptWithMessage(queryOrt);
+        versionHtml = await loadScriptWithMessage(queryOrt, dist);
     } else {
-        versionHtml = await loadScriptWithMessage(version);
+        versionHtml = await loadScriptWithMessage(version, dist);
     }
     ortVersionElement.innerHTML = versionHtml;
 };

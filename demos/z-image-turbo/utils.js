@@ -1,4 +1,4 @@
-import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.js";
+import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js";
 
 env.localModelPath = "models/";
 env.allowRemoteModels = true;
@@ -107,19 +107,22 @@ const getQueryValue = name => {
     return urlParams.get(name);
 };
 
-// Get model via Origin Private File System
+// Get model via Origin Private File System — returns a File (Blob subclass).
+// The download streams network -> OPFS disk without ever holding the whole file
+// in memory, and ORT reads bytes from the File on demand (low memory peak).
 async function getModelOPFS(name, url, updateModel, onProgress) {
     const root = await navigator.storage.getDirectory();
-    let fileHandle;
 
     async function updateFile() {
         const response = await fetch(url);
-        const buffer = await readResponse(response, onProgress);
-        fileHandle = await root.getFileHandle(name, { create: true });
+        if (!response.ok) throw new Error(`fetch ${url} -> ${response.status}`);
+        const total = parseInt(response.headers.get("Content-Length") ?? "0");
+        const fileHandle = await root.getFileHandle(name, { create: true });
         const writable = await fileHandle.createWritable();
-        await writable.write(buffer);
-        await writable.close();
-        return buffer;
+        // Stream network -> OPFS disk; never hold the whole file in memory.
+        await response.body.pipeThrough(progressStream(onProgress, total)).pipeTo(writable);
+        if (onProgress) onProgress(100);
+        return await fileHandle.getFile();
     }
 
     if (updateModel) {
@@ -127,48 +130,30 @@ async function getModelOPFS(name, url, updateModel, onProgress) {
     }
 
     try {
-        fileHandle = await root.getFileHandle(name);
-        const blob = await fileHandle.getFile();
-        let buffer = await blob.arrayBuffer();
-        if (buffer) {
-            if (onProgress) onProgress(100);
-            return buffer;
-        }
+        const fileHandle = await root.getFileHandle(name);
+        const blob = await fileHandle.getFile(); // cached: File == Blob, read lazily
+        if (onProgress) onProgress(100);
+        return blob;
     } catch (e) {
         console.log(e.message);
         return await updateFile();
     }
 }
 
-async function readResponse(response, onProgress) {
-    const contentLength = response.headers.get("Content-Length");
-    let total = parseInt(contentLength ?? "0");
-    let buffer = new Uint8Array(total);
-    let loadedByteCount = 0;
-
-    const reader = response.body.getReader();
-    async function read() {
-        const { done, value } = await reader.read();
-        if (done) return;
-
-        let newLoadedByteCount = loadedByteCount + value.length;
-        let fetchProgress = total > 0 ? (newLoadedByteCount / total) * 100 : 100;
-
-        if (onProgress) onProgress(fetchProgress);
-
-        if (newLoadedByteCount > total) {
-            total = newLoadedByteCount;
-            let newBuffer = new Uint8Array(total);
-            newBuffer.set(buffer);
-            buffer = newBuffer;
-        }
-        buffer.set(value, loadedByteCount);
-        loadedByteCount = newLoadedByteCount;
-        return read();
-    }
-
-    await read();
-    return buffer;
+// TransformStream that reports download progress without buffering the payload.
+function progressStream(onProgress, total) {
+    let loaded = 0;
+    return new TransformStream({
+        transform(chunk, controller) {
+            loaded += chunk.byteLength;
+            if (onProgress) {
+                // Cap at 99 while streaming; updateFile emits the final 100 once flushed to disk.
+                const percent = total > 0 ? (loaded / total) * 100 : 0;
+                onProgress(Math.min(99, percent));
+            }
+            controller.enqueue(chunk);
+        },
+    });
 }
 
 const isNormalMode = () => {
@@ -188,11 +173,12 @@ function mulberry32(seed) {
     };
 }
 
-// Create latents with normal(0,1) samples, returns { data: Float32Array, shape: number[] }
+// Create latents with normal(0,1) samples, returns { data: Float16Array, shape: number[] }.
+// float16 matches the transformer's hidden_states input.
 function createLatents(shape, seed = 42) {
     const size = shape.reduce((a, b) => a * b, 1);
     const rand = mulberry32(seed);
-    const out = new Float32Array(size);
+    const out = new Float16Array(size);
 
     // Box-Muller transform (generate pairs)
     for (let i = 0; i < size; i += 2) {
