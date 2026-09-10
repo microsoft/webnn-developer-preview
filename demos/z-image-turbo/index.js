@@ -53,10 +53,9 @@ let loading;
 const config = getConfig();
 let numInferenceSteps = 9;
 let timesteps = null;
-const dataType = "float32";
+const dataType = "float16";
 
 const maxSequenceLength = 512;
-const batchSize = 1;
 let resolution = 512;
 let currentResolution = resolution;
 let imageHeight = resolution;
@@ -66,19 +65,21 @@ let imageWidth = resolution;
 // So set the sequence length to a fixed value for now for internal testing.
 // TODO: Once WebNN supports dynamic shapes, we can remove this and use the actual sequence length from the text encoder inputs.
 let sequenceLength = 113;
+// Sequence length the cached text-encoder I/O tensors were built for (0 = none cached).
+let textEncoderSequenceLength = 0;
 
 const models = {
     text_encoder: {
         name: "Text Encoder",
         url: "text_encoder_model_q4f16.onnx",
-        externalDataUrl: "text_encoder_model_q4f16.onnx_data",
+        externalDataUrls: ["text_encoder_model_q4f16.onnx_data", "text_encoder_model_q4f16.onnx_data_1"],
         size: "2.06GB",
     },
     transformer: {
         name: "Transformer",
         url: "transformer_model_q4f16.onnx",
-        externalDataUrl: "transformer_model_q4f16.onnx_data",
-        size: "3.44GB",
+        externalDataUrls: ["transformer_model_q4f16.onnx_data", "transformer_model_q4f16.onnx_data_1"],
+        size: "3.41GB",
     },
     scheduler_step: {
         name: "Scheduler Step",
@@ -103,6 +104,7 @@ const models = {
     safety_checker: {
         name: "Safety Checker",
         url: "safety_checker_model_f16.onnx",
+        externalDataUrls: ["safety_checker_model_f16.onnx_data"],
         size: "580MB",
     },
 };
@@ -114,37 +116,31 @@ function updateModelDimensions(resolution) {
     if (config.provider === "webnn") {
         models["text_encoder"].opt = {
             freeDimensionOverrides: {
-                batch_size: batchSize,
                 sequence_length: sequenceLength,
                 total_sequence_length: sequenceLength,
             },
         };
         models["transformer"].opt = {
             freeDimensionOverrides: {
-                batch_size: batchSize,
-                num_frames: 1,
                 height: imageHeight / 8,
                 width: imageWidth / 8,
-                seq_len: sequenceLength,
+                cap_seq_len: sequenceLength,
             },
         };
         models["scheduler_step"].opt = {
             freeDimensionOverrides: {
-                batch: batchSize,
                 height: imageHeight / 8,
                 width: imageWidth / 8,
             },
         };
         models["vae_pre_process"].opt = {
             freeDimensionOverrides: {
-                batch: batchSize,
                 height: imageHeight / 8,
                 width: imageWidth / 8,
             },
         };
         models["vae_decoder"].opt = {
             freeDimensionOverrides: {
-                batch_size: batchSize,
                 latent_height: imageHeight / 8,
                 latent_width: imageWidth / 8,
             },
@@ -152,18 +148,8 @@ function updateModelDimensions(resolution) {
         if (config.safetyChecker) {
             models["sc_prep"].opt = {
                 freeDimensionOverrides: {
-                    batch: batchSize,
-                    channels: 3,
                     height: imageHeight,
                     width: imageWidth,
-                },
-            };
-            models["safety_checker"].opt = {
-                freeDimensionOverrides: {
-                    batch: batchSize,
-                    channels: 3,
-                    height: 224,
-                    width: 224,
                 },
             };
         }
@@ -175,53 +161,53 @@ function updateModelDimensions(resolution) {
     models["transformer"].inputInfo = {
         hidden_states: {
             dataType: dataType,
-            dims: [batchSize, 16, 1, imageHeight / 8, imageWidth / 8],
+            dims: [1, 16, imageHeight / 8, imageWidth / 8],
             writable: true,
         },
-        timestep: { dataType: dataType, dims: [batchSize], writable: true },
+        timestep: { dataType: dataType, dims: [1], writable: true },
     };
     models["transformer"].outputInfo = {
-        unified_results: { dataType: dataType, dims: [16, 1, imageHeight / 8, imageWidth / 8] },
+        sample: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
 
     models["scheduler_step"].inputInfo = {
-        noise_pred: { dataType: "float32", dims: [16, 1, imageHeight / 8, imageWidth / 8] },
-        latents: { dataType: "float32", dims: [batchSize, 16, 1, imageHeight / 8, imageWidth / 8] },
-        step_info: { dataType: "float32", dims: [2], writable: true },
+        noise_pred: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        latents: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        step_info: { dataType: dataType, dims: [2], writable: true },
     };
     models["scheduler_step"].outputInfo = {
         latents_out: {
-            dataType: "float32",
-            dims: [batchSize, 16, 1, imageHeight / 8, imageWidth / 8],
+            dataType: dataType,
+            dims: [1, 16, imageHeight / 8, imageWidth / 8],
         },
     };
 
     models["vae_pre_process"].inputInfo = {
-        latents: { dataType: "float32", dims: [batchSize, 16, 1, imageHeight / 8, imageWidth / 8] },
+        latents: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
     models["vae_pre_process"].outputInfo = {
-        scaled_latents: { dataType: "float32", dims: [batchSize, 16, imageHeight / 8, imageWidth / 8] },
+        scaled_latents: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
 
     models["vae_decoder"].inputInfo = {
-        latent_sample: { dataType: dataType, dims: [batchSize, 16, imageHeight / 8, imageWidth / 8] },
+        latent_sample: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
     models["vae_decoder"].outputInfo = {
-        sample: { dataType: dataType, dims: [batchSize, 3, imageHeight, imageWidth], readable: true },
+        sample: { dataType: dataType, dims: [1, 3, imageHeight, imageWidth], readable: true },
     };
 
     if (config.safetyChecker) {
         models["sc_prep"].inputInfo = {
-            sample: { dataType: dataType, dims: [batchSize, 3, imageHeight, imageWidth] },
+            sample: { dataType: dataType, dims: [1, 3, imageHeight, imageWidth] },
         };
         models["sc_prep"].outputInfo = {
-            clip_input: { dataType: dataType, dims: [batchSize, 3, 224, 224] },
+            clip_input: { dataType: dataType, dims: [1, 3, 224, 224] },
         };
         models["safety_checker"].inputInfo = {
-            clip_input: { dataType: dataType, dims: [batchSize, 3, 224, 224], writable: true },
+            clip_input: { dataType: dataType, dims: [1, 3, 224, 224], writable: true },
         };
         models["safety_checker"].outputInfo = {
-            has_nsfw_concepts: { dataType: "bool", dims: [batchSize], readable: true },
+            has_nsfw_concepts: { dataType: "bool", dims: [1], readable: true },
         };
     }
 }
@@ -278,7 +264,7 @@ class ProgressManager {
             const p = this.progress[key];
 
             let fetchProgress = p.fetch_base;
-            if (models[key] && models[key].externalDataUrl) {
+            if (models[key] && models[key].externalDataUrls) {
                 fetchProgress = p.fetch_base * 0.1 + p.fetch_data * 0.9;
             }
 
@@ -314,12 +300,14 @@ async function loadModels(models) {
         for (const [name, model] of Object.entries(models)) {
             const modelNameInLog = model.name;
             let start = performance.now();
-            let modelUrl = `${config.model}/onnx/${model.url}`;
-            if (modelUrl.includes("huggingface.co")) {
+            // Base directory shared by the model graph and its sibling external data files.
+            let baseUrl = `${config.model}/onnx`;
+            if (baseUrl.includes("huggingface.co")) {
                 await getHuggingFaceDomain().then(domain => {
-                    modelUrl = modelUrl.replace("huggingface.co", domain);
+                    baseUrl = baseUrl.replace("huggingface.co", domain);
                 });
             }
+            const modelUrl = `${baseUrl}/${model.url}`;
             log(`[Load] Loading model ${modelNameInLog} · ${model.size}`);
             const modelBuffer = await WebNNPerf.time(
                 "webnn.model.fetch",
@@ -329,25 +317,34 @@ async function loadModels(models) {
                     ),
                 { model: name },
             );
-            if (model.externalDataUrl) {
-                const externalDataBytes = await WebNNPerf.time(
-                    "webnn.model.fetch",
-                    () =>
-                        getModelOPFS(
-                            `zimage-${modelUrl.replace(/\//g, "_")}.data`,
-                            modelUrl.replace(".onnx", ".onnx_data"),
-                            false,
-                            p => progressManager.update(name, "fetch_data", p),
-                        ),
-                    { model: `${name}-data` },
-                );
+            if (model.externalDataUrls) {
                 model.opt = model.opt || {};
-                model.opt.externalData = [
-                    {
-                        data: externalDataBytes,
-                        path: model.externalDataUrl,
-                    },
-                ];
+                model.opt.externalData = [];
+
+                // Combine per-file download progress into the single fetch_data percentage.
+                const dataProgress = new Array(model.externalDataUrls.length).fill(0);
+                const reportDataProgress = () => {
+                    const average = dataProgress.reduce((a, b) => a + b, 0) / dataProgress.length;
+                    progressManager.update(name, "fetch_data", average);
+                };
+
+                for (let i = 0; i < model.externalDataUrls.length; i++) {
+                    const dataFileName = model.externalDataUrls[i];
+                    const dataUrl = `${baseUrl}/${dataFileName}`;
+                    const externalDataBlob = await WebNNPerf.time(
+                        "webnn.model.fetch",
+                        () =>
+                            getModelOPFS(`zimage-${dataUrl.replace(/\//g, "_")}`, dataUrl, false, p => {
+                                dataProgress[i] = p;
+                                reportDataProgress();
+                            }),
+                        { model: `${name}-data-${i}` },
+                    );
+                    model.opt.externalData.push({
+                        data: externalDataBlob,
+                        path: dataFileName,
+                    });
+                }
             }
 
             const modelFetchTime = (performance.now() - start).toFixed(2);
@@ -371,7 +368,10 @@ async function loadModels(models) {
             };
             start = performance.now();
             console.log(sessOpt);
-            models[name].sess = await ort.InferenceSession.create(modelBuffer, sessOpt);
+            // InferenceSession.create accepts string | Uint8Array | ArrayBuffer, not a Blob/File,
+            // so materialize the (small) model graph here; the large weights stay as Blobs in externalData.
+            const modelArrayBuffer = await modelBuffer.arrayBuffer();
+            models[name].sess = await ort.InferenceSession.create(modelArrayBuffer, sessOpt);
             const sessionCreationTime = (performance.now() - start).toFixed(2);
 
             if (dom[name]) {
@@ -511,24 +511,42 @@ async function readTensor(tensor, targetBuffer) {
     }
 }
 
-function disposeTensors() {
-    // Release tensors
-    for (const model of Object.values(models)) {
-        const tensors = [...Object.values(model.feed), ...Object.values(model.fetches)];
-        for (const tensor of tensors) {
-            if (tensor) {
-                if (tensor.disposer == undefined) {
-                    if (tensor.dataLocation == "ml-tensor") {
-                        tensor.mlTensorData.destroy();
-                    } else if (tensor.dataLocation == "gpu-buffer") {
-                        tensor.gpuBufferData.destroy();
-                    }
-                } else {
-                    tensor.dispose();
-                }
+// Release a list of IO-binding tensors, skipping duplicates. Inputs routinely alias another
+// model's output (the same GPU buffer / ML tensor), which must not be destroyed twice.
+function disposeTensorList(tensors) {
+    const seen = new Set();
+    for (const tensor of tensors) {
+        if (!tensor || seen.has(tensor)) {
+            continue;
+        }
+        seen.add(tensor);
+        if (tensor.disposer == undefined) {
+            if (tensor.dataLocation == "ml-tensor") {
+                tensor.mlTensorData.destroy();
+            } else if (tensor.dataLocation == "gpu-buffer") {
+                tensor.gpuBufferData.destroy();
             }
+        } else {
+            tensor.dispose();
         }
     }
+}
+
+function disposeTensors() {
+    const tensors = [];
+    for (const model of Object.values(models)) {
+        tensors.push(...Object.values(model.feed ?? {}), ...Object.values(model.fetches ?? {}));
+    }
+    disposeTensorList(tensors);
+}
+
+// Text encoder I/O tensors are sized by the (prompt-dependent) sequence length and cached across
+// runs; release them explicitly when the length changes or on teardown.
+function disposeTextEncoderTensors() {
+    disposeTensorList([
+        ...Object.values(models["text_encoder"].feed ?? {}),
+        ...Object.values(models["text_encoder"].fetches ?? {}),
+    ]);
 }
 
 async function initializeTensors() {
@@ -539,8 +557,11 @@ async function initializeTensors() {
         // "attention_mask": await createTensor(models["text_encoder"].inputInfo.attention_mask),
     };
     models["text_encoder"].fetches = {
-        // "encoder_hidden_state": await createTensor(models["text_encoder"].outputInfo["encoder_hidden_state"]),
+        // "encoder_hidden_states": await createTensor(models["text_encoder"].outputInfo["encoder_hidden_states"]),
     };
+    // Any previously cached text-encoder tensors were released by the caller's disposeTensors();
+    // invalidate the cache so generateImage rebuilds them for the current sequence length.
+    textEncoderSequenceLength = 0;
 
     // transformer
     models["transformer"].feed = {
@@ -550,12 +571,12 @@ async function initializeTensors() {
         // encoder_hidden_states: await createTensor(models["transformer"].inputInfo.encoder_hidden_states),
     };
     models["transformer"].fetches = {
-        unified_results: await createTensor(models["transformer"].outputInfo.unified_results),
+        sample: await createTensor(models["transformer"].outputInfo.sample),
     };
 
     // scheduler_step
     models["scheduler_step"].feed = {
-        noise_pred: models["transformer"].fetches.unified_results,
+        noise_pred: models["transformer"].fetches.sample,
         latents: models["transformer"].feed.hidden_states,
         step_info: await createTensor(models["scheduler_step"].inputInfo.step_info),
     };
@@ -659,22 +680,19 @@ async function generateImage() {
         sequenceLength = promptInputs.sequenceLength;
 
         console.log("Sequence Length:", sequenceLength);
-        // Since the tensors of Text Encoder dynamically allocated according to the effective sequence length,
-        // we need to create the tensor here.
-        models["text_encoder"].feed = {
-            input_ids: await createTensor({ dataType: "int64", dims: [batchSize, sequenceLength], writable: true }),
-            attention_mask: await createTensor({
-                dataType: "int64",
-                dims: [batchSize, sequenceLength],
-                writable: true,
-            }),
-        };
-        models["text_encoder"].fetches = {
-            encoder_hidden_state: await createTensor({
-                dataType: dataType,
-                dims: [batchSize, sequenceLength, 2560],
-            }),
-        };
+        // Text encoder I/O tensors are sized by the effective sequence length. Rebuild them only
+        // when it changes; otherwise reuse the cached tensors to avoid per-run alloc/free churn.
+        if (textEncoderSequenceLength !== sequenceLength) {
+            disposeTextEncoderTensors();
+            models["text_encoder"].feed = {
+                input_ids: await createTensor({ dataType: "int64", dims: [1, sequenceLength], writable: true }),
+                attention_mask: await createTensor({ dataType: "int64", dims: [1, sequenceLength], writable: true }),
+            };
+            models["text_encoder"].fetches = {
+                encoder_hidden_states: await createTensor({ dataType: dataType, dims: [1, sequenceLength, 2560] }),
+            };
+            textEncoderSequenceLength = sequenceLength;
+        }
 
         writeTensor(models["text_encoder"].feed.input_ids, promptInputs.inputIds);
         writeTensor(models["text_encoder"].feed.attention_mask, promptInputs.attentionMask);
@@ -689,7 +707,7 @@ async function generateImage() {
             log(`[Session Run] Text Encoder completed`);
         }
 
-        // Use JS to generate latents (faster for simple random generation)
+        // Use JS to generate latents (faster for simple random generation).
         const latents = createLatents(models["transformer"].inputInfo.hidden_states.dims, $("#seed-input").value).data;
 
         // Capture original tensors to restore later
@@ -697,6 +715,12 @@ async function generateImage() {
         const tensorB = models["scheduler_step"].fetches.latents_out;
 
         writeTensor(tensorA, latents);
+
+        // encoder_hidden_states is produced once by the text encoder and unchanged across steps,
+        // so bind it before the loop. Reuse small scratch arrays for the per-step scalar writes.
+        models["transformer"].feed.encoder_hidden_states = models["text_encoder"].fetches["encoder_hidden_states"];
+        const timestepData = new Float16Array(1);
+        const stepInfoData = new Float16Array(2);
 
         for (let i = 0; i < numInferenceSteps; i++) {
             if (config.useIOBinding && config.provider === "webnn") {
@@ -708,9 +732,8 @@ async function generateImage() {
                 totalData.style.setProperty("--progress", `${((i + 1) / numInferenceSteps) * 100}%`);
             }
             start = performance.now();
-            // Prepare inference for VAE Decoder
-            models["transformer"].feed.encoder_hidden_states = models["text_encoder"].fetches["encoder_hidden_state"];
-            writeTensor(models["transformer"].feed.timestep, new Float32Array([timesteps[i]]));
+            timestepData[0] = timesteps[i];
+            writeTensor(models["transformer"].feed.timestep, timestepData);
 
             // Run Transformer
             await runModel(models["transformer"]);
@@ -724,8 +747,9 @@ async function generateImage() {
 
             // Use ONNX helper model for the scheduler Euler step
             start = performance.now();
-            writeTensor(models["scheduler_step"].feed.step_info, new Float32Array([i, numInferenceSteps]));
-
+            stepInfoData[0] = i;
+            stepInfoData[1] = numInferenceSteps;
+            writeTensor(models["scheduler_step"].feed.step_info, stepInfoData);
             await runModel(models["scheduler_step"]);
 
             // Ping-pong buffer swap to avoid using same tensor as input and output
@@ -763,7 +787,7 @@ async function generateImage() {
         await runModel(models["vae_decoder"]);
 
         const pixelsSize = sizeOfShape(models["vae_decoder"].outputInfo.sample.dims);
-        const pixels = new Float32Array(pixelsSize);
+        const pixels = new Float16Array(pixelsSize);
         await readTensor(models["vae_decoder"].fetches.sample, pixels);
 
         let vaeRunTime = (performance.now() - start).toFixed(2);
@@ -801,7 +825,7 @@ async function generateImage() {
             await runModel(models["safety_checker"]);
 
             // 3. Read Results
-            let nsfwBuffer = new Uint8Array(batchSize);
+            let nsfwBuffer = new Uint8Array(1);
             await readTensor(models["safety_checker"].fetches.has_nsfw_concepts, nsfwBuffer);
 
             const totalScRunTime = (performance.now() - start).toFixed(2);
@@ -834,24 +858,8 @@ async function generateImage() {
         models["scheduler_step"].feed.latents = tensorA;
         models["scheduler_step"].fetches.latents_out = tensorB;
 
-        // Dispose intermediate tensors to free memory
-        const tensorsToDispose = [
-            ...Object.values(models["text_encoder"].feed),
-            ...Object.values(models["text_encoder"].fetches),
-        ];
-        for (const tensor of tensorsToDispose) {
-            if (tensor) {
-                if (tensor.disposer == undefined) {
-                    if (tensor.dataLocation == "ml-tensor") {
-                        tensor.mlTensorData.destroy();
-                    } else if (tensor.dataLocation == "gpu-buffer") {
-                        tensor.gpuBufferData.destroy();
-                    }
-                } else {
-                    tensor.dispose();
-                }
-            }
-        }
+        // Text encoder tensors are cached and reused across runs (see the sequence-length gate
+        // above); they are released when the length changes or on teardown, not every run.
         generate.disabled = false;
         prompt.disabled = false;
         $("#resolution-select").disabled = false;
@@ -968,7 +976,7 @@ const ui = async () => {
         dev.setAttribute("class", "mt-1");
     }
 
-    await setupORT("z-image-turbo", "stable");
+    await setupORT("z-image-turbo", "stable", "jspi");
     showCompatibleChromiumVersion("z-image-turbo");
 
     for (const [modelName, prefix] of Object.entries(modelDOMPrefixes)) {
