@@ -53,6 +53,7 @@ let loading;
 const config = getConfig();
 let numInferenceSteps = 9;
 let timesteps = null;
+const dataType = "float16";
 
 const maxSequenceLength = 512;
 let resolution = 512;
@@ -65,7 +66,7 @@ let imageWidth = resolution;
 // TODO: Once WebNN supports dynamic shapes, we can remove this and use the actual sequence length from the text encoder inputs.
 let sequenceLength = 113;
 // Sequence length the cached text-encoder I/O tensors were built for (0 = none cached).
-let textEncoderSeqLen = 0;
+let textEncoderSequenceLength = 0;
 
 const models = {
     text_encoder: {
@@ -159,51 +160,51 @@ function updateModelDimensions(resolution) {
 
     models["transformer"].inputInfo = {
         hidden_states: {
-            dataType: "float16",
+            dataType: dataType,
             dims: [1, 16, imageHeight / 8, imageWidth / 8],
             writable: true,
         },
-        timestep: { dataType: "float16", dims: [1], writable: true },
+        timestep: { dataType: dataType, dims: [1], writable: true },
     };
     models["transformer"].outputInfo = {
-        sample: { dataType: "float16", dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        sample: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
 
     models["scheduler_step"].inputInfo = {
-        noise_pred: { dataType: "float16", dims: [1, 16, imageHeight / 8, imageWidth / 8] },
-        latents: { dataType: "float16", dims: [1, 16, imageHeight / 8, imageWidth / 8] },
-        step_info: { dataType: "float16", dims: [2], writable: true },
+        noise_pred: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        latents: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        step_info: { dataType: dataType, dims: [2], writable: true },
     };
     models["scheduler_step"].outputInfo = {
         latents_out: {
-            dataType: "float16",
+            dataType: dataType,
             dims: [1, 16, imageHeight / 8, imageWidth / 8],
         },
     };
 
     models["vae_pre_process"].inputInfo = {
-        latents: { dataType: "float16", dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        latents: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
     models["vae_pre_process"].outputInfo = {
-        scaled_latents: { dataType: "float16", dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        scaled_latents: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
 
     models["vae_decoder"].inputInfo = {
-        latent_sample: { dataType: "float16", dims: [1, 16, imageHeight / 8, imageWidth / 8] },
+        latent_sample: { dataType: dataType, dims: [1, 16, imageHeight / 8, imageWidth / 8] },
     };
     models["vae_decoder"].outputInfo = {
-        sample: { dataType: "float16", dims: [1, 3, imageHeight, imageWidth], readable: true },
+        sample: { dataType: dataType, dims: [1, 3, imageHeight, imageWidth], readable: true },
     };
 
     if (config.safetyChecker) {
         models["sc_prep"].inputInfo = {
-            sample: { dataType: "float16", dims: [1, 3, imageHeight, imageWidth] },
+            sample: { dataType: dataType, dims: [1, 3, imageHeight, imageWidth] },
         };
         models["sc_prep"].outputInfo = {
-            clip_input: { dataType: "float16", dims: [1, 3, 224, 224] },
+            clip_input: { dataType: dataType, dims: [1, 3, 224, 224] },
         };
         models["safety_checker"].inputInfo = {
-            clip_input: { dataType: "float16", dims: [1, 3, 224, 224], writable: true },
+            clip_input: { dataType: dataType, dims: [1, 3, 224, 224], writable: true },
         };
         models["safety_checker"].outputInfo = {
             has_nsfw_concepts: { dataType: "bool", dims: [1], readable: true },
@@ -323,8 +324,8 @@ async function loadModels(models) {
                 // Combine per-file download progress into the single fetch_data percentage.
                 const dataProgress = new Array(model.externalDataUrls.length).fill(0);
                 const reportDataProgress = () => {
-                    const avg = dataProgress.reduce((a, b) => a + b, 0) / dataProgress.length;
-                    progressManager.update(name, "fetch_data", avg);
+                    const average = dataProgress.reduce((a, b) => a + b, 0) / dataProgress.length;
+                    progressManager.update(name, "fetch_data", average);
                 };
 
                 for (let i = 0; i < model.externalDataUrls.length; i++) {
@@ -510,8 +511,8 @@ async function readTensor(tensor, targetBuffer) {
     }
 }
 
-// Release a list of IO-binding tensors, skipping duplicates. Feeds routinely alias another
-// model's fetch (the same GPU buffer / ML tensor), which must not be destroyed twice.
+// Release a list of IO-binding tensors, skipping duplicates. Inputs routinely alias another
+// model's output (the same GPU buffer / ML tensor), which must not be destroyed twice.
 function disposeTensorList(tensors) {
     const seen = new Set();
     for (const tensor of tensors) {
@@ -560,7 +561,7 @@ async function initializeTensors() {
     };
     // Any previously cached text-encoder tensors were released by the caller's disposeTensors();
     // invalidate the cache so generateImage rebuilds them for the current sequence length.
-    textEncoderSeqLen = 0;
+    textEncoderSequenceLength = 0;
 
     // transformer
     models["transformer"].feed = {
@@ -681,16 +682,16 @@ async function generateImage() {
         console.log("Sequence Length:", sequenceLength);
         // Text encoder I/O tensors are sized by the effective sequence length. Rebuild them only
         // when it changes; otherwise reuse the cached tensors to avoid per-run alloc/free churn.
-        if (textEncoderSeqLen !== sequenceLength) {
+        if (textEncoderSequenceLength !== sequenceLength) {
             disposeTextEncoderTensors();
             models["text_encoder"].feed = {
                 input_ids: await createTensor({ dataType: "int64", dims: [1, sequenceLength], writable: true }),
                 attention_mask: await createTensor({ dataType: "int64", dims: [1, sequenceLength], writable: true }),
             };
             models["text_encoder"].fetches = {
-                encoder_hidden_states: await createTensor({ dataType: "float16", dims: [1, sequenceLength, 2560] }),
+                encoder_hidden_states: await createTensor({ dataType: dataType, dims: [1, sequenceLength, 2560] }),
             };
-            textEncoderSeqLen = sequenceLength;
+            textEncoderSequenceLength = sequenceLength;
         }
 
         writeTensor(models["text_encoder"].feed.input_ids, promptInputs.inputIds);
