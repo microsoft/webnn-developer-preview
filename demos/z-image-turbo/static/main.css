@@ -228,7 +228,11 @@ h1.title span {
 }
 
 #data_area div.steps-progress {
-    background-color: color-mix(in srgb, var(--pink) calc(100% - var(--progress, 0%)), var(--green) var(--progress, 0%));
+    background-color: color-mix(
+        in srgb,
+        var(--pink) calc(100% - var(--progress, 0%)),
+        var(--green) var(--progress, 0%)
+    );
     position: relative;
     overflow: hidden;
 }
@@ -511,12 +515,14 @@ h1.title span {
     display: none;
 }
 
-.frame.done.nsfw {
+/* Scoped to .frame.nsfw rather than .frame.done.nsfw so the same treatment covers the step
+   previews, which are screened and blurred as they arrive, before the frame reaches "done". */
+.frame.nsfw {
     border: 1px solid white;
     position: relative;
 }
 
-.frame.done.nsfw::after {
+.frame.nsfw::after {
     content: "NSFW";
     position: absolute;
     bottom: 8px;
@@ -530,11 +536,11 @@ h1.title span {
     pointer-events: none;
 }
 
-.frame.done.nsfw:hover {
+.frame.nsfw:hover {
     border: 1px solid rgba(191, 0, 0, 1);
 }
 
-.frame.done.nsfw canvas {
+.frame.nsfw canvas {
     filter: blur(20px);
     opacity: 0.6;
 }
@@ -543,6 +549,89 @@ h1.title span {
     display: inline-block;
     border-radius: 5px;
     box-shadow: inset 0 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Steps preview: the canvas has to be visible while generating, not only once the frame is done,
+   so each decoded step lands on screen as it arrives. */
+.frame.previewing canvas {
+    display: inline-block;
+    border-radius: 5px;
+    box-shadow: inset 0 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.frame.previewing .loadwave-data,
+.frame.previewing .loadwave-effect {
+    display: none;
+}
+
+.step-strip {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    overflow-x: auto;
+    /* Without this, overflow-x: auto computes overflow-y to auto as well, and the strip grows a
+       vertical scrollbar as soon as the column squeezes it below its content height. */
+    overflow-y: hidden;
+    /* Keep the natural height: the column must take space from the image, not from the strip. */
+    flex: 0 0 auto;
+    padding-bottom: 4px;
+    width: 100%;
+    max-width: 512px;
+}
+
+.step-strip.hide {
+    display: none;
+}
+
+.step-thumb {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.step-thumb canvas {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background-color: var(--main-alpha-2);
+}
+
+.step-thumb span {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--font-weak);
+    letter-spacing: 0.03em;
+}
+
+.step-thumb.active canvas {
+    outline: 2px solid var(--main);
+    outline-offset: -1px;
+}
+
+.step-thumb.active span {
+    color: var(--main);
+}
+
+/* Each step carries its own safety-checker verdict, so the blur is per thumbnail. */
+.step-thumb.nsfw canvas {
+    filter: blur(8px);
+    opacity: 0.6;
+}
+
+.step-thumb.nsfw span {
+    color: var(--pink);
+}
+
+.preview-cost {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 400;
+    opacity: 0.7;
 }
 
 .grid .frame svg {
@@ -988,6 +1077,23 @@ h1.title span {
     height: 100%;
 }
 
+/* With the strip visible the column holds two children. The image area takes whatever the strip
+   leaves instead of claiming the full height, and the frame is bound by that rather than by the
+   viewport-derived 100cqmin, which would otherwise overflow the column. The 512px cap on #img_div
+   still applies, so the 512 layout is unchanged. */
+.layout-right:has(#step_strip:not(.hide)) #image_area {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.layout-right:has(#step_strip:not(.hide)) #img_div {
+    height: 100% !important;
+}
+
 .layout-right #img_div {
     height: 100cqmin !important;
     max-width: 512px;
@@ -1167,6 +1273,19 @@ h1.title span {
 .controls-panel #seed-input:focus,
 .controls-panel #steps-input:focus {
     outline: none;
+}
+
+.controls-panel #show-steps {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: var(--main);
+    cursor: pointer;
+}
+
+.controls-panel #show-steps:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .controls-panel #random-seed {
