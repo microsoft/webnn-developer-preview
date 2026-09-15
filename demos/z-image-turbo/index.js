@@ -55,15 +55,15 @@ let numInferenceSteps = 9;
 let timesteps = null;
 const dataType = "float16";
 
-// Upper bound of #steps-input; the latent ring is sized for it so changing the step count
-// never forces a reallocation.
+// Upper bound of #steps-input, mirroring its max attribute.
 const maxInferenceSteps = 9;
 // Pre-allocated latent tensors bound round-robin across the denoising loop: step i reads
-// latentRing[i] and writes latentRing[i + 1]. A ring of 2 is the classic ping-pong (nothing is
-// kept); a ring of maxInferenceSteps + 1 additionally leaves every intermediate latent intact
-// for the step previews, at zero cost inside the loop — the steps already rebind every run.
+// latentRing[i] and writes latentRing[i + 1]. Two is always enough, whatever the step count —
+// the loop is a strict serial chain and each preview decodes its latent in the same iteration
+// that produced it, so nothing outlives the next rebind.
 let latentRing = [];
-// Whether the user asked for per-step previews. Drives the ring size, so changing it rebuilds tensors.
+// Whether the user asked for per-step previews. Flips the IO binding mode, so changing it
+// rebuilds tensors.
 let showSteps = false;
 // Effective IO binding, forced off by step previews: only then is every session.run() a sync point,
 // which is what makes total - previewMs exact. It also makes the pipeline slower, so the
@@ -73,10 +73,12 @@ let useIOBinding = config.useIOBinding;
 let stepCanvases = [];
 // Off-screen copy of the final image, so clicking a thumbnail can swap the main canvas back.
 let finalCanvas = null;
-// Below this denoising progress a preview is still mostly noise: nothing recognizable to screen,
-// and the safety checker false-positives on it. timesteps[] runs 0 -> 1; at 9 steps this screens
-// from step 5 on.
-const safetyCheckMinProgress = 0.3;
+// How many trailing previews go through the safety checker. Content only becomes legible in the
+// last couple of steps; before that the latent is still mostly noise, which CLIP embeds into a
+// meaningless vector and the checker false-positives on. A fixed tail rather than a noise-level
+// threshold, because fewer steps mean bigger jumps: this covers 2 of 2 previews at 3 steps and
+// 2 of 8 at 9, which is the direction that matches what the frames actually look like.
+const screenedPreviews = 2;
 
 const maxSequenceLength = 512;
 let resolution = 512;
@@ -590,14 +592,12 @@ async function initializeTensors() {
     // invalidate the cache so generateImage rebuilds them for the current sequence length.
     textEncoderSequenceLength = 0;
 
-    // Latent ring. Only the first member is written from JS (the initial noise), so it carries the
-    // writable flag; the rest are pure scheduler outputs. Without previews this is exactly the
-    // two-tensor ping-pong the loop used before.
-    const ringSize = showSteps ? maxInferenceSteps + 1 : 2;
-    latentRing = [await createTensor(models["transformer"].inputInfo.hidden_states)];
-    for (let i = 1; i < ringSize; i++) {
-        latentRing.push(await createTensor(models["scheduler_step"].outputInfo.latents_out));
-    }
+    // Latent ring — the classic two-tensor ping-pong. Only the first member is written from JS
+    // (the initial noise), so it carries the writable flag; the second is a pure scheduler output.
+    latentRing = [
+        await createTensor(models["transformer"].inputInfo.hidden_states),
+        await createTensor(models["scheduler_step"].outputInfo.latents_out),
+    ];
 
     // transformer
     models["transformer"].feed = {
@@ -792,9 +792,8 @@ async function generateImage() {
             log(`[Session Run] Step previews run without IO binding; total is not comparable to the default mode`);
         }
         if (showSteps && config.safetyChecker) {
-            // findIndex over timesteps[] gives the loop index + 1 of the first screened preview,
-            // which is also that preview's 1-based step number.
-            const firstScreened = timesteps.findIndex(p => p >= safetyCheckMinProgress);
+            // The last preview is step numInferenceSteps - 1, so the screened tail starts here.
+            const firstScreened = numInferenceSteps - screenedPreviews;
             log(`[Session Run] Step previews screened from step ${firstScreened}; earlier steps are still noise`);
         }
 
@@ -877,14 +876,13 @@ async function generateImage() {
                 totalData.style.setProperty("--progress", `${((i + 1) / numInferenceSteps) * 100}%`);
             }
 
-            // Round-robin over the ring: read latentRing[inIdx], write latentRing[outIdx]. With a
-            // ring of 2 this is the former ping-pong; with a larger ring every step's latent
-            // survives for the preview pass. Rebinding costs nothing — every run rebinds anyway.
-            const inIdx = i % latentRing.length;
-            const outIdx = (i + 1) % latentRing.length;
-            models["transformer"].feed.hidden_states = latentRing[inIdx];
-            models["scheduler_step"].feed.latents = latentRing[inIdx];
-            models["scheduler_step"].fetches.latents_out = latentRing[outIdx];
+            // Round-robin over the ring: read latentRing[inputIndex], write latentRing[outputIndex].
+            // Rebinding costs nothing — every run rebinds anyway.
+            const inputIndex = i % latentRing.length;
+            const outputIndex = (i + 1) % latentRing.length;
+            models["transformer"].feed.hidden_states = latentRing[inputIndex];
+            models["scheduler_step"].feed.latents = latentRing[inputIndex];
+            models["scheduler_step"].fetches.latents_out = latentRing[outputIndex];
 
             start = performance.now();
             timestepData[0] = timesteps[i];
@@ -922,13 +920,13 @@ async function generateImage() {
                 // No fence needed: previews force IO binding off, so the denoising step above has
                 // already downloaded its output and nothing of it is left in flight to leak in here.
                 const previewStart = performance.now();
-                models["vae_pre_process"].feed.latents = latentRing[outIdx];
+                models["vae_pre_process"].feed.latents = latentRing[outputIndex];
                 await runModel(models["vae_pre_process"]);
                 await runModel(models["vae_decoder"]);
                 await readTensor(models["vae_decoder"].fetches.sample, pixels);
                 // Screen the frame before it reaches the screen, otherwise the whole generation
                 // plays unfiltered and only the final image gets blurred.
-                const screen = config.safetyChecker && timesteps[i + 1] >= safetyCheckMinProgress;
+                const screen = config.safetyChecker && i >= numInferenceSteps - 1 - screenedPreviews;
                 const flagged = screen ? await checkNsfw(nsfwBuffer) : false;
                 drawImage(pixels, imageHeight, imageWidth, stepCanvases[i]);
                 stepCanvases[i].parentElement.classList.toggle("nsfw", flagged);
@@ -1226,11 +1224,11 @@ const ui = async () => {
         e.target.value = val;
         numInferenceSteps = val;
         timesteps = updateScheduler(numInferenceSteps);
-        // The ring is sized for maxInferenceSteps, so only the strip needs to follow.
+        // The latent ring is step-count independent, so only the strip needs to follow.
         buildStepStrip();
     });
 
-    // Step previews. The latent ring is sized from this flag, so flipping it rebuilds the tensors.
+    // Step previews. This flag flips the IO binding mode, so toggling it rebuilds the tensors.
     finalCanvas = document.createElement("canvas");
     const showStepsInput = $("#show-steps");
     showStepsInput.addEventListener("change", async () => {
@@ -1239,7 +1237,7 @@ const ui = async () => {
         useIOBinding = config.useIOBinding && !showSteps;
         buildStepStrip();
         if (latentRing.length > 0) {
-            // Models are already loaded; rebuild every tensor for the new binding mode and ring size.
+            // Models are already loaded; rebuild every tensor for the new binding mode.
             await loading;
             disposeTensors();
             await initializeTensors();
