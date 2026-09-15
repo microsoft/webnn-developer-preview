@@ -55,6 +55,31 @@ let numInferenceSteps = 9;
 let timesteps = null;
 const dataType = "float16";
 
+// Upper bound of #steps-input, mirroring its max attribute.
+const maxInferenceSteps = 9;
+// Pre-allocated latent tensors bound round-robin across the denoising loop: step i reads
+// latentRing[i] and writes latentRing[i + 1]. Two is always enough, whatever the step count —
+// the loop is a strict serial chain and each preview decodes its latent in the same iteration
+// that produced it, so nothing outlives the next rebind.
+let latentRing = [];
+// Whether the user asked for per-step previews. Flips the IO binding mode, so changing it
+// rebuilds tensors.
+let showSteps = false;
+// Effective IO binding, forced off by step previews: only then is every session.run() a sync point,
+// which is what makes total - previewMs exact. It also makes the pipeline slower, so the
+// preview-mode total is not comparable to the default one.
+let useIOBinding = config.useIOBinding;
+// One canvas per step, holding that step's decoded preview at full resolution.
+let stepCanvases = [];
+// Off-screen copy of the final image, so clicking a thumbnail can swap the main canvas back.
+let finalCanvas = null;
+// How many trailing previews go through the safety checker. Content only becomes legible in the
+// last couple of steps; before that the latent is still mostly noise, which CLIP embeds into a
+// meaningless vector and the checker false-positives on. A fixed tail rather than a noise-level
+// threshold, because fewer steps mean bigger jumps: this covers 2 of 2 previews at 3 steps and
+// 2 of 8 at 9, which is the direction that matches what the frames actually look like.
+const screenedPreviews = 2;
+
 const maxSequenceLength = 512;
 let resolution = 512;
 let currentResolution = resolution;
@@ -429,7 +454,7 @@ const getDataTypeSize = dataType => {
 async function createTensor(tensorInfo) {
     let tensor;
     const numElements = sizeOfShape(tensorInfo.dims);
-    if (!config.useIOBinding) {
+    if (!useIOBinding) {
         let data;
         switch (tensorInfo.dataType) {
             case "float32":
@@ -471,7 +496,7 @@ async function createTensor(tensorInfo) {
 }
 
 function writeTensor(tensor, data) {
-    if (!config.useIOBinding) {
+    if (!useIOBinding) {
         tensor.data.set(data);
         return;
     }
@@ -498,7 +523,7 @@ function writeTensor(tensor, data) {
 }
 
 async function readTensor(tensor, targetBuffer) {
-    if (!config.useIOBinding) {
+    if (!useIOBinding) {
         targetBuffer.set(tensor.data);
         return;
     }
@@ -537,7 +562,11 @@ function disposeTensors() {
     for (const model of Object.values(models)) {
         tensors.push(...Object.values(model.feed ?? {}), ...Object.values(model.fetches ?? {}));
     }
+    // Ring members past the two currently bound ones are not reachable from any feed/fetches,
+    // so add them explicitly. disposeTensorList skips the duplicates.
+    tensors.push(...latentRing);
     disposeTensorList(tensors);
+    latentRing = [];
 }
 
 // Text encoder I/O tensors are sized by the (prompt-dependent) sequence length and cached across
@@ -563,9 +592,16 @@ async function initializeTensors() {
     // invalidate the cache so generateImage rebuilds them for the current sequence length.
     textEncoderSequenceLength = 0;
 
+    // Latent ring — the classic two-tensor ping-pong. Only the first member is written from JS
+    // (the initial noise), so it carries the writable flag; the second is a pure scheduler output.
+    latentRing = [
+        await createTensor(models["transformer"].inputInfo.hidden_states),
+        await createTensor(models["scheduler_step"].outputInfo.latents_out),
+    ];
+
     // transformer
     models["transformer"].feed = {
-        hidden_states: await createTensor(models["transformer"].inputInfo.hidden_states),
+        hidden_states: latentRing[0],
         timestep: await createTensor(models["transformer"].inputInfo.timestep),
         // Delay the creation of this tensor until needed, as the sequence length may change
         // encoder_hidden_states: await createTensor(models["transformer"].inputInfo.encoder_hidden_states),
@@ -577,11 +613,11 @@ async function initializeTensors() {
     // scheduler_step
     models["scheduler_step"].feed = {
         noise_pred: models["transformer"].fetches.sample,
-        latents: models["transformer"].feed.hidden_states,
+        latents: latentRing[0],
         step_info: await createTensor(models["scheduler_step"].inputInfo.step_info),
     };
     models["scheduler_step"].fetches = {
-        latents_out: await createTensor(models["scheduler_step"].outputInfo.latents_out),
+        latents_out: latentRing[1],
     };
 
     // vae_pre_process
@@ -618,8 +654,17 @@ async function initializeTensors() {
     }
 }
 
+// Screen whatever the VAE decoder last produced. sc_prep's input is bound to that output, so this
+// classifies the current frame — the final image or, during a preview, an intermediate step.
+async function checkNsfw(buffer) {
+    await runModel(models["sc_prep"]);
+    await runModel(models["safety_checker"]);
+    await readTensor(models["safety_checker"].fetches.has_nsfw_concepts, buffer);
+    return buffer[0] !== 0;
+}
+
 async function runModel(model) {
-    if (config.useIOBinding) {
+    if (useIOBinding) {
         await WebNNPerf.time("webnn.inference", () => model.sess.run(model.feed, model.fetches), {
             model: model.name || "unknown",
         });
@@ -637,14 +682,101 @@ async function runModel(model) {
     }
 }
 
+// #img_canvas is a pure display surface: the final image lives in finalCanvas and each step's
+// preview in stepCanvases[i], so a thumbnail click swaps what is shown without decoding anything.
+function showOnMainCanvas(source) {
+    const canvas = $("#img_canvas");
+    canvas.width = source.width;
+    canvas.height = source.height;
+    canvas.getContext("2d").drawImage(source, 0, 0);
+}
+
+// Blur and label the main frame when the image it shows was flagged by the safety checker.
+function setFrameNsfw(flagged) {
+    const frame = $("#img_div");
+    frame.classList.toggle("nsfw", flagged);
+    if (flagged) {
+        frame.setAttribute("title", "Not safe for work (NSFW) content");
+    } else {
+        frame.removeAttribute("title");
+    }
+}
+
+// Show a step's preview on the main canvas and mark it as the selected thumbnail. Silently ignores
+// steps that have not been decoded yet (their canvas is still zero-sized).
+function selectStep(index) {
+    const canvas = stepCanvases[index];
+    if (!canvas || canvas.width === 0) {
+        return;
+    }
+    showOnMainCanvas(canvas);
+    const thumbs = $$("#step_strip .step-thumb");
+    thumbs.forEach((thumb, i) => thumb.classList.toggle("active", i === index));
+    // Each step carries its own verdict, so switching steps can never unblur a flagged one.
+    setFrameNsfw(thumbs[index].classList.contains("nsfw"));
+}
+
+// Rebuild the strip to match the current step count. The thumbnails start zero-sized; drawImage
+// gives each one the full image resolution, and CSS scales it down for display.
+function buildStepStrip() {
+    const strip = $("#step_strip");
+    strip.classList.toggle("hide", !showSteps);
+    strip.replaceChildren();
+    stepCanvases = [];
+
+    if (!showSteps) {
+        return;
+    }
+
+    for (let i = 0; i < numInferenceSteps; i++) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 0;
+        canvas.height = 0;
+        const label = document.createElement("span");
+        label.textContent = i + 1;
+
+        const thumb = document.createElement("div");
+        thumb.className = "step-thumb";
+        thumb.title = `Step ${i + 1} of ${numInferenceSteps}`;
+        thumb.append(canvas, label);
+        thumb.addEventListener("click", () => selectStep(i));
+
+        strip.append(thumb);
+        stepCanvases.push(canvas);
+    }
+}
+
+// Clear the previous run's previews so a new run does not show stale steps.
+function resetStepStrip() {
+    if (!showSteps) {
+        return;
+    }
+    if (stepCanvases.length !== numInferenceSteps) {
+        buildStepStrip();
+        return;
+    }
+    for (const canvas of stepCanvases) {
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas.parentElement.classList.remove("active", "nsfw");
+    }
+}
+
+// Lock the controls that feed a run in progress. Toggling "Steps preview" or the step count
+// mid-run would resize the latent ring under the loop, so they are locked alongside the rest.
+function setControlsDisabled(disabled) {
+    generate.disabled = disabled;
+    prompt.disabled = disabled;
+    for (const id of ["#resolution-select", "#seed-input", "#random-seed", "#steps-input", "#show-steps"]) {
+        $(id).disabled = disabled;
+    }
+}
+
 async function generateImage() {
-    generate.disabled = true;
-    prompt.disabled = true;
-    $("#resolution-select").disabled = true;
-    $("#seed-input").disabled = true;
-    $("#random-seed").disabled = true;
+    setControlsDisabled(true);
     const imgDivs = $$("#image_area > div");
     imgDivs.forEach(div => div.setAttribute("class", "frame"));
+    resetStepStrip();
 
     try {
         dom["runTotal"].innerHTML = "";
@@ -656,6 +788,14 @@ async function generateImage() {
         totalData.setAttribute("class", "show");
 
         log(`[Session Run] Beginning`);
+        if (showSteps && config.useIOBinding) {
+            log(`[Session Run] Step previews run without IO binding; total is not comparable to the default mode`);
+        }
+        if (showSteps && config.safetyChecker) {
+            // The last preview is step numInferenceSteps - 1, so the screened tail starts here.
+            const firstScreened = numInferenceSteps - screenedPreviews;
+            log(`[Session Run] Step previews screened from step ${firstScreened}; earlier steps are still noise`);
+        }
 
         await loading;
 
@@ -710,11 +850,7 @@ async function generateImage() {
         // Use JS to generate latents (faster for simple random generation).
         const latents = createLatents(models["transformer"].inputInfo.hidden_states.dims, $("#seed-input").value).data;
 
-        // Capture original tensors to restore later
-        const tensorA = models["transformer"].feed.hidden_states;
-        const tensorB = models["scheduler_step"].fetches.latents_out;
-
-        writeTensor(tensorA, latents);
+        writeTensor(latentRing[0], latents);
 
         // encoder_hidden_states is produced once by the text encoder and unchanged across steps,
         // so bind it before the loop. Reuse small scratch arrays for the per-step scalar writes.
@@ -722,8 +858,16 @@ async function generateImage() {
         const timestepData = new Float16Array(1);
         const stepInfoData = new Float16Array(2);
 
+        // Decoded RGB, shared by the step previews and the final image to avoid per-step allocation.
+        const pixels = new Float16Array(sizeOfShape(models["vae_decoder"].outputInfo.sample.dims));
+        const nsfwBuffer = new Uint8Array(1);
+        // Wall-clock spent decoding and drawing the step previews, subtracted from the total.
+        let previewMs = 0;
+
         for (let i = 0; i < numInferenceSteps; i++) {
-            if (config.useIOBinding && config.provider === "webnn") {
+            // Previews turn IO binding off, so every step synchronizes and the counter is
+            // meaningful; with IO binding on WebNN, session.run() would not synchronize.
+            if (useIOBinding && config.provider === "webnn") {
                 progressText.innerHTML = "generating ...";
                 totalData.setAttribute("class", "show");
             } else {
@@ -731,6 +875,15 @@ async function generateImage() {
                 totalData.setAttribute("class", "show steps-progress");
                 totalData.style.setProperty("--progress", `${((i + 1) / numInferenceSteps) * 100}%`);
             }
+
+            // Round-robin over the ring: read latentRing[inputIndex], write latentRing[outputIndex].
+            // Rebinding costs nothing — every run rebinds anyway.
+            const inputIndex = i % latentRing.length;
+            const outputIndex = (i + 1) % latentRing.length;
+            models["transformer"].feed.hidden_states = latentRing[inputIndex];
+            models["scheduler_step"].feed.latents = latentRing[inputIndex];
+            models["scheduler_step"].fetches.latents_out = latentRing[outputIndex];
+
             start = performance.now();
             timestepData[0] = timesteps[i];
             writeTensor(models["transformer"].feed.timestep, timestepData);
@@ -752,25 +905,42 @@ async function generateImage() {
             writeTensor(models["scheduler_step"].feed.step_info, stepInfoData);
             await runModel(models["scheduler_step"]);
 
-            // Ping-pong buffer swap to avoid using same tensor as input and output
-            const nextInput = models["scheduler_step"].fetches.latents_out;
-            const nextOutput = models["scheduler_step"].feed.latents;
-
-            models["scheduler_step"].feed.latents = nextInput;
-            models["scheduler_step"].fetches.latents_out = nextOutput;
-
-            models["transformer"].feed.hidden_states = nextInput;
-
             const schedulerRunTime = (performance.now() - start).toFixed(2);
             if (isNormalMode()) {
                 log(`[Session Run] Scheduler step execution time ${i}: ${schedulerRunTime}ms`);
             } else {
                 log(`[Session Run] Scheduler step completed`);
             }
+
+            // Decode this step's latent for the preview. The last step is skipped: its preview is
+            // the final image, which the pipeline below decodes anyway. The whole block sits
+            // between two step timers, so its cost — including the read back's GPU sync — lands
+            // entirely inside previewMs.
+            if (showSteps && i < numInferenceSteps - 1) {
+                // No fence needed: previews force IO binding off, so the denoising step above has
+                // already downloaded its output and nothing of it is left in flight to leak in here.
+                const previewStart = performance.now();
+                models["vae_pre_process"].feed.latents = latentRing[outputIndex];
+                await runModel(models["vae_pre_process"]);
+                await runModel(models["vae_decoder"]);
+                await readTensor(models["vae_decoder"].fetches.sample, pixels);
+                // Screen the frame before it reaches the screen, otherwise the whole generation
+                // plays unfiltered and only the final image gets blurred.
+                const screen = config.safetyChecker && i >= numInferenceSteps - 1 - screenedPreviews;
+                const flagged = screen ? await checkNsfw(nsfwBuffer) : false;
+                drawImage(pixels, imageHeight, imageWidth, stepCanvases[i]);
+                stepCanvases[i].parentElement.classList.toggle("nsfw", flagged);
+                // The frame keeps showing the spinner until the first preview is ready; from here
+                // on "previewing" reveals the canvas so each step lands on screen. selectStep then
+                // carries this step's verdict onto the frame.
+                $("#img_div").setAttribute("class", "frame previewing");
+                selectStep(i);
+                previewMs += performance.now() - previewStart;
+            }
         }
 
         // Inference prepare for VAE Decoder
-        models["vae_pre_process"].feed.latents = models["transformer"].feed.hidden_states;
+        models["vae_pre_process"].feed.latents = latentRing[numInferenceSteps % latentRing.length];
 
         // Use ONNX helper model for squeeze + VAE scaling
         start = performance.now();
@@ -786,8 +956,6 @@ async function generateImage() {
         start = performance.now();
         await runModel(models["vae_decoder"]);
 
-        const pixelsSize = sizeOfShape(models["vae_decoder"].outputInfo.sample.dims);
-        const pixels = new Float16Array(pixelsSize);
         await readTensor(models["vae_decoder"].fetches.sample, pixels);
 
         let vaeRunTime = (performance.now() - start).toFixed(2);
@@ -799,13 +967,27 @@ async function generateImage() {
         }
 
         start = performance.now();
-        drawImage(pixels, imageHeight, imageWidth, $(`#img_canvas`));
+        // With previews off the image goes straight to the visible canvas, exactly as before. With
+        // previews on it is kept in finalCanvas so a thumbnail click can swap between the steps and
+        // the result, and the main canvas becomes a display surface.
+        drawImage(pixels, imageHeight, imageWidth, showSteps ? finalCanvas : $("#img_canvas"));
         const imageDrawTime = (performance.now() - start).toFixed(2);
         log(`[Image Drawing] drawing image time: ${imageDrawTime}ms`);
 
-        const totalRunTime = (performance.now() - startTotal).toFixed(2);
+        if (showSteps) {
+            // The extra blit exists only because previews are on, so it is charged to previewMs.
+            const blitStart = performance.now();
+            showOnMainCanvas(finalCanvas);
+            previewMs += performance.now() - blitStart;
+        }
+
+        const totalRunTime = (performance.now() - startTotal - previewMs).toFixed(2);
         if (isNormalMode()) {
-            log(`[Total] Total image generation time: ${totalRunTime}ms`);
+            log(
+                showSteps
+                    ? `[Total] Total image generation time: ${totalRunTime}ms (previews excluded: ${previewMs.toFixed(2)}ms)`
+                    : `[Total] Total image generation time: ${totalRunTime}ms`,
+            );
         }
         dom.runTotal.innerHTML = totalRunTime;
 
@@ -825,7 +1007,6 @@ async function generateImage() {
             await runModel(models["safety_checker"]);
 
             // 3. Read Results
-            let nsfwBuffer = new Uint8Array(1);
             await readTensor(models["safety_checker"].fetches.has_nsfw_concepts, nsfwBuffer);
 
             const totalScRunTime = (performance.now() - start).toFixed(2);
@@ -848,27 +1029,32 @@ async function generateImage() {
             $("#img_div").setAttribute("class", "frame done");
         }
 
+        if (showSteps) {
+            // The last step's preview is the final image; blit it instead of decoding it twice, and
+            // give it the verdict the safety checker just produced for that same image.
+            const lastThumb = stepCanvases[numInferenceSteps - 1];
+            lastThumb.width = finalCanvas.width;
+            lastThumb.height = finalCanvas.height;
+            lastThumb.getContext("2d").drawImage(finalCanvas, 0, 0);
+            lastThumb.parentElement.classList.toggle("nsfw", $("#img_div").classList.contains("nsfw"));
+            selectStep(numInferenceSteps - 1);
+        }
+
         totalData.setAttribute("class", "show");
         progressStatus.style.display = "none";
         finalTime.style.display = "block";
-        finalTime.innerHTML = `${totalRunTime}ms`;
-
-        // Restore original tensors for next run
-        models["transformer"].feed.hidden_states = tensorA;
-        models["scheduler_step"].feed.latents = tensorA;
-        models["scheduler_step"].fetches.latents_out = tensorB;
+        finalTime.innerHTML = showSteps
+            ? `${totalRunTime}ms<span class="preview-cost" title="Excludes the ${previewMs.toFixed(2)}ms spent decoding and drawing the ${numInferenceSteps - 1} step previews. Step previews change how the pipeline runs, so this total is not comparable to a run with Steps preview off.">+${previewMs.toFixed(2)}ms previews</span>`
+            : `${totalRunTime}ms`;
 
         // Text encoder tensors are cached and reused across runs (see the sequence-length gate
         // above); they are released when the length changes or on teardown, not every run.
-        generate.disabled = false;
-        prompt.disabled = false;
-        $("#resolution-select").disabled = false;
-        $("#seed-input").disabled = false;
-        $("#random-seed").disabled = false;
         log("[Info] Image generation completed");
     } catch (e) {
         logError("[Error] " + e);
-        return;
+    } finally {
+        // Re-enable on failure too, otherwise a single error leaves the demo permanently locked.
+        setControlsDisabled(false);
     }
 }
 
@@ -1034,10 +1220,28 @@ const ui = async () => {
     stepsInput.addEventListener("change", e => {
         let val = parseInt(e.target.value);
         if (val < 3) val = 3;
-        if (val > 9) val = 9;
+        if (val > maxInferenceSteps) val = maxInferenceSteps;
         e.target.value = val;
         numInferenceSteps = val;
         timesteps = updateScheduler(numInferenceSteps);
+        // The latent ring is step-count independent, so only the strip needs to follow.
+        buildStepStrip();
+    });
+
+    // Step previews. This flag flips the IO binding mode, so toggling it rebuilds the tensors.
+    finalCanvas = document.createElement("canvas");
+    const showStepsInput = $("#show-steps");
+    showStepsInput.addEventListener("change", async () => {
+        showSteps = showStepsInput.checked;
+        // Previews run without IO binding so that total - previewMs stays exact; see useIOBinding.
+        useIOBinding = config.useIOBinding && !showSteps;
+        buildStepStrip();
+        if (latentRing.length > 0) {
+            // Models are already loaded; rebuild every tensor for the new binding mode.
+            await loading;
+            disposeTensors();
+            await initializeTensors();
+        }
     });
 
     // Initialize resolution

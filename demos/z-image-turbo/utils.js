@@ -35,6 +35,9 @@ async function getTextEncoderInputs(prompt, maxSequenceLength) {
     return { inputIds, attentionMask, sequenceLength: inputIds.length };
 }
 
+/** @type {ImageData|null} Scratch RGBA buffer for drawImage, re-allocated only when the size changes. */
+let imageDataCache = null;
+
 /**
  * Draw image from pixel data, rescaling data -0.5 to 0.5 into pixels 0 to 255.
  * @param {Float32Array} pixels
@@ -44,7 +47,12 @@ async function getTextEncoderInputs(prompt, maxSequenceLength) {
  */
 function drawImage(pixels, height, width, canvas) {
     const channelSize = height * width;
-    const rgbaData = new Uint8ClampedArray(channelSize * 4);
+    // Reused so that step previews, which call this once per denoising step, do not leave megabytes
+    // of garbage mid-pipeline for the GC to collect at an arbitrary point.
+    if (imageDataCache?.width !== width || imageDataCache?.height !== height) {
+        imageDataCache = new ImageData(width, height);
+    }
+    const rgbaData = imageDataCache.data;
 
     for (let j = 0; j < channelSize; j++) {
         // NCHW layout: R is at 0, G at channelSize, B at 2*channelSize
@@ -59,11 +67,11 @@ function drawImage(pixels, height, width, canvas) {
         rgbaData[j * 4 + 3] = 255; // Alpha
     }
 
-    const imageData = new ImageData(rgbaData, width, height);
     if (canvas) {
         canvas.width = width;
         canvas.height = height;
-        canvas.getContext("2d").putImageData(imageData, 0, 0);
+        // putImageData copies synchronously, so the cached buffer is free to be reused right after.
+        canvas.getContext("2d").putImageData(imageDataCache, 0, 0);
     }
 }
 

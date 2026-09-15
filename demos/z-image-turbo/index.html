@@ -232,6 +232,7 @@
                         <canvas id="img_canvas"></canvas>
                     </div>
                 </div>
+                <div id="step_strip" class="step-strip hide"></div>
                 <div class="grid-2 hide">
                     <div id="test_img">
                         <canvas id="img_canvas_test"></canvas>
@@ -273,6 +274,13 @@
                                     <input type="number" id="seed-input" min="0" step="1" />
                                     <button id="random-seed" type="button" title="Randomize seed">🎲</button>
                                 </div>
+                            </div>
+                            <div
+                                class="seed-group"
+                                title="Decode and show the latent after every denoising step. This changes how the pipeline runs, so turn it off to measure performance."
+                            >
+                                <label for="show-steps">Steps preview:</label>
+                                <input type="checkbox" id="show-steps" />
                             </div>
                         </div>
                     </div>
