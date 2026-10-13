@@ -16,6 +16,10 @@ const START_LEAD_SECONDS = 0.02;
 export const STREAM_LEAD_HOPS = 2;
 // Refuse to start with less playable audio than this, rather than underrun on the first frame.
 const MIN_PLAYABLE_SECONDS = 0.05;
+// AudioBuffers are built only for regions starting within this window of now, so playback holds a
+// few seconds of audio rather than a second copy of the whole track. Three hops leave at least one
+// queued region (3.9s) of slack when the main thread is busy as a region ends.
+const SCHEDULE_AHEAD_SECONDS = (3 * HOP) / SAMPLE_RATE;
 
 const playButton = $("#mixer-play-btn");
 const stopButton = $("#mixer-stop-btn");
@@ -25,8 +29,9 @@ const streamStatElement = $("#mixer-stream-stat");
 export const stemMixer = {
     context: null,
     gains: {},
-    // Finalized audio as [{ startSample, length, buffers: { [name]: AudioBuffer } }]. AudioBuffers
-    // cannot grow, so each finalized region gets its own buffer scheduled on the shared clock.
+    stems: null, // { [name]: { left, right } } Float32Arrays the regions are read from
+    // Finalized audio as [{ startSample, length }]. AudioBuffers cannot grow, so each region is
+    // scheduled as its own buffers on the shared clock, created just before it plays.
     regions: [],
     scheduledRegionCount: 0,
     activeSources: [],
@@ -153,20 +158,13 @@ export function startStemMixer(totalSamples) {
     createMixerContext();
 }
 
-// Copies a finalized range into one AudioBuffer per stem and schedules it. Ranges must never
-// overlap, so callers advance a single monotonic frontier.
+// Marks a finalized range playable. Ranges must never overlap, so callers advance a single
+// monotonic frontier.
 export function publishStemRegion(stems, fromSample, toSample) {
-    const context = stemMixer.context;
     const length = toSample - fromSample;
-    if (!context || length <= 0) return;
-    const buffers = {};
-    for (const name of STEM_NAMES) {
-        const buffer = context.createBuffer(2, length, SAMPLE_RATE);
-        buffer.copyToChannel(stems[name].left.subarray(fromSample, toSample), 0);
-        buffer.copyToChannel(stems[name].right.subarray(fromSample, toSample), 1);
-        buffers[name] = buffer;
-    }
-    stemMixer.regions.push({ startSample: fromSample, length, buffers });
+    if (!stemMixer.context || length <= 0) return;
+    stemMixer.stems = stems;
+    stemMixer.regions.push({ startSample: fromSample, length });
     stemMixer.frontierSamples = toSample;
 
     if (stemMixer.resumeOnPublish && !stemMixer.playing) {
@@ -184,16 +182,36 @@ export function publishStemRegion(stems, fromSample, toSample) {
     for (const name of STEM_NAMES) stemMixer.tiles[name]?.redraw();
 }
 
+function createRegionBuffer(region, name) {
+    const { left, right } = stemMixer.stems[name];
+    const end = region.startSample + region.length;
+    const buffer = stemMixer.context.createBuffer(2, region.length, SAMPLE_RATE);
+    buffer.copyToChannel(left.subarray(region.startSample, end), 0);
+    buffer.copyToChannel(right.subarray(region.startSample, end), 1);
+    return buffer;
+}
+
+// Drops a finished source so its AudioBuffer can be collected.
+function releaseSource(source) {
+    source.disconnect();
+    const index = stemMixer.activeSources.indexOf(source);
+    if (index >= 0) stemMixer.activeSources.splice(index, 1);
+}
+
+// Called again from each region's onended (not rAF), so playback keeps going in a hidden tab.
 function scheduleReadyRegions() {
     const context = stemMixer.context;
     if (!stemMixer.playing || !context) return;
+    const horizon = context.currentTime + SCHEDULE_AHEAD_SECONDS;
     while (stemMixer.scheduledRegionCount < stemMixer.regions.length) {
-        const region = stemMixer.regions[stemMixer.scheduledRegionCount++];
+        const region = stemMixer.regions[stemMixer.scheduledRegionCount];
         const regionPosition = region.startSample / SAMPLE_RATE;
         const regionSeconds = region.length / SAMPLE_RATE;
         // Every start time derives from the one (startedAt, startOffset) origin mixerPosition() reads,
         // so regions cannot drift apart and stems cannot drift against each other.
         let when = stemMixer.startedAt + (regionPosition - stemMixer.startOffset);
+        if (when > horizon) break; // scheduled when an earlier region ends
+        stemMixer.scheduledRegionCount++;
         let offset = 0;
         if (when < context.currentTime) {
             offset = context.currentTime - when;
@@ -203,11 +221,18 @@ function scheduleReadyRegions() {
         const isLast = region.startSample + region.length >= stemMixer.totalSamples;
         for (const name of STEM_NAMES) {
             const source = context.createBufferSource();
-            source.buffer = region.buffers[name];
+            source.buffer = createRegionBuffer(region, name);
             source.connect(stemMixer.gains[name]);
+            source.onended =
+                name === STEM_NAMES[0]
+                    ? () => {
+                          releaseSource(source);
+                          // Backstop for end-of-track while the tab is hidden and rAF is parked.
+                          if (isLast) mixerHandleEnded();
+                          else scheduleReadyRegions();
+                      }
+                    : () => releaseSource(source);
             source.start(when, offset);
-            // Backstop for end-of-track while the tab is hidden and rAF is parked.
-            if (isLast && name === STEM_NAMES[0]) source.onended = () => mixerHandleEnded();
             stemMixer.activeSources.push(source);
         }
     }
@@ -335,13 +360,14 @@ export function updateTransportUi() {
     }
 }
 
-// Frees the previous run's audio buffers (~340 MB for a four-minute track) and waveform listeners.
+// Drops the previous run's stems (~340 MB for a four-minute track), audio graph and waveform listeners.
 export async function resetStemMixer() {
     mixerStopSources();
     cancelAnimationFrame(stemMixer.clockAnimationFrame);
     const context = stemMixer.context;
     Object.assign(stemMixer, {
         context: null,
+        stems: null,
         regions: [],
         gains: {},
         tiles: {},

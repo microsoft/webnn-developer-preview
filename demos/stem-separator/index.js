@@ -410,6 +410,8 @@ async function handleAudioFile(file) {
     );
 
     inputAudio.pause();
+    // The previous file's blob URL would otherwise pin that file for the life of the page.
+    if (inputAudio.src.startsWith("blob:")) URL.revokeObjectURL(inputAudio.src);
     inputAudio.src = URL.createObjectURL(file);
     // A fresh canvas drops the previous file's click/pointer listeners; destroy() drops the ones
     // attached to the shared `inputAudio` clock, which would otherwise leak across file loads.
@@ -614,29 +616,32 @@ function renderStemShells(stems, totalSamples, fileName) {
     updateStemTileStates();
 }
 
-// Encodes the WAVs and enables downloads. Clearing `streaming` lifts the seek clamp and drops the frontier marker.
+// Enables downloads. Clearing `streaming` lifts the seek clamp and drops the frontier marker.
+// WAVs are encoded on click, one at a time, so the stems are never held a second time as blobs.
 function finalizeStemResults(stems, fileName) {
     const baseName = stripExtension(fileName);
-    const blobs = {};
     stemMixer.streaming = false;
-    const encodeStart = performance.now();
+    const downloadStem = name => {
+        const encodeStart = performance.now();
+        const blob = encodeWavFloat32(stems[name].left, stems[name].right, SAMPLE_RATE);
+        const encodeTime = (performance.now() - encodeStart).toFixed(2);
+        log(`[Encode] ${name} encoded to WAV · ${toMegabytes(blob.size)} MB · ${encodeTime}ms`);
+        triggerDownload(blob, `${baseName}.${name}.wav`);
+    };
+    // Same size encodeWavFloat32 produces: 44-byte header + stereo float32 samples.
+    const wavBytes = 44 + stems[STEM_NAMES[0]].left.length * 8;
     for (const name of STEM_NAMES) {
-        blobs[name] = encodeWavFloat32(stems[name].left, stems[name].right, SAMPLE_RATE);
         const tile = stemMixer.tiles[name];
-        tile.sizeElement.textContent = `${toMegabytes(blobs[name].size)} MB`;
+        tile.sizeElement.textContent = `${toMegabytes(wavBytes)} MB`;
         tile.downloadButton.disabled = false;
         tile.downloadButton.title = `Download ${baseName}.${name}.wav`;
-        tile.downloadButton.onclick = () => triggerDownload(blobs[name], `${baseName}.${name}.wav`);
+        tile.downloadButton.onclick = () => downloadStem(name);
         tile.redraw();
     }
-    const encodeTime = (performance.now() - encodeStart).toFixed(2);
-    log(
-        `[Encode] ${STEM_NAMES.length} stems encoded to WAV · ${toMegabytes(blobs.drums.size)} MB each · ${encodeTime}ms`,
-    );
     downloadAllButton.disabled = false;
     downloadAllButton.onclick = async () => {
         for (const name of STEM_NAMES) {
-            triggerDownload(blobs[name], `${baseName}.${name}.wav`);
+            downloadStem(name);
             await new Promise(resolve => setTimeout(resolve, 300));
         }
     };
