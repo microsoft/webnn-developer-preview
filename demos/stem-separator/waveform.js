@@ -179,6 +179,7 @@ export function setupWaveform(canvas, left, right, clock, color, readySamples = 
     canvas.addEventListener("keydown", handleKeyDown);
     clock.addEventListener("play", handlePlay);
     clock.addEventListener("pause", handleStop);
+    clock.addEventListener("seek", handleStop);
     clock.addEventListener("ended", handleStop);
     clock.addEventListener("durationchange", updateAriaValue);
 
@@ -190,6 +191,7 @@ export function setupWaveform(canvas, left, right, clock, color, readySamples = 
         canvas.removeEventListener("keydown", handleKeyDown);
         clock.removeEventListener("play", handlePlay);
         clock.removeEventListener("pause", handleStop);
+        clock.removeEventListener("seek", handleStop);
         clock.removeEventListener("ended", handleStop);
         clock.removeEventListener("durationchange", updateAriaValue);
     };

@@ -38,7 +38,7 @@ export const stemMixer = {
     muted: new Set(),
     solo: new Set(),
     tiles: {}, // name -> { muteButton, soloButton, canvas, sizeElement, downloadButton, redraw }
-    listeners: { play: [], pause: [], ended: [] },
+    listeners: { play: [], pause: [], seek: [], ended: [] },
     duration: 0,
     totalSamples: 0,
     frontierSamples: 0, // how far separation has finalized
@@ -342,7 +342,10 @@ function mixerSeek(seconds) {
     stemMixer.playing = false;
     stemMixer.startOffset = target;
     if (wasPlaying) mixerPlay().catch(() => {});
-    else updateTransportUi();
+    else {
+        updateTransportUi();
+        mixerEmit("seek");
+    }
 }
 
 export function updateTransportUi() {
@@ -371,7 +374,7 @@ export async function resetStemMixer() {
         regions: [],
         gains: {},
         tiles: {},
-        listeners: { play: [], pause: [], ended: [] },
+        listeners: { play: [], pause: [], seek: [], ended: [] },
         duration: 0,
         totalSamples: 0,
         frontierSamples: 0,
