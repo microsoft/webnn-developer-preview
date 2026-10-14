@@ -762,7 +762,11 @@ async function rebuildSessions(modelNames) {
         currentSequenceLength = targetSequenceLength;
         dirtyModels.clear();
     } finally {
-        // Also on failure, so the hint reflects the dirty models right away.
+        // Also on failure, so the loading state stops and the hint reflects the dirty models. On
+        // success generateImage() sets the next frame state.
+        if (dirtyModels.size > 0) {
+            $("#img_div").setAttribute("class", "frame");
+        }
         updateRebuildHint();
     }
 
