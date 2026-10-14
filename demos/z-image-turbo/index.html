@@ -288,7 +288,9 @@
                         <span
                             id="rebuild-hint"
                             class="hide"
-                            title="The models are compiled for a fixed image size, so the next Generate rebuilds them for this resolution before running."
+                            role="status"
+                            aria-live="polite"
+                            title="The models are compiled for a fixed image size and, on WebNN, a fixed prompt token count, so the next Generate rebuilds them for the new resolution or token count before running."
                         ></span>
                         <button id="load" class="button" disabled>Load Models</button>
                         <button id="generate" class="button" disabled>

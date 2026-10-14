@@ -879,6 +879,18 @@ h1.title span {
     cursor: help;
 }
 
+/* Hidden visually, but kept out of display:none so the live region is already in the accessibility
+   tree when its text changes. */
+#buttons #rebuild-hint.hide {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 #error {
     align-self: center;
 }

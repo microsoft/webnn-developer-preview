@@ -150,6 +150,11 @@ const resolutionDependentModels = ["transformer", "scheduler_step", "vae_pre_pro
 // Models that also pin the sequence length (WebNN only).
 const sequenceLengthDependentModels = ["text_encoder", "transformer"];
 
+// Models a rebuild has started on but not finished. A failed rebuild may leave their sessions
+// released or compiled for the attempted dimensions, and the tensors disposed, so they stay stale
+// (even if the settings are reverted) until a rebuild or a full load completes.
+const dirtyModels = new Set();
+
 // Keeps the other session options, e.g. externalData from the first load.
 function setFreeDimensionOverrides(modelName, overrides) {
     const model = models[modelName];
@@ -277,34 +282,20 @@ class ProgressManager {
         }
     }
 
-    // Compile-only weights renormalized over the rebuilt subset; nothing is downloaded.
-    getRebuildWeights(modelNames) {
-        const loadWeights = this.getWeights(this.config.safetyChecker);
-        const compileCosts = {};
-        let totalCost = 0;
-        for (const modelName of modelNames) {
-            const cost = loadWeights[modelName]?.compile ?? 0;
-            if (cost > 0) {
-                compileCosts[modelName] = cost;
-                totalCost += cost;
+    // Same weights as the initial load, with the models that are not rebuilt counted as done, so the
+    // bar starts where the first load had it when it reached the rebuilt models.
+    // Nothing resets afterwards, or the loading-progress overlay (the animated "loadwave" over the
+    // image frame) would flash 0% on the way out.
+    beginRebuild(modelNames) {
+        this.weights = this.getWeights(this.config.safetyChecker);
+        this.reset();
+        for (const key in this.progress) {
+            if (!modelNames.includes(key)) {
+                this.progress[key] = { fetch_base: 100, fetch_data: 100, compile: 100 };
             }
         }
-
-        const rebuildWeights = {};
-        for (const [modelName, cost] of Object.entries(compileCosts)) {
-            rebuildWeights[modelName] = { fetch: 0, compile: (cost / totalCost) * 100 };
-        }
-        return rebuildWeights;
-    }
-
-    // endRebuild does not reset, or the wave would flash 0% on the way out.
-    beginRebuild(modelNames) {
-        this.weights = this.getRebuildWeights(modelNames);
-        this.reset();
-    }
-
-    endRebuild() {
-        this.weights = this.getWeights(this.config.safetyChecker);
+        this.calculateTotal();
+        updateLoadWave(this.totalProgress.toFixed(2));
     }
 
     update(modelName, stage, percentage) {
@@ -472,6 +463,7 @@ async function loadModels(models) {
         await initializeTensors();
         currentResolution = loadResolution;
         currentSequenceLength = loadSequenceLength;
+        dirtyModels.clear();
 
         log(`[Session Create] Initialize tensors completed · ${(performance.now() - startInitTensors).toFixed(2)}ms`);
     } catch (e) {
@@ -721,11 +713,13 @@ function modelsNeedingRebuild() {
     if (pinsSequenceLength && currentSequenceLength !== sequenceLength) {
         sequenceLengthDependentModels.forEach(modelName => staleModels.add(modelName));
     }
+    dirtyModels.forEach(modelName => staleModels.add(modelName));
     // Also drops the safety checker models, which are deleted from `models` when it is off.
     return Object.keys(models).filter(modelName => staleModels.has(modelName));
 }
 
-// State advances only on success, so a failed rebuild is retried on the next Generate.
+// State advances only on success; until then the models stay dirty, so a failed rebuild is retried
+// on the next Generate even if the settings are reverted.
 async function rebuildSessions(modelNames) {
     const startTime = performance.now();
     const targetResolution = resolution;
@@ -737,6 +731,17 @@ async function rebuildSessions(modelNames) {
     log(`[Session Create] Rebuilding ${modelNames.length} model(s) for ${target}...`);
     $("#img_div").setAttribute("class", "frame loadwave");
     progressManager.beginRebuild(modelNames);
+
+    // Blank the old create times so the table shows which models are being rebuilt; each row refills
+    // as its model finishes.
+    for (const modelName of modelNames) {
+        if (dom[modelName]) {
+            dom[modelName].create.innerHTML = "";
+        }
+    }
+
+    // Mark before releasing anything, so a failure part-way through can't go unnoticed.
+    modelNames.forEach(modelName => dirtyModels.add(modelName));
 
     try {
         disposeTensors();
@@ -755,13 +760,14 @@ async function rebuildSessions(modelNames) {
         await initializeTensors();
         currentResolution = targetResolution;
         currentSequenceLength = targetSequenceLength;
+        dirtyModels.clear();
     } finally {
-        progressManager.endRebuild();
+        // Also on failure, so the hint reflects the dirty models right away.
+        updateRebuildHint();
     }
 
     const elapsedTime = (performance.now() - startTime).toFixed(2);
     log(`[Session Create] Rebuilt models for ${target} · ${elapsedTime}ms`);
-    updateRebuildHint();
 }
 
 // Screen whatever the VAE decoder last produced. sc_prep's input is bound to that output, so this
@@ -883,9 +889,15 @@ function updateRebuildHint() {
         staleSettings.push(`${sequenceLength} tokens`);
     }
 
-    const rebuildPending = modelsLoaded && staleSettings.length > 0;
-    if (rebuildPending) {
+    const rebuildPending = modelsLoaded && (staleSettings.length > 0 || dirtyModels.size > 0);
+    // The element stays in the accessibility tree (see #rebuild-hint) and is a live region, so the
+    // change in text is what's announced; clear it when there is nothing to warn about.
+    if (!rebuildPending) {
+        rebuildHint.textContent = "";
+    } else if (staleSettings.length > 0) {
         rebuildHint.textContent = `rebuilds models for ${staleSettings.join(" · ")}`;
+    } else {
+        rebuildHint.textContent = "rebuilds models after a failed rebuild";
     }
     rebuildHint.classList.toggle("hide", !rebuildPending);
 }
@@ -940,7 +952,12 @@ async function generateImage() {
 
         const staleModels = modelsNeedingRebuild();
         if (staleModels.length > 0) {
-            await rebuildSessions(staleModels);
+            progressText.innerHTML = "rebuilding models ...";
+            try {
+                await rebuildSessions(staleModels);
+            } finally {
+                progressText.innerHTML = "generating ...";
+            }
         }
 
         $("#img_div").setAttribute("class", "frame inferncing");
