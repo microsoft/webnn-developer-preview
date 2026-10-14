@@ -341,7 +341,9 @@ function mixerSeek(seconds) {
     if (wasPlaying) mixerStopSources();
     stemMixer.playing = false;
     stemMixer.startOffset = target;
-    if (wasPlaying) mixerPlay().catch(() => {});
+    if (wasPlaying) {
+        mixerPlay().catch(() => {});
+    }
     else {
         updateTransportUi();
         mixerEmit("seek");
