@@ -54,6 +54,14 @@ This model is meant to be used with the corresponding sample on this repo for ed
 
 [MobileNet](https://github.com/onnx/models/tree/main/validated/vision/classification/mobilenet) and [ResNet](https://github.com/onnx/models/tree/main/validated/vision/classification/resnet) models perform image classification - they take images as input and classify the major object in the image into a set of pre-defined classes.
 
+### 7. Stem Separator
+
+[HTDemucs v4](https://huggingface.co/webnn/stem-separator/tree/main) is Meta's pretrained music source separation model. In the demo, you can split a stereo music track into drums, bass, other, and vocals stems, with results streaming in and playable as separation progresses.
+
+This HTDemucs model has been exported to run with WebNN. This model is licensed under the [MIT License](https://github.com/facebookresearch/demucs/blob/main/LICENSE). For terms of use, please visit the [facebookresearch/demucs](https://github.com/facebookresearch/demucs) project. If you comply with the license and terms of use, you have the rights described therin. By using this Model, you accept the terms.
+
+This model is meant to be used with the corresponding sample on this repo for educational or testing purposes only.
+
 ## Run WebNN Developer Preview
 
 ### Install Dependencies

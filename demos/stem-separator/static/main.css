@@ -1,0 +1,859 @@
+h1 {
+    padding: 0;
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+h1.title {
+    display: flex;
+    align-items: center;
+}
+
+h1.title span {
+    margin-right: 5px;
+}
+
+#webnn-logo {
+    width: 150px;
+    height: 30px;
+    display: inline-block;
+    margin: 0 6px 0 10px;
+    object-fit: contain;
+    /* The asset is drawn in white for dark backgrounds; darken it for this light header. */
+    filter: brightness(0) opacity(0.65);
+}
+
+.v1:hover #webnn-logo {
+    filter: brightness(0) saturate(100%) invert(43%) sepia(34%) saturate(976%) hue-rotate(179deg) brightness(88%)
+        contrast(88%) opacity(0.9);
+}
+
+#back {
+    width: 24px;
+    height: 24px;
+    border-radius: 48px;
+    border: 1px solid var(--main-5);
+    display: grid;
+    align-items: center;
+    justify-items: center;
+}
+
+#back a {
+    display: flex;
+}
+
+#back svg {
+    width: 20px;
+    height: 20px;
+}
+
+#back svg path {
+    fill: var(--main-5);
+}
+
+#back:hover {
+    border: 1px solid var(--main);
+    background: linear-gradient(135deg, var(--main) 0%, var(--main-dark) 40%, var(--main-darker) 100%);
+    box-shadow: 0 3px 15px -1px var(--main-5);
+    cursor: pointer;
+}
+
+#back:hover svg path {
+    fill: var(--bg);
+}
+
+.grid-2-41 {
+    display: grid;
+    grid-template-columns: 4fr 1fr;
+    grid-column-gap: 0.8rem;
+    align-items: start;
+    justify-items: center;
+    margin: 1rem 0;
+}
+
+.grid-2-41 h1 {
+    justify-self: left;
+}
+
+.grid-2-41.v1 {
+    margin: 0;
+    align-items: center;
+}
+
+.v1 {
+    padding: 1rem 40px;
+    border-bottom: 1px solid var(--border);
+}
+
+.v9 {
+    padding: 0 40px;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* Main stage + sidebar, same split as whisper-base. */
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+    align-items: start;
+    margin: 1rem 0;
+}
+
+.main {
+    min-width: 0;
+}
+
+#sidebar {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background-color: var(--main-alpha-2);
+}
+
+.settings .field {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.settings label {
+    color: var(--font-weak);
+}
+
+.settings select {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 0.9rem;
+    color: var(--font);
+    background-color: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 6px;
+    cursor: pointer;
+}
+
+.settings select:hover,
+.settings select:focus {
+    border: 1px solid var(--main);
+    outline: none;
+}
+
+.settings select:disabled {
+    cursor: not-allowed;
+    color: var(--font-weak);
+}
+
+.settings .key button {
+    width: 100%;
+    min-width: 0;
+}
+
+.settings .key button.attention {
+    box-shadow:
+        0 0 0 3px var(--main-1),
+        0 3px 15px -1px var(--main-5);
+    animation: attention-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes attention-pulse {
+    50% {
+        box-shadow:
+            0 0 0 5px var(--main-1),
+            0 3px 15px -1px var(--main-5);
+    }
+}
+
+.stage {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background-color: var(--main-alpha-2);
+    padding: 10px 12px 12px;
+    min-height: 40vh;
+}
+
+/* Model-load overlay, adapted from the sdxl-turbo .frame.loadwave effect. */
+.stage-loadwave {
+    --loadwave-value: 0;
+    --loadwave-layer-size: 1600px;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-color: var(--bg);
+}
+
+.stage-loadwave.over-tracks {
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+.main.busy #controls {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.stage-loadwave .loadwave-layer {
+    position: absolute;
+    left: 50%;
+    top: calc(100% - var(--loadwave-value) * 1%);
+    width: var(--loadwave-layer-size);
+    height: var(--loadwave-layer-size);
+    margin-left: calc(var(--loadwave-layer-size) / -2);
+    border-radius: calc(var(--loadwave-layer-size) / 2.5);
+    background: var(--main-1);
+    transition: top 0.4s ease-out;
+    animation: loadwave-rotate 8s linear infinite both;
+}
+
+.stage-loadwave .loadwave-layer:nth-child(2) {
+    background: var(--main-05);
+    animation-duration: 11s;
+    animation-direction: reverse;
+}
+
+.stage-loadwave .loadwave-data {
+    position: relative;
+    text-align: center;
+    color: var(--font);
+}
+
+.stage-loadwave .loadwave-data strong {
+    font-size: 3.2rem;
+    font-weight: 700;
+}
+
+.stage-loadwave .loadwave-data span {
+    font-size: 1.6rem;
+    margin-left: 2px;
+}
+
+.loadwave-label {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: var(--font-weak);
+}
+
+@keyframes loadwave-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.stage-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.stage-title {
+    font-weight: 600;
+}
+
+.track-file {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--font-weak);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stage-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34vh;
+    color: var(--font-weak);
+}
+
+.info-tip {
+    position: relative;
+    color: var(--main-5);
+    cursor: help;
+    outline: none;
+}
+
+.info-tip:hover,
+.info-tip:focus {
+    color: var(--main);
+}
+
+.info-tip .tip {
+    display: none;
+    position: absolute;
+    top: 150%;
+    left: -8px;
+    z-index: 10;
+    width: 420px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--font);
+    background: var(--bg);
+    border: 1px solid var(--main-5);
+    border-radius: 5px;
+    box-shadow: 0 3px 15px -1px var(--main-1);
+}
+
+.info-tip:hover .tip,
+.info-tip:focus .tip {
+    display: block;
+}
+
+/* One lane per track; every waveform spans the same column so playheads align. */
+.track {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) 56px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+}
+
+.track.mix {
+    border-top: 0;
+}
+
+.track-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.track-name {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.8rem;
+}
+
+.track.mix .track-name {
+    color: var(--grey);
+}
+
+.track-waveform {
+    display: block;
+    width: 100%;
+    height: 64px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.track-tail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.track-placeholder {
+    padding: 24px 0;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--font-weak);
+    border-top: 1px dashed var(--border);
+}
+
+button {
+    border-radius: 50px;
+    font-size: 1rem;
+    padding: 8px 24px;
+    cursor: pointer;
+    border: 1px solid var(--main);
+    background: linear-gradient(135deg, var(--main) 0%, var(--main-dark) 40%, var(--main-darker) 100%);
+    color: var(--bg);
+    font-family: "Archivo", system-ui, sans-serif;
+    text-shadow: var(--main-darker) 1px 2px 1px;
+}
+
+.key button {
+    min-width: 190px;
+}
+
+button:hover {
+    border: 1px solid var(--main-dark);
+    background: linear-gradient(135deg, var(--main-dark) 0%, var(--main-darker) 40%, var(--main-darker) 100%);
+    box-shadow: 0 3px 15px -1px var(--main-5);
+}
+
+/* Round icon buttons, same as the whisper-base controls. */
+.icon-btn,
+.key .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 49px;
+    height: 49px;
+    min-width: 0;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    text-shadow: none;
+    cursor: pointer;
+}
+
+.icon-btn.small {
+    width: 30px;
+    height: 30px;
+}
+
+.icon-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.icon-btn.small svg {
+    width: 18px;
+    height: 18px;
+}
+
+.icon-btn svg path {
+    fill: var(--font);
+}
+
+.icon-btn:hover {
+    background: var(--main-01);
+    border: 1px solid var(--main);
+    box-shadow: none;
+}
+
+.icon-btn:hover svg path {
+    fill: var(--main);
+}
+
+.icon-btn:disabled,
+.icon-btn:disabled:hover,
+#audio-file:disabled + .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    cursor: not-allowed;
+}
+
+.icon-btn:disabled svg path,
+#audio-file:disabled + .icon-btn svg path {
+    fill: var(--border);
+}
+
+.icon-btn .icon-pause,
+.icon-btn.playing .icon-play {
+    display: none;
+}
+
+.icon-btn.playing .icon-pause {
+    display: inline;
+}
+
+button:disabled,
+button:disabled:hover {
+    cursor: not-allowed;
+    color: var(--border);
+    background: var(--disabled);
+    border: 1px solid var(--border);
+    text-shadow: none;
+    box-shadow: none;
+}
+
+#status {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 0.8rem;
+    color: var(--font-weak);
+    margin: 0;
+}
+
+#infer-progress-container .progress-bar {
+    height: 4px;
+    margin-top: 6px;
+    border: 0;
+}
+
+#infer-progress-container .progress-label {
+    display: none;
+}
+
+.indicator {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    min-height: 1.4rem;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: var(--font-weak);
+}
+
+.result-ok {
+    color: var(--font);
+    font-weight: 600;
+}
+
+.result-sub {
+    margin-left: 8px;
+}
+
+#controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 1rem;
+}
+
+.transport {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: center;
+    min-height: 1.6rem;
+    margin-top: 8px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 2px;
+}
+
+.badge-success {
+    background: var(--green-2);
+    color: var(--font);
+}
+
+.badge-warning {
+    background: var(--main-alpha-4);
+    color: var(--font);
+    border: 1px solid var(--border);
+}
+
+.badge-error {
+    background: var(--pink);
+    color: var(--bg);
+}
+
+.badge-info {
+    background: var(--main-1);
+    color: var(--main-darker);
+}
+
+.log-output {
+    height: 46vh;
+    min-height: 200px;
+    padding: 10px;
+    background-color: var(--main-alpha-2);
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    font-family: "Consolas", "Monaco", monospace;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column-reverse;
+    overflow-y: scroll;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.log-output:hover {
+    border: 1px solid var(--main);
+    background-color: var(--bg-btn);
+}
+
+.footerinfo {
+    font-size: 0.8rem;
+}
+
+#webnnstatus {
+    text-align: right;
+    font-size: 0.8rem;
+    margin-top: 0;
+}
+
+#webnnstatus a {
+    color: var(--main);
+    text-decoration: none;
+}
+
+#webnnstatus a:hover {
+    color: var(--green);
+    text-decoration: underline;
+}
+
+#webnnstatus #circle {
+    width: 8px;
+    height: 8px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 1px;
+}
+
+#webnnstatus.green {
+    color: var(--font);
+}
+
+#webnnstatus.red {
+    background-color: var(--pink);
+    color: var(--bg);
+    border-radius: 5px;
+    margin-bottom: 5px;
+    padding: 4px 12px;
+}
+
+#webnnstatus.red a {
+    color: var(--bg);
+}
+
+#webnnstatus.green #circle {
+    background-color: var(--green);
+}
+
+#webnnstatus.red #circle {
+    background-color: var(--bg);
+}
+
+#versions {
+    font-size: 0.8rem;
+    display: block;
+    text-align: right;
+}
+
+#versions a {
+    color: var(--font);
+    text-decoration: underline var(--border);
+}
+
+#versions a:hover {
+    color: var(--green);
+    text-decoration: underline;
+}
+
+.result-note {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--font-weak);
+}
+
+.tensor-table {
+    width: 100%;
+    text-align: center;
+    border-spacing: 0;
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-radius: 5px;
+}
+
+.tensor-table th,
+.tensor-table td {
+    padding: 3px 8px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+.tensor-table th {
+    font-weight: 600;
+}
+
+.tensor-table tr:nth-child(even) {
+    background-color: var(--main-alpha-2);
+}
+
+.tensor-table tr td:hover {
+    background-color: var(--main-dark);
+    color: var(--bg);
+}
+.audio-details {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.audio-details .tensor-table {
+    text-align: left;
+    margin-top: 8px;
+    font-size: 0.8rem;
+}
+
+.progress-bar {
+    position: relative;
+    width: 100%;
+    height: 16px;
+    background: var(--main-alpha-4);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, var(--main) 0%, var(--main-dark) 40%, var(--main-darker) 100%);
+    width: 0%;
+    transition: width 0.2s;
+}
+/* The label overlays the whole track instead of living inside the fill:
+   while the fill is narrower than its own text the label would wrap and
+   spill out of it, which is what made the first few steps look broken. */
+.progress-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight: 600;
+    /* The label straddles fill and track at mid-progress, so it needs a
+       halo to stay legible over both the blue gradient and grey. */
+    color: var(--font);
+    text-shadow:
+        0 0 3px var(--bg),
+        0 0 1px var(--bg);
+}
+
+#mixer-clock {
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 0.9rem;
+    color: var(--font);
+    min-width: 92px;
+}
+
+/* Live separation-frontier readout. Same amber as the frontier line
+   on the waveforms, so the number and the marker read as one thing. */
+.mixer-stat {
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 0.8rem;
+    color: #8a5a00;
+    background: #fff8e8;
+    border: 1px solid #f3dca8;
+    border-radius: 3px;
+    padding: 2px 6px;
+}
+
+.stem-size {
+    font-size: 0.7rem;
+    color: var(--font-weak);
+    font-family: "Consolas", "Monaco", monospace;
+}
+
+.stem-toggles {
+    display: flex;
+    gap: 4px;
+}
+
+.stem-toggle {
+    width: 26px;
+    height: 22px;
+    min-width: 0;
+    padding: 0;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: var(--bg);
+    color: var(--grey);
+    border: 1px solid var(--border);
+    text-shadow: none;
+}
+
+.stem-toggle:hover {
+    background: var(--main-05);
+    color: var(--main-dark);
+    border: 1px solid var(--main-5);
+    box-shadow: none;
+}
+
+.stem-toggle.active,
+.stem-toggle.active:hover {
+    background: linear-gradient(135deg, var(--main) 0%, var(--main-dark) 40%, var(--main-darker) 100%);
+    color: var(--bg);
+    border: 1px solid var(--main);
+}
+
+.stem-toggle.solo.active,
+.stem-toggle.solo.active:hover {
+    background: linear-gradient(to right bottom, var(--pink-6), var(--pink-8), var(--pink));
+    border: 1px solid var(--pink);
+}
+
+/* Large devices such as laptops (1024px) */
+@media only screen and (max-width: 64em) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr) 260px;
+    }
+
+    .info-tip .tip {
+        width: 320px;
+    }
+}
+
+@media only screen and (max-width: 718px) {
+    .v1,
+    .v9 {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    #sidebar {
+        position: static;
+    }
+
+    .log-output {
+        height: 30vh;
+    }
+
+    .track {
+        grid-template-columns: 84px minmax(0, 1fr) 36px;
+        gap: 6px;
+    }
+
+    .track-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stem-size {
+        display: none;
+    }
+
+    .info-tip .tip {
+        width: 80vw;
+    }
+
+    #webnn-logo {
+        display: none;
+    }
+}

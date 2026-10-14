@@ -10,6 +10,7 @@ const KNOWN_COMPATIBLE_CHROMIUM_VERSION = {
     "whisper-base": "136.0.7051.0",
     "image-classification": "136.0.7051.0",
     "text-generation": "136.0.7051.0",
+    "stem-separator": "136.0.7051.0",
 };
 
 export const showCompatibleChromiumVersion = key => {
@@ -231,6 +232,11 @@ const KNOWN_COMPATIBLE_ORT_VERSION = {
         test: TEST_ORT_VERSION,
     },
     "text-generation": {
+        dev: DEV_ORT_VERSION,
+        stable: STABLE_ORT_VERSION,
+        test: TEST_ORT_VERSION,
+    },
+    "stem-separator": {
         dev: DEV_ORT_VERSION,
         stable: STABLE_ORT_VERSION,
         test: TEST_ORT_VERSION,

@@ -163,6 +163,14 @@ const models = [
         url: "webnn/DeepSeek-R1-Distill-ONNX/resolve/main/onnx/model.onnx.data",
         path: "./demos/text-generation/onnxruntime/DeepSeek-R1-Distill-ONNX/models",
     },
+    {
+        url: "webnn/stem-separator/resolve/main/onnx/htdemucs_fwd.onnx",
+        path: "./demos/stem-separator/models",
+    },
+    {
+        url: "webnn/stem-separator/resolve/main/onnx/htdemucs_fwd.onnx.data",
+        path: "./demos/stem-separator/models",
+    },
 ];
 
 const downloadFile = async (url, outputPath, retries = 2) => {

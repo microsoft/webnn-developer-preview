@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>WebNN Developer Preview - Stem Separator</title>
+        <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon/favicon-32x32.png" />
+        <link rel="stylesheet" href="../../assets/css/style.css" />
+        <link rel="stylesheet" href="./static/main.css" />
+    </head>
+    <body>
+        <div class="grid-2-41 v1">
+            <h1 class="title">
+                <div id="back">
+                    <a href="../../" aria-label="Back to demos">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24">
+                            <path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z" />
+                        </svg>
+                    </a>
+                </div>
+                <img id="webnn-logo" src="../../assets/img/logo-webnn-dark.svg" alt="WebNN logo" />
+                <span id="title">WebNN</span> Stem Separator
+            </h1>
+            <div id="badge" class="cpu">
+                <div class="badge-text">
+                    <span>Powered by</span>
+                    <div id="device">WebNN</div>
+                </div>
+                <div class="tiles">
+                    <div class="tile t0"></div>
+                    <div class="tile t1"></div>
+                    <div class="tile t2"></div>
+                    <div class="tile t1"></div>
+                    <div class="tile t2"></div>
+                    <div class="tile t3"></div>
+                    <div class="tile t2"></div>
+                    <div class="tile t3"></div>
+                    <div class="tile t4"></div>
+                </div>
+            </div>
+        </div>
+        <div class="v9 layout">
+            <div class="main">
+                <div id="stage" class="stage">
+                    <div class="stage-head">
+                        <span class="stage-title">Tracks</span>
+                        <span class="info-tip" tabindex="0" aria-label="About this demo">
+                            ⓘ
+                            <span class="tip" role="tooltip">
+                                Separates an audio file into drums, bass, other, and vocals in your browser.<br />
+                                Input is decoded, resampled to 44100 Hz, and chunked into 343980-sample segments with
+                                50% overlap; each segment runs through the NPU/GPU session and is stitched back with a
+                                triangular crossfade.<br />
+                                All four stems play in sync — use M to mute and S to solo. Downloads are 32-bit float
+                                stereo WAV at 44100 Hz, bit-perfect with the model output.
+                            </span>
+                        </span>
+                        <span id="track-file" class="track-file"></span>
+                    </div>
+                    <div id="stage-loadwave" class="stage-loadwave" hidden>
+                        <div class="loadwave-layer"></div>
+                        <div class="loadwave-layer"></div>
+                        <div class="loadwave-data">
+                            <div><strong id="loadwave-value">0</strong><span>%</span></div>
+                            <div id="loadwave-label" class="loadwave-label"></div>
+                        </div>
+                    </div>
+                    <div id="stage-empty" class="stage-empty"><em id="stage-msg">Load the model to begin.</em></div>
+                    <div id="mix-track" class="track mix" hidden>
+                        <div class="track-head">
+                            <div class="track-name">Mix</div>
+                            <button id="mix-play-btn" class="icon-btn small" type="button" title="Preview original mix">
+                                <svg class="icon-play" viewBox="0 -960 960 960">
+                                    <path d="M320-200v-560l440 280-440 280Z" />
+                                </svg>
+                                <svg class="icon-pause" viewBox="0 -960 960 960">
+                                    <path d="M560-200v-560h160v560H560Zm-320 0v-560h160v560H240Z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <canvas id="input-waveform" class="track-waveform" aria-label="Input audio waveform"></canvas>
+                        <div class="track-tail"></div>
+                        <audio id="input-audio" preload="metadata" hidden></audio>
+                    </div>
+                    <div id="results-gate-msg" class="track-placeholder" hidden>
+                        Stems will appear here after separation.
+                    </div>
+                    <div id="stem-grid" class="stem-lanes"></div>
+                </div>
+
+                <div id="infer-progress-container" style="display: none">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="infer-progress-fill"></div>
+                        <div class="progress-label" id="infer-progress-label">0%</div>
+                    </div>
+                </div>
+                <div class="indicator">
+                    <div id="infer-eta"></div>
+                    <div id="infer-result"></div>
+                </div>
+
+                <div id="controls" class="key">
+                    <input type="file" id="audio-file" accept="audio/*" hidden disabled />
+                    <label for="audio-file" class="icon-btn" title="Upload audio file">
+                        <svg viewBox="0 -960 960 960">
+                            <path
+                                d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"
+                            />
+                        </svg>
+                    </label>
+                    <button id="infer-btn" disabled>Start Separation</button>
+                    <div class="transport">
+                        <button id="mixer-stop-btn" class="icon-btn" type="button" title="Back to start" disabled>
+                            <svg viewBox="0 -960 960 960">
+                                <path d="M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z" />
+                            </svg>
+                        </button>
+                        <button id="mixer-play-btn" class="icon-btn" type="button" title="Play stems" disabled>
+                            <svg class="icon-play" viewBox="0 -960 960 960">
+                                <path d="M320-200v-560l440 280-440 280Z" />
+                            </svg>
+                            <svg class="icon-pause" viewBox="0 -960 960 960">
+                                <path d="M560-200v-560h160v560H560Zm-320 0v-560h160v560H240Z" />
+                            </svg>
+                        </button>
+                        <button
+                            id="download-all-btn"
+                            class="icon-btn"
+                            type="button"
+                            title="Download all stems (.wav)"
+                            disabled
+                        >
+                            <svg viewBox="0 -960 960 960">
+                                <path
+                                    d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"
+                                />
+                            </svg>
+                        </button>
+                        <span id="mixer-clock">0:00 / 0:00</span>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="mixer-stat" id="mixer-stream-stat" style="display: none"></span>
+                </div>
+            </div>
+
+            <aside id="sidebar">
+                <div class="settings">
+                    <div class="field">
+                        <label for="backend-select">Backend</label>
+                        <select id="backend-select">
+                            <option value="auto">Auto (cascade)</option>
+                            <option value="webnn-npu">WebNN NPU</option>
+                            <option value="webnn-gpu">WebNN GPU</option>
+                            <option value="webgpu">WebGPU</option>
+                            <option value="wasm">WASM</option>
+                        </select>
+                    </div>
+                    <div class="key"><button id="load-btn" disabled>Load Model</button></div>
+                    <div id="status">Ready. Load the model to begin.</div>
+                </div>
+                <div id="log" class="log-output"></div>
+                <div id="audio-info"></div>
+                <div id="stem-stats"></div>
+                <div class="footerinfo">
+                    <div id="webnnstatus"><span id="circle"></span> <span id="info">WebNN</span></div>
+                    <div id="versions">
+                        <div id="chromiumversion"></div>
+                        <div id="ortversion"></div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <script src="index.js" type="module"></script>
+    </body>
+</html>

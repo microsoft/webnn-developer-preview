@@ -280,6 +280,117 @@ header:hover #webnn-logo circle._logo_n3 {
     stroke: #61bafb;
 }
 
+.demo-shell-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.demo-shell-header .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 400;
+}
+
+.demo-shell-header #webnn-logo {
+    display: inline-block;
+    width: 150px;
+    height: 30px;
+    margin: 0 2px 0 4px;
+    flex: 0 0 auto;
+    object-fit: contain;
+    object-position: center;
+    vertical-align: middle;
+    filter: brightness(0) opacity(0.65);
+}
+
+.demo-shell-header #title {
+    font-weight: 700;
+}
+
+.demo-shell-header:hover #webnn-logo,
+.demo-shell-header:focus-within #webnn-logo {
+    filter: brightness(0) saturate(100%) invert(43%) sepia(34%) saturate(976%) hue-rotate(179deg) brightness(88%) contrast(88%) opacity(0.9);
+}
+
+.demo-shell-header #model {
+    font-weight: 700;
+}
+
+.demo-shell-header #back {
+    display: grid;
+    align-items: center;
+    justify-items: center;
+}
+
+.demo-shell-header #back a {
+    display: flex;
+}
+
+.demo-shell-header #back svg {
+    width: 20px;
+    height: 30px;
+}
+
+.demo-shell-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 24px 0 8px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    color: var(--grey);
+    font-size: 0.85rem;
+}
+
+.demo-shell-footer #versions {
+    display: flex;
+    gap: 12px;
+}
+
+.input-audio {
+    width: 100%;
+    margin-top: 14px;
+}
+
+.input-waveform {
+    display: block;
+    width: 100%;
+    height: 96px;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.audio-details {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+}
+
+.audio-details summary {
+    color: var(--font-weak);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.audio-ready {
+    margin-top: 10px;
+    color: #155724;
+    background: #d4edda;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
 .log-output::-webkit-scrollbar,
 #outputText::-webkit-scrollbar,
 #scroll-wrapper::-webkit-scrollbar {
@@ -422,13 +533,6 @@ a:focus {
 .thumb:focus .icon {
     opacity: 1;
     pointer-events: auto;
-}
-
-.thumb img {
-    display: block;
-    height: 100%;
-    width: auto;
-    max-width: none;
 }
 
 .thumb img {
