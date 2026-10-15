@@ -94,8 +94,9 @@ let imageWidth = resolution;
 const pinsSequenceLength = config.provider === "webnn";
 
 // Bucketing so small prompt edits don't trigger WebNN rebuilds; disable with ?padSequence=false. The
-// transformer has no attention mask, so padding changes the generated image.
-const sequencePadMultiple = config.padSequence ? 64 : 0;
+// transformer has no attention mask, so padding changes the generated image. WebGPU keeps the
+// sequence length dynamic, so it never pads.
+const sequencePadMultiple = pinsSequenceLength && config.padSequence ? 64 : 0;
 // Current prompt's token count (padded if enabled), updated as the prompt is edited.
 let sequenceLength = 113;
 // Sequence length the current sessions were compiled for.

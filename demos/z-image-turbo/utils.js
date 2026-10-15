@@ -113,7 +113,7 @@ function getConfig() {
         useIOBinding: true,
         verbose: false,
         presetPrompt: false,
-        // See sequencePadMultiple in index.js.
+        // WebNN only; see sequencePadMultiple in index.js.
         padSequence: true,
     };
 
