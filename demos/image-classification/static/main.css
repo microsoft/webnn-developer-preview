@@ -766,3 +766,11 @@ h4 {
         padding: 6px 14px;
     }
 }
+
+#dtypeBtns.hide {
+    display: none;
+}
+
+.models label.hide {
+    display: none;
+}
