@@ -1273,11 +1273,15 @@ const updateLoadWave = value => {
             data.innerHTML = value;
         });
 
-        if (value === 100) {
-            loadwave.forEach(l => {
+        // The completion marker hides the animation (see CSS), so clear it when progress restarts,
+        // e.g. on a rebuild after the initial load reached 100.
+        loadwave.forEach(l => {
+            if (value === 100) {
                 l.dataset.value = value;
-            });
-        }
+            } else {
+                delete l.dataset.value;
+            }
+        });
     }
 };
 
