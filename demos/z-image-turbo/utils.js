@@ -10,11 +10,15 @@ const tokenizer = await AutoTokenizer.from_pretrained("tokenizer");
 /**
  * Extracts and prepares input IDs and attention masks for the text encoder from a given prompt.
  *
+ * With padToMultiple set, the sequence is right-padded to the next multiple; see sequencePadMultiple
+ * in index.js for why and what it costs.
+ *
  * @param {string} prompt - The user input text.
  * @param {number} maxSequenceLength - Maximum token length allowed for the model.
- * @returns {Promise<{inputIds: BigInt64Array, attentionMask: BigInt64Array, sequenceLength: number}>}
+ * @param {number} [padToMultiple=0] - Round the sequence up to a multiple of this; 0 disables padding.
+ * @returns {Promise<{inputIds: BigInt64Array, attentionMask: BigInt64Array, sequenceLength: number, tokenCount: number}>}
  */
-async function getTextEncoderInputs(prompt, maxSequenceLength) {
+async function getTextEncoderInputs(prompt, maxSequenceLength, padToMultiple = 0) {
     const messages = [{ role: "user", content: prompt }];
     const promptWithTemplate = tokenizer.apply_chat_template(messages, {
         tokenize: false,
@@ -29,10 +33,28 @@ async function getTextEncoderInputs(prompt, maxSequenceLength) {
         return_tensor: false,
     });
 
-    const inputIds = new BigInt64Array(promptInputs.input_ids[0].map(BigInt));
-    const attentionMask = new BigInt64Array(promptInputs.attention_mask[0].map(BigInt));
+    let inputIds = new BigInt64Array(promptInputs.input_ids[0].map(BigInt));
+    let attentionMask = new BigInt64Array(promptInputs.attention_mask[0].map(BigInt));
+    const tokenCount = inputIds.length;
 
-    return { inputIds, attentionMask, sequenceLength: inputIds.length };
+    let sequenceLength = tokenCount;
+    if (padToMultiple > 0) {
+        sequenceLength = Math.min(maxSequenceLength, Math.ceil(tokenCount / padToMultiple) * padToMultiple);
+    }
+
+    if (sequenceLength > tokenCount) {
+        // The zeroed mask tail keeps the padding out of the text encoder.
+        const padTokenId = BigInt(tokenizer.pad_token_id ?? tokenizer.eos_token_id ?? 0);
+        const paddedInputIds = new BigInt64Array(sequenceLength).fill(padTokenId);
+        paddedInputIds.set(inputIds);
+        inputIds = paddedInputIds;
+
+        const paddedAttentionMask = new BigInt64Array(sequenceLength);
+        paddedAttentionMask.set(attentionMask);
+        attentionMask = paddedAttentionMask;
+    }
+
+    return { inputIds, attentionMask, sequenceLength, tokenCount };
 }
 
 /** @type {ImageData|null} Scratch RGBA buffer for drawImage, re-allocated only when the size changes. */
@@ -91,6 +113,8 @@ function getConfig() {
         useIOBinding: true,
         verbose: false,
         presetPrompt: false,
+        // See sequencePadMultiple in index.js.
+        padSequence: true,
     };
 
     for (const key in config) {

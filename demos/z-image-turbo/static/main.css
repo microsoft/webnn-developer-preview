@@ -341,7 +341,7 @@ h1.title span {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 8px;
-    height: 150px;
+    height: 96px;
     overflow-y: auto;
     font-family: inherit;
 }
@@ -470,7 +470,7 @@ h1.title span {
 }
 
 #data {
-    margin-top: 10px;
+    margin-bottom: 8px;
 }
 
 .grid {
@@ -576,7 +576,15 @@ h1.title span {
     flex: 0 0 auto;
     padding-bottom: 4px;
     width: 100%;
-    max-width: 512px;
+}
+
+/* Auto margins center the thumbnails yet, unlike justify-content, keep overflow scrollable. */
+.step-thumb:first-child {
+    margin-left: auto;
+}
+
+.step-thumb:last-child {
+    margin-right: auto;
 }
 
 .step-strip.hide {
@@ -852,6 +860,37 @@ h1.title span {
     display: none;
 }
 
+/* The ~320px column can't fit the hint beside the buttons, so it takes a full row above them. */
+#buttons {
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+
+#buttons #rebuild-hint {
+    flex: 0 0 100%;
+    text-align: right;
+    padding-right: 2px;
+    color: var(--pink);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    cursor: help;
+}
+
+/* Hidden visually, but kept out of display:none so the live region is already in the accessibility
+   tree when its text changes. */
+#buttons #rebuild-hint.hide {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 #error {
     align-self: center;
 }
@@ -1107,6 +1146,11 @@ h1.title span {
     position: relative;
 }
 
+/* .frame.loadwave sets width: 100%, which overrides aspect-ratio once max-width is lifted at 1024. */
+.layout-right #img_div.loadwave {
+    width: auto;
+}
+
 .layout-right canvas {
     object-fit: contain;
     max-width: 100%;
@@ -1143,6 +1187,9 @@ h1.title span {
     }
     .layout-right #img_div {
         height: auto !important;
+    }
+    .layout-right #img_div.loadwave {
+        width: 100%;
     }
 }
 
