@@ -1218,7 +1218,6 @@ const checkWebNN = async () => {
         status.setAttribute("class", "green");
         info.innerHTML = "WebNN supported";
         updateDeviceTypeLinks();
-        load.disabled = false;
     } else {
         if (webnnStatus.error) {
             status.setAttribute("class", "red");
@@ -1329,19 +1328,23 @@ const ui = async () => {
     }
     dom.runTotal = $("#runTotal");
 
+    // Load Models stays disabled until everything it depends on (provider support, the WebNN
+    // context, the initial token count and the click handler) is set up at the end of ui().
+    let providerReady = false;
     switch (config.provider) {
         case "webgpu":
             title.innerHTML = "WebGPU";
             $("#webnnstatus").hidden = true;
-            load.disabled = false;
             if (!("gpu" in navigator)) {
                 throw new Error("webgpu is NOT supported");
             }
+            providerReady = true;
             break;
         case "webnn": {
             await checkWebNN();
             const webnnStatus = await getWebnnStatus();
             if (webnnStatus.webnn) {
+                providerReady = true;
                 if (config.useIOBinding) {
                     mlContext = await WebNNPerf.time("webnn.context.create", () =>
                         navigator.ml.createContext({ deviceType: config.deviceType }),
@@ -1469,6 +1472,7 @@ const ui = async () => {
     load.addEventListener("click", () => {
         loadModelUi();
     });
+    load.disabled = !providerReady;
 
     ort.env.wasm.numThreads = 4;
     ort.env.wasm.simd = true;
