@@ -1,5 +1,8 @@
 /* eslint-disable no-undef */
-import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.13.4";
+import {
+    AutoTokenizer,
+    env,
+} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.min.js";
 import {
     isFloat16ArrayAvailable,
     getQueryValue,
@@ -7,13 +10,20 @@ import {
     remapHuggingFaceDomainIfNeeded,
     checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
+const HF_MODEL_REPO = "webnn/stable-diffusion-v1.5-webnn";
 let tokenizers;
 document.addEventListener("DOMContentLoaded", async () => {
     let path = "";
+    // Transformers.js v3+ disables local models in the browser by default. Keep it off for remote repos,
+    // otherwise it probes (and 404s on) a local `/models/<repo>/` path before falling back to Hugging Face.
+    env.allowLocalModels = false;
     if (checkRemoteEnvironment()) {
-        path = "webnn/stable-diffusion-v1.5-webnn";
+        path = HF_MODEL_REPO;
+        // Transformers.js loads tokenizer files from the repo root, but they live in `tokenizer/` here.
+        env.remotePathTemplate = "{model}/resolve/{revision}/tokenizer/";
         await remapHuggingFaceDomainIfNeeded(env);
     } else {
+        env.allowLocalModels = true;
         path = "../../demos/stable-diffusion-1.5/models/tokenizer/";
     }
     tokenizers = await AutoTokenizer.from_pretrained(path);
@@ -229,13 +239,21 @@ export function encodeFloat16(floatValue) /*: uint16 Number*/ {
     return bits;
 }
 
-export const modelPath = async () => {
-    if (checkRemoteEnvironment()) {
-        const remoteHost = await getHuggingFaceDomain();
-        return `https://${remoteHost}/microsoft/stable-diffusion-v1.5-webnn/resolve/main/`;
+// `?model=<base url>` overrides where the models are loaded from, otherwise it is Hugging Face when deployed and
+// the local `models/` folder (see fetch_models.js) when running locally.
+export const modelUrl = async path => {
+    let base = getQueryValue("model");
+    if (base) {
+        base = base.replace(/\/$/, "");
+        if (base.includes("huggingface.co")) {
+            base = base.replace("huggingface.co", await getHuggingFaceDomain());
+        }
+    } else if (checkRemoteEnvironment()) {
+        base = `https://${await getHuggingFaceDomain()}/${HF_MODEL_REPO}/resolve/main`;
     } else {
-        return "models/";
+        base = "models";
     }
+    return `${base}/${path}`;
 };
 
 export const getSafetyChecker = () => {
