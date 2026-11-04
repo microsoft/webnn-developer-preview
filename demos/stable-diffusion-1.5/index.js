@@ -511,26 +511,10 @@ function convertPlanarFloat32RgbToUint8Rgba(input /*Uint16Array*/, width, height
     return rgba;
 }
 
-async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
-    WebNNPerf.configure({ device: device, provider: executionProvider });
-    let modelPath;
-    let modelSession;
-    let freeDimensionOverrides;
-    let modelSize;
-
-    if (modelName == "text-encoder") {
-        modelSize = "235MB";
-    } else if (modelName == "unet") {
-        modelSize = "1.60GB";
-    } else if (modelName == "vae-decoder") {
-        modelSize = "94.5MB";
-    } else if (modelName == "safety-checker") {
-        modelSize = "580MB";
-    }
-
-    log(`[Load] Loading model ${modelName} · ${modelSize}`);
-    const modelPathFromUtils = await Utils.modelPath();
-    if (modelName == "text-encoder") {
+const models = {
+    "text-encoder": {
+        size: "235MB",
+        url: "onnx/text_encoder_model_f16.onnx",
         //  Inputs:
         //    int32 input_ids[batch,sequence]
         //    batch: 2
@@ -540,13 +524,14 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         //    float16 pooler_output[Addlast_hidden_state_dim_0,768] We don't care about this ignorable output.
         //    Addlast_hidden_state_dim_0: 2
         //    Addlast_hidden_state_dim_1: 77
-        // modelPath = 'models/Stable-Diffusion-v1.5-text-encoder-float16.onnx';
-        modelPath = modelPathFromUtils + "text-encoder.onnx";
-        freeDimensionOverrides = {
+        freeDimensionOverrides: {
             batch: unetBatch,
             sequence: textEmbeddingSequenceLength,
-        };
-    } else if (modelName == "unet") {
+        },
+    },
+    unet: {
+        size: "1.60GB",
+        url: "onnx/unet_model_f16.onnx",
         //  Typical shapes (some models may vary, like inpainting have 9 channels or single batch having 1 batch)...
         //
         //  Inputs:
@@ -555,51 +540,51 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         //    float16 encoder_hidden_states[2, 77, 768]
         //  Outputs:
         //    float16 out_sample[2, 4, 64, 64]
-        modelPath = modelPathFromUtils + "sd-unet-v1.5-model-b2c4h64w64s77-float16-compute-and-inputs-layernorm.onnx";
-
-        freeDimensionOverrides = {
-            batch: unetBatch,
-            channels: unetChannelCount,
-            height: latentHeight,
-            width: latentWidth,
-            sequence: textEmbeddingSequenceLength,
-            unet_sample_batch: unetBatch,
-            unet_sample_channels: unetChannelCount,
-            unet_sample_height: latentHeight,
-            unet_sample_width: latentWidth,
-            unet_time_batch: unetBatch,
-            unet_hidden_batch: unetBatch,
-            unet_hidden_sequence: textEmbeddingSequenceLength,
-        };
-    } else if (modelName == "vae-decoder") {
+        //  The shapes are static, so there is nothing to override.
+    },
+    "vae-decoder": {
+        size: "94.5MB",
+        url: "onnx/vae_decoder_model_f16.onnx",
         //  Inputs:
         //    float16 latent_sample[1, 4, 64, 64]
         //  Outputs:
         //    float16 sample[1, 3, 512, 512]
-        modelPath = modelPathFromUtils + "Stable-Diffusion-v1.5-vae-decoder-float16-fp32-instancenorm.onnx";
-        freeDimensionOverrides = {
+        freeDimensionOverrides: {
             batch: 1,
             channels: latentChannelCount,
             height: latentHeight,
             width: latentWidth,
-        };
-    } else if (modelName == "safety-checker") {
+        },
+    },
+    "safety-checker": {
+        size: "580MB",
+        url: "onnx/safety_checker_model_f16.onnx",
         //  Inputs:
         //    float16 clip_input[1, 3, 224, 224]
         //    float16 images[1, 224, 224, 3]
         //  Outputs:
         //    float16 out_images
         //    bool has_nsfw_concepts
-        modelPath = modelPathFromUtils + "safety_checker_int32_reduceSum.onnx";
-        freeDimensionOverrides = {
+        freeDimensionOverrides: {
             batch: 1,
             channels: 3,
             height: 224,
             width: 224,
-        };
-    } else {
+        },
+    },
+};
+
+async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
+    WebNNPerf.configure({ device: device, provider: executionProvider });
+    let modelSession;
+
+    const modelConfig = models[modelName];
+    if (!modelConfig) {
         throw new Error(`Model ${modelName} is unknown`);
     }
+
+    log(`[Load] Loading model ${modelName} · ${modelConfig.size}`);
+    const modelPath = await Utils.modelUrl(modelConfig.url);
 
     const options = {
         executionProviders: [
@@ -610,8 +595,8 @@ async function loadModel(modelName /*:String*/, executionProvider /*:String*/) {
         ],
     };
 
-    if (freeDimensionOverrides != undefined) {
-        options.freeDimensionOverrides = freeDimensionOverrides;
+    if (modelConfig.freeDimensionOverrides != undefined) {
+        options.freeDimensionOverrides = modelConfig.freeDimensionOverrides;
     }
 
     options.logSeverityLevel = 0;
@@ -1288,6 +1273,17 @@ const updateSeed = () => {
 };
 
 changeSeed.addEventListener("click", updateSeed, false);
+
+// Typing a seed takes effect right away; an empty or non-numeric value keeps the previous seed.
+userSeed.addEventListener(
+    "input",
+    () => {
+        if (/^\d+$/.test(userSeed.value)) {
+            seed = BigInt(userSeed.value);
+        }
+    },
+    false,
+);
 
 memoryReleaseSwitch.addEventListener("change", () => {
     if (memoryReleaseSwitch.checked) {

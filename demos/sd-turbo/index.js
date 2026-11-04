@@ -5,7 +5,10 @@
 // An example how to run sd-turbo with webnn in onnxruntime-web.
 //
 
-import { AutoTokenizer, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.js";
+import {
+    AutoTokenizer,
+    env,
+} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.min.js";
 import {
     $,
     $$,
@@ -21,15 +24,15 @@ import {
     checkRemoteEnvironment,
 } from "../../assets/js/common_utils.js";
 import { WebNNPerf } from "../webnn-perf.js";
+const HF_MODEL_REPO = "webnn/sd-turbo-webnn";
+
 /*
  * get configuration from url
  */
 function getConfig() {
     const queryParams = new URLSearchParams(window.location.search);
     const config = {
-        model: location.href.includes("github.io")
-            ? `https://huggingface.co/microsoft/sd-turbo-webnn/resolve/main`
-            : "models",
+        model: location.href.includes("github.io") ? `https://huggingface.co/${HF_MODEL_REPO}/resolve/main` : "models",
         mode: "none",
         safetyChecker: true,
         provider: "webnn",
@@ -238,20 +241,8 @@ async function load_models(models) {
         let modelNameInLog = "";
         try {
             let start = performance.now();
-            let modelUrl;
-            if (name == "text_encoder") {
-                modelNameInLog = "Text Encoder";
-                modelUrl = `${config.model}/${name}/model_layernorm.onnx`;
-            } else if (name == "unet") {
-                modelNameInLog = "UNet";
-                modelUrl = `${config.model}/${name}/model_layernorm.onnx`;
-            } else if (name == "vae_decoder") {
-                modelNameInLog = "VAE Decoder";
-                modelUrl = `${config.model}/${name}/model.onnx`;
-            } else if (name == "safety_checker") {
-                modelNameInLog = "Safety Checker";
-                modelUrl = `${config.model}/${name}/safety_checker_int32_reduceSum.onnx`;
-            }
+            modelNameInLog = model.name;
+            let modelUrl = `${config.model}/${model.url}`;
             if (modelUrl.includes("huggingface.co")) {
                 await getHuggingFaceDomain().then(domain => {
                     modelUrl = modelUrl.replace("huggingface.co", domain);
@@ -350,32 +341,30 @@ async function load_models(models) {
 
 const config = getConfig();
 
-let models = {
+const models = {
+    text_encoder: {
+        name: "Text Encoder",
+        url: "onnx/text_encoder_model_f16.onnx",
+        size: "649MB",
+        opt: { graphOptimizationLevel: "disabled" },
+    },
     unet: {
-        // original model from dw, then wm dump new one from local graph optimization.
-        url: "unet/model_layernorm.onnx",
+        name: "UNet",
+        url: "onnx/unet_model_f16.onnx",
         size: "1.61GB",
         opt: { graphOptimizationLevel: "disabled" }, // avoid wasm heap issue (need Wasm memory 64)
     },
-    text_encoder: {
-        // orignal model from gu, wm convert the output to fp16.
-        url: "text_encoder/model_layernorm.onnx",
-        size: "649MB",
-        opt: { graphOptimizationLevel: "disabled" },
-        // opt: { freeDimensionOverrides: { batch_size: 1, sequence_length: 77 } },
-    },
     vae_decoder: {
-        // use gu's model has precision lose in webnn caused by instanceNorm op,
-        // covert the model to run instanceNorm in fp32 (insert cast nodes).
-        url: "vae_decoder/model.onnx",
+        name: "VAE Decoder",
+        url: "onnx/vae_decoder_model_f16.onnx",
         size: "94.5MB",
-        // opt: { freeDimensionOverrides: { batch_size: 1, num_channels_latent: 4, height_latent: 64, width_latent: 64 } }
         opt: {
             freeDimensionOverrides: { batch: 1, channels: 4, height: 64, width: 64 },
         },
     },
     safety_checker: {
-        url: "safety_checker/model.onnx",
+        name: "Safety Checker",
+        url: "onnx/safety_checker_model_f16.onnx",
         size: "580MB",
         opt: {
             freeDimensionOverrides: {
@@ -588,7 +577,8 @@ async function generate_image() {
 
         const prompt = $("#user-input");
         const { input_ids } = await tokenizer(prompt.value, {
-            padding: true,
+            // Pad to max_length (77); `padding: true` only pads to the longest input in Transformers.js v3+.
+            padding: "max_length",
             max_length: 77,
             truncation: true,
             return_tensor: false,
@@ -1066,10 +1056,16 @@ const ui = async () => {
     ort.env.wasm.simd = true;
 
     let path = "";
+    // Transformers.js v3+ disables local models in the browser by default. Keep it off for remote repos,
+    // otherwise it probes (and 404s on) a local `/models/<repo>/` path before falling back to Hugging Face.
+    env.allowLocalModels = false;
     if (checkRemoteEnvironment()) {
-        path = "webnn/sd-turbo-webnn";
+        path = HF_MODEL_REPO;
+        // Transformers.js loads tokenizer files from the repo root, but they live in `tokenizer/` here.
+        env.remotePathTemplate = "{model}/resolve/{revision}/tokenizer/";
         await remapHuggingFaceDomainIfNeeded(env);
     } else {
+        env.allowLocalModels = true;
         path = "../../demos/sd-turbo/models/tokenizer";
     }
 
@@ -1083,42 +1079,13 @@ const ui = async () => {
     }
 
     if (!getSafetyChecker()) {
-        models = {
-            unet: {
-                // original model from dw, then wm dump new one from local graph optimization.
-                url: "unet/model_layernorm.onnx",
-                size: "1.61GB",
-                opt: { graphOptimizationLevel: "disabled" }, // avoid wasm heap issue (need Wasm memory 64)
-            },
-            text_encoder: {
-                // orignal model from gu, wm convert the output to fp16.
-                url: "text_encoder/model_layernorm.onnx",
-                size: "649MB",
-                opt: { graphOptimizationLevel: "disabled" },
-                // opt: { freeDimensionOverrides: { batch_size: 1, sequence_length: 77 } },
-            },
-            vae_decoder: {
-                // use gu's model has precision lose in webnn caused by instanceNorm op,
-                // covert the model to run instanceNorm in fp32 (insert cast nodes).
-                url: "vae_decoder/model.onnx",
-                size: "94.5MB",
-                // opt: { freeDimensionOverrides: { batch_size: 1, num_channels_latent: 4, height_latent: 64, width_latent: 64 } }
-                opt: {
-                    freeDimensionOverrides: {
-                        batch: 1,
-                        channels: 4,
-                        height: 64,
-                        width: 64,
-                    },
-                },
-            },
-        };
+        delete models.safety_checker;
     }
 
     window.addEventListener("beforeunload", () => {
         if (memoryReleaseSwitch.checked) {
             const sessions = [
-                models.safety_checker.sess,
+                models.safety_checker?.sess,
                 models.vae_decoder.sess,
                 models.unet.sess,
                 models.text_encoder.sess,

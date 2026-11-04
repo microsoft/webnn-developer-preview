@@ -377,6 +377,11 @@ h1.title span {
     transition: width 0.3s ease-in-out;
 }
 
+/* Pin the bar to the top of its grid cell, so a wrapped label in one cell doesn't push the other bar down. */
+.grid-2 > .progress {
+    align-self: start;
+}
+
 .progress:hover {
     color: var(--main);
 }

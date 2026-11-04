@@ -24,20 +24,20 @@ const models = [
         path: "./demos/image-classification/models/webnn/efficientnet-lite4/onnx",
     },
     {
-        url: "microsoft/sd-turbo-webnn/resolve/main/text_encoder/model_layernorm.onnx",
-        path: "./demos/sd-turbo/models/text_encoder",
+        url: "webnn/sd-turbo-webnn/resolve/main/onnx/text_encoder_model_f16.onnx",
+        path: "./demos/sd-turbo/models/onnx",
     },
     {
-        url: "microsoft/sd-turbo-webnn/resolve/main/unet/model_layernorm.onnx",
-        path: "./demos/sd-turbo/models/unet",
+        url: "webnn/sd-turbo-webnn/resolve/main/onnx/unet_model_f16.onnx",
+        path: "./demos/sd-turbo/models/onnx",
     },
     {
-        url: "microsoft/sd-turbo-webnn/resolve/main/vae_decoder/model.onnx",
-        path: "./demos/sd-turbo/models/vae_decoder",
+        url: "webnn/sd-turbo-webnn/resolve/main/onnx/vae_decoder_model_f16.onnx",
+        path: "./demos/sd-turbo/models/onnx",
     },
     {
-        url: "microsoft/sd-turbo-webnn/resolve/main/safety_checker/safety_checker_int32_reduceSum.onnx",
-        path: "./demos/sd-turbo/models/safety_checker",
+        url: "webnn/sd-turbo-webnn/resolve/main/onnx/safety_checker_model_f16.onnx",
+        path: "./demos/sd-turbo/models/onnx",
     },
     {
         url: "webnn/sdxl-turbo/resolve/main/onnx/text_encoder_model_q4f16.onnx",
@@ -88,20 +88,20 @@ const models = [
         path: "./demos/sdxl-turbo/models/onnx",
     },
     {
-        url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/text-encoder.onnx",
-        path: "./demos/stable-diffusion-1.5/models",
+        url: "webnn/stable-diffusion-v1.5-webnn/resolve/main/onnx/text_encoder_model_f16.onnx",
+        path: "./demos/stable-diffusion-1.5/models/onnx",
     },
     {
-        url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/sd-unet-v1.5-model-b2c4h64w64s77-float16-compute-and-inputs-layernorm.onnx",
-        path: "./demos/stable-diffusion-1.5/models",
+        url: "webnn/stable-diffusion-v1.5-webnn/resolve/main/onnx/unet_model_f16.onnx",
+        path: "./demos/stable-diffusion-1.5/models/onnx",
     },
     {
-        url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/Stable-Diffusion-v1.5-vae-decoder-float16-fp32-instancenorm.onnx",
-        path: "./demos/stable-diffusion-1.5/models",
+        url: "webnn/stable-diffusion-v1.5-webnn/resolve/main/onnx/vae_decoder_model_f16.onnx",
+        path: "./demos/stable-diffusion-1.5/models/onnx",
     },
     {
-        url: "microsoft/stable-diffusion-v1.5-webnn/resolve/main/safety_checker_int32_reduceSum.onnx",
-        path: "./demos/stable-diffusion-1.5/models",
+        url: "webnn/stable-diffusion-v1.5-webnn/resolve/main/onnx/safety_checker_model_f16.onnx",
+        path: "./demos/stable-diffusion-1.5/models/onnx",
     },
     {
         url: "webnn/segment-anything-model-webnn/resolve/main/sam_vit_b_01ec64.encoder-fp16.onnx",
