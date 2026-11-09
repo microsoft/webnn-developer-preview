@@ -4,7 +4,10 @@
         <title>WebNN Developer Preview - Stable Diffusion XL Turbo</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <!-- Chrome Origin Trial Token -->
-        <meta http-equiv="origin-trial" content="AhjsLjlLzSuPkRlbqxK0oxJTJbR6LAid3bBLDr693iu4jHMRVwWGmyoPKQSNutP3ASfoRBffXBVm5sDT7xe4SgcAAABseyJvcmlnaW4iOiJodHRwczovL21pY3Jvc29mdC5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IldlYk1hY2hpbmVMZWFybmluZ05ldXJhbE5ldHdvcmsiLCJleHBpcnkiOjE3ODM5ODcyMDB9">
+        <meta
+            http-equiv="origin-trial"
+            content="AhjsLjlLzSuPkRlbqxK0oxJTJbR6LAid3bBLDr693iu4jHMRVwWGmyoPKQSNutP3ASfoRBffXBVm5sDT7xe4SgcAAABseyJvcmlnaW4iOiJodHRwczovL21pY3Jvc29mdC5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IldlYk1hY2hpbmVMZWFybmluZ05ldXJhbE5ldHdvcmsiLCJleHBpcnkiOjE3ODM5ODcyMDB9"
+        />
         <link rel="apple-touch-icon" sizes="180x180" href="./static/favicon/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="./static/favicon/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="./static/favicon/favicon-16x16.png" />
@@ -398,7 +401,10 @@
                 </div>
             </div>
             <div id="data_area" class="grid-4">
-                <div id="total_data"></div>
+                <div id="data1"></div>
+                <div id="data2"></div>
+                <div id="data3"></div>
+                <div id="data4"></div>
             </div>
             <div class="button-group key" id="buttons">
                 <textarea class="form-control" id="user-input" placeholder="Enter your prompt"></textarea>
@@ -435,41 +441,74 @@
                         <tr>
                             <th rowspan="3" id="tdTurbo">SDXL Turbo<br />(ms)</th>
                             <th colspan="2">Load</th>
-                            <th colspan="8">Execution</th>
+                            <th colspan="8" id="executionTh">Execution</th>
                         </tr>
                         <tr>
                             <td rowspan="2" id="fetch">Fetch</td>
                             <td rowspan="2" title="ONNX Runtime Session Create Time (Compilation)">Create</td>
-                            <td colspan="2" id="imagesTd">Images</td>
+                            <td colspan="2" class="image-th">Image 1</td>
+                            <td colspan="2" class="image-th">Image 2</td>
+                            <td colspan="2" class="image-th">Image 3</td>
+                            <td colspan="2" class="image-th">Image 4</td>
                         </tr>
                         <tr>
+                            <td class="run-th" title="ONNX Runtime Session Run Time (Inference)">Run</td>
+                            <td>Total <sup>*</sup></td>
+                            <td class="run-th" title="ONNX Runtime Session Run Time (Inference)">Run</td>
+                            <td>Total <sup>*</sup></td>
+                            <td class="run-th" title="ONNX Runtime Session Run Time (Inference)">Run</td>
+                            <td>Total <sup>*</sup></td>
+                            <td class="run-th" title="ONNX Runtime Session Run Time (Inference)">Run</td>
+                            <td>Total <sup>*</sup></td>
                         </tr>
                         <tr>
                             <td id="textEncoder">Text Encoder</td>
                             <td id="textEncoderFetch">&nbsp;</td>
                             <td id="textEncoderCreate">&nbsp;</td>
-                            <td id="runTotal" rowspan="4">&nbsp;</td>
+                            <td id="textEncoderRun1">&nbsp;</td>
+                            <td id="runTotal1" rowspan="4">&nbsp;</td>
+                            <td id="textEncoderRun2">&nbsp;</td>
+                            <td id="runTotal2" rowspan="4">&nbsp;</td>
+                            <td id="textEncoderRun3">&nbsp;</td>
+                            <td id="runTotal3" rowspan="4">&nbsp;</td>
+                            <td id="textEncoderRun4">&nbsp;</td>
+                            <td id="runTotal4" rowspan="4">&nbsp;</td>
                         </tr>
                         <tr>
                             <td id="textEncoder2">Text Encoder 2</td>
                             <td id="textEncoder2Fetch">&nbsp;</td>
                             <td id="textEncoder2Create">&nbsp;</td>
+                            <td id="textEncoder2Run1">&nbsp;</td>
+                            <td id="textEncoder2Run2">&nbsp;</td>
+                            <td id="textEncoder2Run3">&nbsp;</td>
+                            <td id="textEncoder2Run4">&nbsp;</td>
                         </tr>
                         <tr>
                             <td id="unet">UNet</td>
                             <td id="unetFetch">&nbsp;</td>
                             <td id="unetCreate">&nbsp;</td>
+                            <td id="unetRun1">&nbsp;</td>
+                            <td id="unetRun2">&nbsp;</td>
+                            <td id="unetRun3">&nbsp;</td>
+                            <td id="unetRun4">&nbsp;</td>
                         </tr>
                         <tr>
                             <td id="vae">VAE</td>
                             <td id="vaeFetch">&nbsp;</td>
                             <td id="vaeCreate">&nbsp;</td>
+                            <td id="vaeRun1">&nbsp;</td>
+                            <td id="vaeRun2">&nbsp;</td>
+                            <td id="vaeRun3">&nbsp;</td>
+                            <td id="vaeRun4">&nbsp;</td>
                         </tr>
                         <tr id="scTr">
                             <td id="sc">Safety Checker</td>
                             <td id="scFetch">&nbsp;</td>
                             <td id="scCreate">&nbsp;</td>
-                            <td id="scRun" colspan="2">&nbsp;</td>
+                            <td id="scRun1" colspan="2">&nbsp;</td>
+                            <td id="scRun2" colspan="2">&nbsp;</td>
+                            <td id="scRun3" colspan="2">&nbsp;</td>
+                            <td id="scRun4" colspan="2">&nbsp;</td>
                         </tr>
                     </table>
                     <div>

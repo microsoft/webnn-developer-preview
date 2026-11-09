@@ -207,8 +207,6 @@ h1.title span {
     font-size: 1.6rem;
     font-weight: 600;
     height: 40px;
-    display: flex;
-    justify-content: center;
 }
 
 #data_area div {
