@@ -893,7 +893,7 @@ async function generateImage() {
             log(`[Session Run] concat completed`);
         }
 
-        // The text encoders and the concat model run once, every image uses the same prompt embeddings. Their time
+        // The text encoders and the concat model run once, as every image uses the same prompt embeddings. Their time
         // is part of the total time of each image.
         const promptRunTime = performance.now() - startTotal;
 
