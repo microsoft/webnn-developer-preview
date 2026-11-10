@@ -511,10 +511,11 @@ export function convertToFloat16OrUint16Array(fp32_array) {
     return fp16_array;
 }
 
-// Create a new ORT ML Tensor from the given parameters.
-export async function createMlTensor(mlContext, dataType, dims, writable, readable) {
+// Create a new ORT ML Tensor from the given parameters. `mlDataType` is the data type of the underlying ML tensor,
+// which differs from the `dataType` of the ORT tensor when the backend doesn't support it, e.g. int32 for int64.
+export async function createMlTensor(mlContext, dataType, dims, writable, readable, mlDataType = dataType) {
     const mlTensor = await mlContext.createTensor({
-        dataType: dataType === "bool" ? "uint8" : dataType,
+        dataType: mlDataType === "bool" ? "uint8" : mlDataType,
         shape: dims,
         writable,
         readable,

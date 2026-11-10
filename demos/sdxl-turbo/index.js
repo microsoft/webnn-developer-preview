@@ -27,6 +27,8 @@ import {
 import { WebNNPerf } from "../webnn-perf.js";
 let device = "gpu";
 let mlContext;
+// Whether the WebNN backend supports int64, the ML tensors of the int64 model inputs fall back to int32 if not.
+let int64Supported = true;
 let gpuDevice;
 let badge;
 let memoryReleaseSwitch;
@@ -56,7 +58,15 @@ const opt = {
 const tokenizer = await AutoTokenizer.from_pretrained("tokenizer");
 const tokenizer2 = await AutoTokenizer.from_pretrained("tokenizer_2");
 
-const batchSize = config.images;
+// With IO binding run() only queues the model, the work is waited for when an output is read back (the VAE Decoder
+// here), so the time of a single model can't be told. Show the time of each model only without IO binding.
+const showModelRunTime = () => getMode() && !config.useIOBinding;
+
+// Every image is generated on its own. A batch of several images saves a little inference time per image, but its
+// peak memory is much higher and runs out of memory on some backends and lower-end devices.
+const batchSize = 1;
+// There is a frame for up to 4 images.
+const imageCount = Math.min(Math.max(config.images, 1), 4);
 const imageHeight = 512;
 const imageWidth = 512;
 const models = {
@@ -527,6 +537,9 @@ const getDataTypeSize = dataType => {
     }
 };
 
+// The data type of the ML tensor for a model input of `dataType`, see int64Supported.
+const getMlDataType = dataType => (dataType === "int64" && !int64Supported ? "int32" : dataType);
+
 async function createTensor(tensorInfo) {
     let tensor;
     const numElements = sizeOfShape(tensorInfo.dims);
@@ -555,12 +568,14 @@ async function createTensor(tensorInfo) {
         return new ort.Tensor(tensorInfo.dataType, data, tensorInfo.dims);
     }
     if (config.provider === "webnn") {
+        // The ORT tensor keeps the data type of the model input, only the ML tensor falls back.
         tensor = await createMlTensor(
             mlContext,
             tensorInfo.dataType,
             tensorInfo.dims,
             tensorInfo.writable ?? false,
             tensorInfo.readable ?? false,
+            getMlDataType(tensorInfo.dataType),
         );
     } else if (config.provider === "webgpu") {
         const bufferSize = numElements * getDataTypeSize(tensorInfo.dataType);
@@ -799,16 +814,19 @@ async function generateImage() {
     imgDivs.forEach(div => div.setAttribute("class", "frame"));
 
     try {
-        dom["runTotal"].innerHTML = "";
-        dom["safety_checker"].run.innerHTML = "";
-
-        $("#total_data").innerHTML = "...";
-        $("#total_data").setAttribute("class", "show");
+        dom.runTotal.forEach(element => (element.innerHTML = ""));
+        for (const modelName of Object.keys(modelDOMPrefixes)) {
+            dom[modelName].run.forEach(element => (element.innerHTML = ""));
+        }
+        for (let i = 1; i <= imageCount; i++) {
+            $(`#data${i}`).innerHTML = getMode() ? "... ms" : "...";
+            $(`#data${i}`).setAttribute("class", "show");
+        }
 
         log(`[Session Run] Beginning`);
 
         await loading;
-        for (let i = 0; i < batchSize; i++) {
+        for (let i = 0; i < imageCount; i++) {
             $(`#img_div_${i}`).setAttribute("class", "frame inferncing");
         }
 
@@ -831,8 +849,9 @@ async function generateImage() {
         await runModel(models["text_encoder"]);
 
         const sessionRunTimeTextEncode = (performance.now() - start).toFixed(2);
+        dom["text_encoder"].run.forEach(element => (element.innerHTML = sessionRunTimeTextEncode));
 
-        if (getMode()) {
+        if (showModelRunTime()) {
             log(`[Session Run] Text Encoder execution time: ${sessionRunTimeTextEncode}ms`);
         } else {
             log(`[Session Run] Text Encoder completed`);
@@ -846,13 +865,18 @@ async function generateImage() {
             truncation: true,
             return_tensor: false,
         });
-        const inputIds2Data = new BigInt64Array(inputIds2.map(x => BigInt(x)));
+        // The ML tensor of an int64 input is int32 when the backend doesn't support int64, see getMlDataType().
+        const inputIds2Data =
+            config.useIOBinding && config.provider === "webnn" && !int64Supported
+                ? Int32Array.from(inputIds2)
+                : new BigInt64Array(inputIds2.map(x => BigInt(x)));
         writeTensor(models["text_encoder_2"].feed.input_ids, inputIds2Data);
         await runModel(models["text_encoder_2"]);
 
         const sessionRunTimeTextEncode2 = (performance.now() - start).toFixed(2);
+        dom["text_encoder_2"].run.forEach(element => (element.innerHTML = sessionRunTimeTextEncode2));
 
-        if (getMode()) {
+        if (showModelRunTime()) {
             log(`[Session Run] Text Encoder 2 execution time: ${sessionRunTimeTextEncode2}ms`);
         } else {
             log(`[Session Run] Text Encoder 2 completed`);
@@ -863,120 +887,126 @@ async function generateImage() {
         // Construct promptEmbeds and pooledPromptEmbeds (Batch N) by repeating the single batch output
         start = performance.now();
         await runModel(models["concat"]);
-        if (getMode()) {
+        if (showModelRunTime()) {
             log(`[Session Run] concat execution time: ${(performance.now() - start).toFixed(2)}ms`);
         } else {
             log(`[Session Run] concat completed`);
         }
 
-        // Initialize latents (Batch N) for random noise
-        start = performance.now();
-        await runModel(models["latents"]);
-        if (getMode()) {
-            log(`[Session Run] latents execution time: ${(performance.now() - start).toFixed(2)}ms`);
-        } else {
-            log(`[Session Run] latents completed`);
-        }
+        // The text encoders and the concat model run once, as every image uses the same prompt embeddings. Their time
+        // is part of the total time of each image.
+        const promptRunTime = performance.now() - startTotal;
 
-        // Run UNet
-        start = performance.now();
-        await runModel(models["unet"]);
-        const unetRunTime = (performance.now() - start).toFixed(2);
+        for (let j = 0; j < imageCount; j++) {
+            const imageStart = performance.now();
+            const imageLog = `[Image ${j + 1}]`;
 
-        if (getMode()) {
-            log(`[Session Run] UNet execution time: ${unetRunTime}ms`);
-        } else {
-            log(`[Session Run] UNet completed`);
-        }
-
-        // Inference prepare for VAE Decoder
-
-        // scheduler
-        start = performance.now();
-        await runModel(models["scheduler"]);
-        if (getMode()) {
-            log(`[Session Run] Scheduler execution time: ${(performance.now() - start).toFixed(2)}ms`);
-        } else {
-            log(`[Session Run] Scheduler completed`);
-        }
-
-        // Run VAE Decoder
-        start = performance.now();
-        await runModel(models["vae_decoder"]);
-
-        const pixSize = sizeOfShape(models["vae_decoder"].outputInfo.sample.dims);
-        let pix = new Float16Array(pixSize);
-        await readTensor(models["vae_decoder"].fetches.sample, pix);
-
-        let vaeRunTime = (performance.now() - start).toFixed(2);
-
-        if (getMode()) {
-            log(`[Session Run] VAE Decoder execution time: ${vaeRunTime}ms`);
-        } else {
-            log(`[Session Run] VAE Decoder completed`);
-        }
-
-        start = performance.now();
-        for (let i = 0; i < batchSize; i++) {
-            const size = 3 * imageHeight * imageWidth;
-            const offset = i * size;
-            const subPix = pix.subarray(offset, offset + size);
-            drawImage(subPix, i, imageHeight, imageWidth);
-        }
-        const imageDrawTime = (performance.now() - start).toFixed(2);
-        log(`[Images Drawing] drawing ${batchSize} images time: ${imageDrawTime}ms`);
-
-        const totalRunTime = (performance.now() - startTotal).toFixed(2);
-        if (getMode()) {
-            log(`[Total] Total images generation time: ${totalRunTime}ms`);
-        }
-        dom.runTotal.innerHTML = totalRunTime;
-
-        if (config.safetyChecker) {
-            // 1. Run Preprocessing Model (VAE Output -> SC Input)
-            let start = performance.now();
-            await runModel(models["sc_prep"]);
-
-            if (getMode()) {
-                log(`[Session Run] Safety Checker input prepared time: ${(performance.now() - start).toFixed(2)}ms`);
-            } else {
-                log(`[Session Run] Safety Checker input prepared`);
-            }
-
-            // 2. Run Safety Checker
+            // Initialize latents (Batch 1) for random noise
             start = performance.now();
-            await runModel(models["safety_checker"]);
-
-            // 3. Read Results
-            let nsfwBuffer = new Uint8Array(batchSize);
-            await readTensor(models["safety_checker"].fetches.has_nsfw_concepts, nsfwBuffer);
-
-            const totalScRunTime = (performance.now() - start).toFixed(2);
-
-            // 4. Process Results UI
-            for (let i = 0; i < batchSize; i++) {
-                let nsfw = nsfwBuffer[i] ? true : false;
-                log(`[Session Run][Image ${i + 1}] Safety Checker - not safe for work (NSFW) concepts: ${nsfw}`);
-
-                if (nsfw) {
-                    $(`#img_div_${i}`).setAttribute("class", "frame done nsfw");
-                    $(`#img_div_${i}`).setAttribute("title", "Not safe for work (NSFW) content");
-                } else {
-                    $(`#img_div_${i}`).setAttribute("class", "frame done");
-                }
+            await runModel(models["latents"]);
+            if (showModelRunTime()) {
+                log(`[Session Run]${imageLog} latents execution time: ${(performance.now() - start).toFixed(2)}ms`);
+            } else {
+                log(`[Session Run]${imageLog} latents completed`);
             }
 
-            dom["safety_checker"].run.innerHTML = totalScRunTime;
+            // Run UNet
+            start = performance.now();
+            await runModel(models["unet"]);
+            const unetRunTime = (performance.now() - start).toFixed(2);
+            dom["unet"].run[j].innerHTML = unetRunTime;
+
+            if (showModelRunTime()) {
+                log(`[Session Run]${imageLog} UNet execution time: ${unetRunTime}ms`);
+            } else {
+                log(`[Session Run]${imageLog} UNet completed`);
+            }
+
+            // Inference prepare for VAE Decoder
+
+            // scheduler
+            start = performance.now();
+            await runModel(models["scheduler"]);
+            if (showModelRunTime()) {
+                log(`[Session Run]${imageLog} Scheduler execution time: ${(performance.now() - start).toFixed(2)}ms`);
+            } else {
+                log(`[Session Run]${imageLog} Scheduler completed`);
+            }
+
+            // Run VAE Decoder
+            start = performance.now();
+            await runModel(models["vae_decoder"]);
+
+            const pixSize = sizeOfShape(models["vae_decoder"].outputInfo.sample.dims);
+            let pix = new Float16Array(pixSize);
+            await readTensor(models["vae_decoder"].fetches.sample, pix);
+
+            let vaeRunTime = (performance.now() - start).toFixed(2);
+            dom["vae_decoder"].run[j].innerHTML = vaeRunTime;
+
+            if (showModelRunTime()) {
+                log(`[Session Run]${imageLog} VAE Decoder execution time: ${vaeRunTime}ms`);
+            } else {
+                log(`[Session Run]${imageLog} VAE Decoder completed`);
+            }
+
+            start = performance.now();
+            drawImage(pix, j, imageHeight, imageWidth);
+            const imageDrawTime = (performance.now() - start).toFixed(2);
+            log(`[Images Drawing]${imageLog} drawing time: ${imageDrawTime}ms`);
+
+            // The safety checker time is shown on its own.
+            const totalRunTime = (performance.now() - imageStart + promptRunTime).toFixed(2);
             if (getMode()) {
-                log(`[Session Run] Safety Checker execution time (Batch ${batchSize}): ${totalScRunTime}ms`);
+                log(`[Total]${imageLog} execution time: ${totalRunTime}ms`);
             }
-        } else {
-            for (let i = 0; i < batchSize; i++) {
-                $(`#img_div_${i}`).setAttribute("class", "frame done");
+            dom.runTotal[j].innerHTML = totalRunTime;
+
+            let nsfw = false;
+            if (config.safetyChecker) {
+                // 1. Run Preprocessing Model (VAE Output -> SC Input)
+                start = performance.now();
+                await runModel(models["sc_prep"]);
+
+                if (showModelRunTime()) {
+                    log(
+                        `[Session Run]${imageLog} Safety Checker input prepared time: ${(performance.now() - start).toFixed(2)}ms`,
+                    );
+                } else {
+                    log(`[Session Run]${imageLog} Safety Checker input prepared`);
+                }
+
+                // 2. Run Safety Checker
+                start = performance.now();
+                await runModel(models["safety_checker"]);
+
+                // 3. Read Results
+                let nsfwBuffer = new Uint8Array(batchSize);
+                await readTensor(models["safety_checker"].fetches.has_nsfw_concepts, nsfwBuffer);
+
+                const totalScRunTime = (performance.now() - start).toFixed(2);
+                dom["safety_checker"].run[j].innerHTML = totalScRunTime;
+                if (getMode()) {
+                    log(`[Session Run]${imageLog} Safety Checker execution time: ${totalScRunTime}ms`);
+                }
+
+                // 4. Process Results
+                nsfw = nsfwBuffer[0] ? true : false;
+                log(`[Session Run]${imageLog} Safety Checker - not safe for work (NSFW) concepts: ${nsfw}`);
+            }
+
+            const data = getMode() ? `${totalRunTime}ms` : `${j + 1}`;
+            if (nsfw) {
+                $(`#img_div_${j}`).setAttribute("class", "frame done nsfw");
+                $(`#img_div_${j}`).setAttribute("title", "Not safe for work (NSFW) content");
+                $(`#data${j + 1}`).innerHTML = `${data} · NSFW`;
+                $(`#data${j + 1}`).setAttribute("class", "nsfw show");
+            } else {
+                $(`#img_div_${j}`).setAttribute("class", "frame done");
+                $(`#data${j + 1}`).innerHTML = data;
+                $(`#data${j + 1}`).setAttribute("class", "show");
             }
         }
-
-        $("#total_data").innerHTML = `${totalRunTime}ms`;
 
         generate.disabled = false;
         log("[Info] Images generation completed");
@@ -1082,7 +1112,6 @@ const ui = async () => {
     load = $("#load");
     generate = $("#generate");
     buttons = $("#buttons");
-    $("#imagesTd").innerHTML = `Images x ${batchSize}`;
 
     memoryReleaseSwitch.addEventListener("change", () => {
         if (memoryReleaseSwitch.checked) {
@@ -1111,10 +1140,20 @@ const ui = async () => {
         dom[modelName] = {
             fetch: $(`#${prefix}Fetch`),
             create: $(`#${prefix}Create`),
-            run: $(`#${prefix}Run`),
+            run: [1, 2, 3, 4].map(i => $(`#${prefix}Run${i}`)),
         };
     }
-    dom.runTotal = $("#runTotal");
+    dom.runTotal = [1, 2, 3, 4].map(i => $(`#runTotal${i}`));
+    if (config.useIOBinding) {
+        // Hide the Run column, only the Safety Checker has a time of its own and shows it under Total.
+        $$("#data .run-th").forEach(element => (element.style.display = "none"));
+        $$("#data .image-th").forEach(element => (element.colSpan = 1));
+        $("#executionTh").colSpan = 4;
+        for (const modelName of ["text_encoder", "text_encoder_2", "unet", "vae_decoder"]) {
+            dom[modelName].run.forEach(element => (element.style.display = "none"));
+        }
+        dom.safety_checker.run.forEach(element => (element.colSpan = 1));
+    }
 
     opt.executionProviders = [config.provider];
     switch (config.provider) {
@@ -1130,6 +1169,10 @@ const ui = async () => {
                     mlContext = await WebNNPerf.time("webnn.context.create", () =>
                         navigator.ml.createContext({ deviceType: config.deviceType }),
                     );
+                    int64Supported = mlContext.opSupportLimits?.().constant?.dataTypes?.includes("int64") ?? true;
+                    if (!int64Supported) {
+                        log("[Load] The backend doesn't support int64, falling back to int32 for the int64 inputs");
+                    }
                 }
                 opt.executionProviders = [
                     {
@@ -1224,13 +1267,11 @@ const ui = async () => {
             progressManager.reset();
             for (const key in dom) {
                 if (key === "runTotal") {
-                    dom[key].innerHTML = "";
+                    dom[key].forEach(element => (element.innerHTML = ""));
                 } else {
                     dom[key].fetch.innerHTML = "";
                     dom[key].create.innerHTML = "";
-                    if (dom[key].run) {
-                        dom[key].run.innerHTML = "";
-                    }
+                    dom[key].run.forEach(element => (element.innerHTML = ""));
                 }
             }
         }
